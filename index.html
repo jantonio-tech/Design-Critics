@@ -773,6 +773,66 @@
 
         const productos = ["PGH", "Factoring", "Gestora", "Transversal", "Cambio Seguro", "Recadia"];
 
+        // Authentication Helper Functions
+        const AuthStorage = {
+            CONSENT_KEY: 'dc_user_consent',
+
+            hasUserConsented(email) {
+                if (!email) return false;
+                const consentData = localStorage.getItem(this.CONSENT_KEY);
+                if (!consentData) return false;
+                try {
+                    const consents = JSON.parse(consentData);
+                    return consents[email] === true;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            setUserConsent(email) {
+                if (!email) return;
+                try {
+                    let consents = {};
+                    const existing = localStorage.getItem(this.CONSENT_KEY);
+                    if (existing) {
+                        consents = JSON.parse(existing);
+                    }
+                    consents[email] = true;
+                    localStorage.setItem(this.CONSENT_KEY, JSON.stringify(consents));
+                } catch (e) {
+                    console.error('Error saving consent:', e);
+                }
+            },
+
+            clearUserConsent(email) {
+                if (!email) return;
+                try {
+                    const existing = localStorage.getItem(this.CONSENT_KEY);
+                    if (existing) {
+                        const consents = JSON.parse(existing);
+                        delete consents[email];
+                        localStorage.setItem(this.CONSENT_KEY, JSON.stringify(consents));
+                    }
+                } catch (e) {
+                    console.error('Error clearing consent:', e);
+                }
+            },
+
+            getLastUserEmail() {
+                return localStorage.getItem('dc_last_user_email');
+            },
+
+            setLastUserEmail(email) {
+                if (email) {
+                    localStorage.setItem('dc_last_user_email', email);
+                }
+            },
+
+            clearLastUserEmail() {
+                localStorage.removeItem('dc_last_user_email');
+            }
+        };
+
         // Google Sheets Data Service
         class SheetsDataService {
             constructor(accessToken) {
@@ -966,55 +1026,93 @@
         // Login Component
         function LoginPage({ onLogin, error }) {
             const [isAuthenticating, setIsAuthenticating] = useState(false);
+            const [tokenClientReady, setTokenClientReady] = useState(false);
 
             useEffect(() => {
                 // Initialize Google Identity Services Token Client
-                if (window.google) {
-                    window.tokenClient = window.google.accounts.oauth2.initTokenClient({
-                        client_id: CONFIG.clientId,
-                        scope: CONFIG.scope,
-                        callback: async (tokenResponse) => {
-                            if (tokenResponse.access_token) {
-                                try {
-                                    // Get user info using the access token
-                                    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-                                        headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                                    });
-                                    const userInfo = await userInfoResponse.json();
+                const initTokenClient = () => {
+                    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+                        try {
+                            window.tokenClient = window.google.accounts.oauth2.initTokenClient({
+                                client_id: CONFIG.clientId,
+                                scope: CONFIG.scope,
+                                callback: async (tokenResponse) => {
+                                    if (tokenResponse.access_token) {
+                                        try {
+                                            // Get user info using the access token
+                                            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                                                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                                            });
+                                            const userInfo = await userInfoResponse.json();
 
-                                    // Validate email domain
-                                    if (!userInfo.email.endsWith('@prestamype.com')) {
-                                        onLogin(null, 'Debes usar un correo @prestamype.com');
+                                            // Validate email domain
+                                            if (!userInfo.email.endsWith('@prestamype.com')) {
+                                                onLogin(null, 'Debes usar un correo @prestamype.com');
+                                                setIsAuthenticating(false);
+                                                return;
+                                            }
+
+                                            const user = {
+                                                name: userInfo.name,
+                                                email: userInfo.email,
+                                                picture: userInfo.picture,
+                                                initials: userInfo.name.split(' ').map(n => n[0]).join('').substring(0, 2),
+                                                accessToken: tokenResponse.access_token
+                                            };
+
+                                            // Store consent after successful authentication
+                                            AuthStorage.setUserConsent(userInfo.email);
+                                            AuthStorage.setLastUserEmail(userInfo.email);
+
+                                            onLogin(user, null);
+                                        } catch (error) {
+                                            console.error('Error getting user info:', error);
+                                            onLogin(null, 'Error al obtener información del usuario');
+                                            setIsAuthenticating(false);
+                                        }
+                                    } else if (tokenResponse.error) {
+                                        console.error('Token error:', tokenResponse.error);
+                                        onLogin(null, 'Error en la autenticación');
                                         setIsAuthenticating(false);
-                                        return;
                                     }
+                                },
+                            });
+                            setTokenClientReady(true);
+                        } catch (error) {
+                            console.error('Error initializing token client:', error);
+                            setTimeout(initTokenClient, 500); // Retry after 500ms
+                        }
+                    } else {
+                        // Google API not loaded yet, retry
+                        setTimeout(initTokenClient, 100);
+                    }
+                };
 
-                                    const user = {
-                                        name: userInfo.name,
-                                        email: userInfo.email,
-                                        picture: userInfo.picture,
-                                        initials: userInfo.name.split(' ').map(n => n[0]).join('').substring(0, 2),
-                                        accessToken: tokenResponse.access_token
-                                    };
-
-                                    onLogin(user, null);
-                                } catch (error) {
-                                    console.error('Error getting user info:', error);
-                                    onLogin(null, 'Error al obtener información del usuario');
-                                    setIsAuthenticating(false);
-                                }
-                            }
-                        },
-                    });
-                }
+                initTokenClient();
             }, [onLogin]);
 
             const handleGoogleLogin = () => {
+                if (!tokenClientReady || !window.tokenClient) {
+                    onLogin(null, 'Error: Google OAuth no está disponible. Por favor recarga la página.');
+                    return;
+                }
+
                 setIsAuthenticating(true);
-                if (window.tokenClient) {
-                    window.tokenClient.requestAccessToken({ prompt: 'consent' });
-                } else {
-                    onLogin(null, 'Error: Google OAuth no está disponible');
+
+                try {
+                    // Check if this is a returning user
+                    const lastUserEmail = AuthStorage.getLastUserEmail();
+                    const hasConsented = lastUserEmail && AuthStorage.hasUserConsented(lastUserEmail);
+
+                    // Determine prompt type:
+                    // - For new users or first login: show account selection
+                    // - For returning users with consent: show account selection without consent
+                    const promptType = hasConsented ? 'select_account' : 'select_account consent';
+
+                    window.tokenClient.requestAccessToken({ prompt: promptType });
+                } catch (error) {
+                    console.error('Error requesting access token:', error);
+                    onLogin(null, 'Error al iniciar sesión. Por favor intenta nuevamente.');
                     setIsAuthenticating(false);
                 }
             };
@@ -1489,6 +1587,12 @@
             };
 
             const handleLogout = () => {
+                // Clear consent for the current user
+                if (user && user.email) {
+                    AuthStorage.clearUserConsent(user.email);
+                    AuthStorage.clearLastUserEmail();
+                }
+
                 setIsLoggedIn(false);
                 setUser(null);
                 setDcs([]);
