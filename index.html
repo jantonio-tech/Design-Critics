@@ -1105,9 +1105,9 @@
                     const hasConsented = lastUserEmail && AuthStorage.hasUserConsented(lastUserEmail);
 
                     // Determine prompt type:
-                    // - For new users or first login: show account selection
-                    // - For returning users with consent: show account selection without consent
-                    const promptType = hasConsented ? 'select_account' : 'select_account consent';
+                    // - For new users: show account selection + consent
+                    // - For returning users with consent: silent authentication (no prompts)
+                    const promptType = hasConsented ? '' : 'consent select_account';
 
                     window.tokenClient.requestAccessToken({ prompt: promptType });
                 } catch (error) {
