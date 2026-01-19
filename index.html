@@ -1063,6 +1063,7 @@
                                             // Store consent after successful authentication
                                             AuthStorage.setUserConsent(userInfo.email);
                                             AuthStorage.setLastUserEmail(userInfo.email);
+                                            console.log('✅ Consent stored for:', userInfo.email);
 
                                             onLogin(user, null);
                                         } catch (error) {
@@ -1104,10 +1105,18 @@
                     const lastUserEmail = AuthStorage.getLastUserEmail();
                     const hasConsented = lastUserEmail && AuthStorage.hasUserConsented(lastUserEmail);
 
+                    // DEBUG: Log consent status
+                    console.log('🔍 Debug - Login attempt:');
+                    console.log('  Last user email:', lastUserEmail);
+                    console.log('  Has consented:', hasConsented);
+                    console.log('  localStorage data:', localStorage.getItem('dc_user_consent'));
+
                     // Determine prompt type:
                     // - For new users: show account selection + consent
                     // - For returning users with consent: silent authentication (no prompts)
                     const promptType = hasConsented ? '' : 'consent select_account';
+
+                    console.log('  Prompt type:', promptType === '' ? '✅ SILENT (no dialogs)' : '⚠️ ' + promptType);
 
                     window.tokenClient.requestAccessToken({ prompt: promptType });
                 } catch (error) {
