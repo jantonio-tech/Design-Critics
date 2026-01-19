@@ -755,9 +755,6 @@
 
 <body>
     <div id="root"></div>
-    <div id="g_id_onload" data-client_id="361814771154-gugfqg8aalobbgbfs4qecka9a3k8svby.apps.googleusercontent.com"
-        data-context="signin" data-ux_mode="popup" data-callback="handleGoogleCallback" data-auto_prompt="false">
-    </div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
@@ -830,6 +827,45 @@
 
             clearLastUserEmail() {
                 localStorage.removeItem('dc_last_user_email');
+            },
+
+            // Session management
+            saveSession(user) {
+                try {
+                    const sessionData = {
+                        name: user.name,
+                        email: user.email,
+                        picture: user.picture,
+                        initials: user.initials,
+                        accessToken: user.accessToken,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('dc_session', JSON.stringify(sessionData));
+                } catch (e) {
+                    console.error('Error saving session:', e);
+                }
+            },
+
+            getSession() {
+                try {
+                    const session = localStorage.getItem('dc_session');
+                    if (!session) return null;
+
+                    const sessionData = JSON.parse(session);
+                    // Check if session is less than 1 hour old
+                    const oneHour = 60 * 60 * 1000;
+                    if (Date.now() - sessionData.timestamp > oneHour) {
+                        this.clearSession();
+                        return null;
+                    }
+                    return sessionData;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            clearSession() {
+                localStorage.removeItem('dc_session');
             }
         };
 
@@ -1063,7 +1099,11 @@
                                             // Store consent after successful authentication
                                             AuthStorage.setUserConsent(userInfo.email);
                                             AuthStorage.setLastUserEmail(userInfo.email);
-                                            console.log('✅ Consent stored for:', userInfo.email);
+
+                                            // Save session for auto-login
+                                            AuthStorage.saveSession(user);
+
+                                            console.log('✅ Consent and session stored for:', userInfo.email);
 
                                             onLogin(user, null);
                                         } catch (error) {
@@ -1565,6 +1605,35 @@
             const [toast, setToast] = useState(null);
             const [loginError, setLoginError] = useState(null);
 
+            // Auto-login on mount
+            useEffect(() => {
+                const restoreSession = async () => {
+                    const session = AuthStorage.getSession();
+                    if (session && session.accessToken) {
+                        console.log('🔄 Restoring session for:', session.email);
+                        setIsLoading(true);
+                        try {
+                            const service = new SheetsDataService(session.accessToken);
+                            await service.init();
+                            const loadedDCs = await service.readAll();
+
+                            setDataService(service);
+                            setDcs(loadedDCs);
+                            setUser(session);
+                            setIsLoggedIn(true);
+                            console.log('✅ Session restored successfully');
+                        } catch (error) {
+                            console.error('Session restore failed:', error);
+                            // Clear invalid session
+                            AuthStorage.clearSession();
+                        }
+                        setIsLoading(false);
+                    }
+                };
+
+                restoreSession();
+            }, []);
+
             const showToast = (message, type = 'error') => {
                 setToast({ message, type });
             };
@@ -1596,7 +1665,8 @@
             };
 
             const handleLogout = () => {
-                // Clear consent for the current user
+                // Clear session and consent
+                AuthStorage.clearSession();
                 if (user && user.email) {
                     AuthStorage.clearUserConsent(user.email);
                     AuthStorage.clearLastUserEmail();
