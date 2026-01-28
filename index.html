@@ -1244,7 +1244,7 @@
                         ...formData,
                         date: selectedDate,
                         presenter: user.name,
-                        createdBy: user.email
+                        createdBy: editingDC ? editingDC.createdBy : user.email
                     };
 
                     // Solo agregar ID si estamos editando un DC existente
