@@ -1321,7 +1321,7 @@
 
                     // 3. Consultar Jira API a través del proxy de Vercel
                     console.log('🔍 Fetching Jira tickets via proxy...');
-                    const response = await fetch('/api/jira/search', {
+                    const response = await fetch('/api/search-jira', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -1727,7 +1727,7 @@
                 setTestResult(null);
 
                 try {
-                    const response = await fetch('/api/jira/test', {
+                    const response = await fetch('/api/test-jira', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
