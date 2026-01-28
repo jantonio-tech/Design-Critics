@@ -1379,7 +1379,7 @@
                         return;
                     }
 
-                    const { jira_domain, jira_api_token } = settingsDoc.data();
+                    const { jira_domain, jira_api_token, jira_email } = settingsDoc.data();
 
                     if (!jira_api_token) {
                         setJiraError('No has configurado tu token de Jira');
@@ -1396,7 +1396,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            email: user.email,
+                            email: jira_email || user.email, // Use Jira email if configured
                             token: jira_api_token,
                             domain: jira_domain,
                             jql: 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC'
