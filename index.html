@@ -598,6 +598,61 @@
 
         .tab {
             padding: 12px 16px;
+        }
+
+        /* Untitled UI Alert Modal Styles */
+        .confirm-modal-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #FEE2E2;
+            /* Rojo suave fondo */
+            border: 8px solid #FEF2F2;
+            /* Borde más suave */
+            color: #DC2626;
+            /* Rojo icono */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .confirm-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .confirm-modal-desc {
+            font-size: 14px;
+            color: var(--gray-600);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .confirm-modal-actions {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .confirm-modal-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-danger {
+            background-color: #DC2626;
+            color: white;
+            border: 1px solid #DC2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #B91C1C;
+        }
+
+        .tab {
             background: none;
             border: none;
             border-bottom: 2px solid transparent;
@@ -1352,6 +1407,47 @@
             );
         }
 
+        // Confirm Modal Component (Untitled UI Style)
+        function ConfirmModal({ isOpen, onClose, onConfirm, title, description, isSubmitting }) {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                            <div className="confirm-modal-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </div>
+
+                            <h3 className="confirm-modal-title">{title}</h3>
+                            <p className="confirm-modal-desc">{description}</p>
+
+                            <div className="confirm-modal-actions">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={onClose}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={onConfirm}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? 'Eliminando...' : 'Eliminar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // Calendar Page
         function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading, dataService }) {
             const [modalOpen, setModalOpen] = useState(false);
@@ -1359,6 +1455,10 @@
             const [editingDC, setEditingDC] = useState(null);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [localDcs, setLocalDcs] = useState(dcs);
+
+            // Confirm Modal State
+            const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+            const [dcToDelete, setDcToDelete] = useState(null);
 
             // Sincronizar con props
             useEffect(() => {
@@ -1462,34 +1562,23 @@
             };
 
             const handleDeleteClick = (dc) => {
-                console.log('🗑️ Delete clicked for DC:', dc.id, dc);
+                setDcToDelete(dc);
+                setConfirmModalOpen(true);
+            };
 
-                // Verificar que el DC tenga ID
-                if (!dc.id) {
-                    console.error('❌ DC does not have an ID, cannot delete');
-                    alert('Error: Este DC no tiene ID y no puede ser eliminado.');
-                    return;
+            const handleConfirmDelete = async () => {
+                if (!dcToDelete) return;
+
+                setIsSubmitting(true);
+                try {
+                    await onDeleteDC(dcToDelete.id);
+                    setConfirmModalOpen(false);
+                    setDcToDelete(null);
+                } catch (error) {
+                    console.error('Error deleting DC:', error);
+                    alert('Error al eliminar: ' + error.message);
                 }
-
-                const confirmed = window.confirm('¿Estás seguro de eliminar este DC?');
-                console.log('Confirm result:', confirmed);
-
-                if (confirmed) {
-                    console.log('✅ User confirmed deletion');
-                    setIsSubmitting(true);
-                    onDeleteDC(dc.id)
-                        .then(() => {
-                            console.log('✅ Delete successful');
-                        })
-                        .catch((error) => {
-                            console.error('❌ Delete error:', error);
-                        })
-                        .finally(() => {
-                            setIsSubmitting(false);
-                        });
-                } else {
-                    console.log('❌ User cancelled deletion');
-                }
+                setIsSubmitting(false);
             };
 
             const handleSubmit = async (data) => {
@@ -1570,6 +1659,18 @@
                         editingDC={editingDC}
                         isSubmitting={isSubmitting}
                     />
+
+                    <ConfirmModal
+                        isOpen={confirmModalOpen}
+                        onClose={() => {
+                            setConfirmModalOpen(false);
+                            setDcToDelete(null);
+                        }}
+                        onConfirm={handleConfirmDelete}
+                        title="¿Eliminar presentación?"
+                        description="¿Estás seguro de que deseas eliminar esta presentación? Esta acción no se puede deshacer."
+                        isSubmitting={isSubmitting}
+                    />
                 </>
             );
         }
@@ -1581,6 +1682,10 @@
             const [modalOpen, setModalOpen] = useState(false);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [localDcs, setLocalDcs] = useState(dcs);
+
+            // Confirm Modal State
+            const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+            const [dcToDelete, setDcToDelete] = useState(null);
 
             // Sincronizar con props
             useEffect(() => {
@@ -1657,22 +1762,23 @@
             };
 
             const handleDeleteClick = (dc) => {
-                console.log('🗑️ [History] Delete clicked for DC:', dc.id);
+                setDcToDelete(dc);
+                setConfirmModalOpen(true);
+            };
 
-                if (!dc.id) {
-                    alert('Error: Este DC no tiene ID y no puede ser eliminado.');
-                    return;
+            const handleConfirmDelete = async () => {
+                if (!dcToDelete) return;
+
+                setIsSubmitting(true);
+                try {
+                    await onDeleteDC(dcToDelete.id);
+                    setConfirmModalOpen(false);
+                    setDcToDelete(null);
+                } catch (error) {
+                    console.error('Error deleting DC:', error);
+                    alert('Error al eliminar: ' + error.message);
                 }
-
-                const confirmed = window.confirm('¿Estás seguro de eliminar este DC?');
-
-                if (confirmed) {
-                    setIsSubmitting(true);
-                    onDeleteDC(dc.id)
-                        .then(() => console.log('✅ Delete successful'))
-                        .catch((error) => console.error('❌ Delete error:', error))
-                        .finally(() => setIsSubmitting(false));
-                }
+                setIsSubmitting(false);
             };
 
             return (
@@ -1747,6 +1853,17 @@
                             setModalOpen(false);
                         }}
                         editingDC={editingDC}
+                        isSubmitting={isSubmitting}
+                    />
+                    <ConfirmModal
+                        isOpen={confirmModalOpen}
+                        onClose={() => {
+                            setConfirmModalOpen(false);
+                            setDcToDelete(null);
+                        }}
+                        onConfirm={handleConfirmDelete}
+                        title="¿Eliminar presentación?"
+                        description="¿Estás seguro de que deseas eliminar esta presentación? Esta acción no se puede deshacer."
                         isSubmitting={isSubmitting}
                     />
                 </>
