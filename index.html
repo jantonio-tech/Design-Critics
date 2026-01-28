@@ -9,7 +9,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -762,10 +762,7 @@
         // Config
         const CONFIG = {
             clientId: '36181471154-gugfgq8aalobbqbfs4qecka9a3k8svbv.apps.googleusercontent.com',
-            spreadsheetId: '1mykiyKnzJkbiBWVgXDO_7E0NphHl_9hK0DQHl4BHnZY',
-            sheetName: 'DC_Registry',
-            scope: 'https://www.googleapis.com/auth/spreadsheets openid profile email',
-            discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+            scope: 'https://www.googleapis.com/auth/spreadsheets openid profile email'
         };
 
         const productos = ["PGH", "Factoring", "Gestora", "Transversal", "Cambio Seguro", "Recadia"];
@@ -869,176 +866,176 @@
             }
         };
 
-        // Google Sheets Data Service
-        class SheetsDataService {
-            constructor(accessToken) {
-                this.accessToken = accessToken;
+        // Supabase Data Service
+        class SupabaseDataService {
+            constructor(userEmail) {
+                this.userEmail = userEmail;
+                this.supabase = window.supabase.createClient(
+                    'https://hcexarvcecansoglvzqv.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZXhhcnZjZWNhbnNvZ2x2enF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NjY2MTMsImV4cCI6MjA4NTE0MjYxM30.OnAwtCiEN6d8KVtyRXgK03oCD4BS-LoiIlT4zB5-6YM'
+                );
             }
 
             async init() {
-                await new Promise((resolve) => gapi.load('client', resolve));
-                await gapi.client.init({ discoveryDocs: CONFIG.discoveryDocs });
-                gapi.client.setToken({ access_token: this.accessToken });
+                // Supabase no requiere inicialización adicional
+                return Promise.resolve();
             }
 
             async readAll() {
                 try {
-                    const response = await gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A2:L`,
-                    });
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .select('*')
+                        .eq('estado', 'activo')
+                        .order('fecha_dc', { ascending: false });
 
-                    const rows = response.result.values || [];
-                    return rows
-                        .map(row => ({
-                            id: row[0],
-                            timestamp: row[1],
-                            date: row[2],
-                            presenter: row[3],
-                            product: row[4],
-                            ticket: row[5],
-                            flow: row[6],
-                            type: row[7],
-                            descartaDate: row[8] || '',
-                            notes: row[9] || '',
-                            status: row[10] || 'activo',
-                            createdBy: row[11]
-                        }))
-                        .filter(dc => dc.status === 'activo');
+                    if (error) throw error;
+
+                    // Mapear de nomenclatura Supabase a nomenclatura actual
+                    return (data || []).map(row => ({
+                        id: row.id,
+                        timestamp: row.created_at,
+                        date: row.fecha_dc,
+                        presenter: row.presentador,
+                        product: row.producto,
+                        ticket: row.ticket,
+                        flow: row.flujo,
+                        type: row.tipo,
+                        descartaDate: row.descarta_fecha || '',
+                        notes: row.notas || '',
+                        status: row.estado,
+                        createdBy: row.presentador_email
+                    }));
                 } catch (error) {
-                    console.error('Error reading from Sheets:', error);
-                    throw new Error('Error al leer datos de Google Sheets');
+                    console.error('Error reading from Supabase:', error);
+                    throw new Error('Error al leer datos de Supabase');
                 }
             }
 
             async create(dcData) {
                 try {
-                    const timestamp = new Date().toISOString();
-                    const row = [
-                        dcData.id.toString(),
-                        timestamp,
-                        dcData.date,
-                        dcData.presenter,
-                        dcData.product,
-                        dcData.ticket,
-                        dcData.flow,
-                        dcData.type,
-                        dcData.descartaDate || '',
-                        dcData.notes || '',
-                        'activo',
-                        dcData.createdBy
-                    ];
+                    const newRow = {
+                        fecha_dc: dcData.date,
+                        presentador: dcData.presenter,
+                        presentador_email: dcData.createdBy,
+                        producto: dcData.product,
+                        ticket: dcData.ticket,
+                        flujo: dcData.flow,
+                        tipo: dcData.type,
+                        descarta_fecha: dcData.descartaDate || null,
+                        notas: dcData.notes || '',
+                        estado: 'activo'
+                    };
 
-                    await gapi.client.sheets.spreadsheets.values.append({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A:L`,
-                        valueInputOption: 'RAW',
-                        resource: { values: [row] }
-                    });
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .insert([newRow])
+                        .select()
+                        .single();
 
+                    if (error) throw error;
+
+                    // Si es tipo Reemplazo, marcar el DC original como descartado
                     if (dcData.type === 'Reemplazo' && dcData.descartaDate) {
                         await this.markAsDiscarded(dcData.ticket, dcData.descartaDate);
                     }
 
-                    return dcData;
+                    // Retornar en formato esperado
+                    return {
+                        ...dcData,
+                        id: data.id,
+                        timestamp: data.created_at
+                    };
                 } catch (error) {
                     console.error('Error creating DC:', error);
-                    throw new Error('Error al guardar en Google Sheets');
+                    throw new Error('Error al guardar en Supabase');
                 }
             }
 
             async update(dcData) {
                 try {
-                    const allData = await gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A2:L`,
-                    });
+                    const updatedRow = {
+                        fecha_dc: dcData.date,
+                        presentador: dcData.presenter,
+                        producto: dcData.product,
+                        ticket: dcData.ticket,
+                        flujo: dcData.flow,
+                        tipo: dcData.type,
+                        descarta_fecha: dcData.descartaDate || null,
+                        notas: dcData.notes || ''
+                    };
 
-                    const rows = allData.result.values || [];
-                    const rowIndex = rows.findIndex(row => row[0] === dcData.id.toString());
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .update(updatedRow)
+                        .eq('id', dcData.id)
+                        .select()
+                        .single();
 
-                    if (rowIndex === -1) throw new Error('DC no encontrado');
-
-                    const row = [
-                        dcData.id.toString(),
-                        rows[rowIndex][1],
-                        dcData.date,
-                        dcData.presenter,
-                        dcData.product,
-                        dcData.ticket,
-                        dcData.flow,
-                        dcData.type,
-                        dcData.descartaDate || '',
-                        dcData.notes || '',
-                        rows[rowIndex][10] || 'activo',
-                        dcData.createdBy
-                    ];
-
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A${rowIndex + 2}:L${rowIndex + 2}`,
-                        valueInputOption: 'RAW',
-                        resource: { values: [row] }
-                    });
+                    if (error) throw error;
 
                     return dcData;
                 } catch (error) {
                     console.error('Error updating DC:', error);
-                    throw new Error('Error al actualizar en Google Sheets');
+                    throw new Error('Error al actualizar en Supabase');
                 }
             }
 
             async delete(dcId) {
                 try {
-                    await this.updateStatus(dcId, 'eliminado');
+                    // Soft delete: cambiar estado a 'eliminado'
+                    const { error } = await this.supabase
+                        .from('dc_registrations')
+                        .update({ estado: 'eliminado' })
+                        .eq('id', dcId);
+
+                    if (error) throw error;
                 } catch (error) {
                     console.error('Error deleting DC:', error);
-                    throw new Error('Error al eliminar en Google Sheets');
-                }
-            }
-
-            async updateStatus(dcId, newStatus) {
-                try {
-                    const allData = await gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A2:L`,
-                    });
-
-                    const rows = allData.result.values || [];
-                    const rowIndex = rows.findIndex(row => row[0] === dcId.toString());
-
-                    if (rowIndex === -1) throw new Error('DC no encontrado');
-
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!K${rowIndex + 2}`,
-                        valueInputOption: 'RAW',
-                        resource: { values: [[newStatus]] }
-                    });
-                } catch (error) {
-                    console.error('Error updating status:', error);
-                    throw error;
+                    throw new Error('Error al eliminar en Supabase');
                 }
             }
 
             async markAsDiscarded(ticket, date) {
                 try {
-                    const allData = await gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: CONFIG.spreadsheetId,
-                        range: `${CONFIG.sheetName}!A2:L`,
-                    });
+                    // Marcar como descartado el DC con el mismo ticket en la fecha especificada
+                    const { error } = await this.supabase
+                        .from('dc_registrations')
+                        .update({ estado: 'descartado' })
+                        .eq('ticket', ticket)
+                        .eq('fecha_dc', date)
+                        .eq('estado', 'activo');
 
-                    const rows = allData.result.values || [];
-                    const rowIndex = rows.findIndex(row =>
-                        row[5] === ticket && row[2] === date && row[10] === 'activo'
-                    );
-
-                    if (rowIndex !== -1) {
-                        await this.updateStatus(rows[rowIndex][0], 'descartado');
-                    }
+                    if (error) throw error;
                 } catch (error) {
                     console.error('Error marking as discarded:', error);
+                    // No lanzar error aquí ya que es una operación secundaria
                 }
+            }
+
+            // Suscribirse a cambios en tiempo real
+            subscribeToChanges(callback) {
+                const channel = this.supabase
+                    .channel('dc_changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'dc_registrations'
+                        },
+                        (payload) => {
+                            callback(payload);
+                        }
+                    )
+                    .subscribe();
+
+                return channel;
+            }
+
+            // Cancelar suscripción
+            unsubscribe(channel) {
+                this.supabase.removeChannel(channel);
             }
         }
 
@@ -1363,11 +1360,79 @@
         }
 
         // Calendar Page
-        function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading }) {
+        function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading, dataService }) {
             const [modalOpen, setModalOpen] = useState(false);
             const [selectedDate, setSelectedDate] = useState(null);
             const [editingDC, setEditingDC] = useState(null);
             const [isSubmitting, setIsSubmitting] = useState(false);
+            const [localDcs, setLocalDcs] = useState(dcs);
+
+            // Sincronizar con props
+            useEffect(() => {
+                setLocalDcs(dcs);
+            }, [dcs]);
+
+            // Realtime subscription
+            useEffect(() => {
+                if (!dataService || !dataService.supabase) return;
+
+                console.log('📡 Subscribing to realtime changes (Calendar)');
+
+                const channel = dataService.subscribeToChanges((payload) => {
+                    console.log('🔔 Realtime event:', payload);
+
+                    if (payload.eventType === 'INSERT' && payload.new.estado === 'activo') {
+                        const newDC = {
+                            id: payload.new.id,
+                            timestamp: payload.new.created_at,
+                            date: payload.new.fecha_dc,
+                            presenter: payload.new.presentador,
+                            product: payload.new.producto,
+                            ticket: payload.new.ticket,
+                            flow: payload.new.flujo,
+                            type: payload.new.tipo,
+                            descartaDate: payload.new.descarta_fecha || '',
+                            notes: payload.new.notas || '',
+                            status: payload.new.estado,
+                            createdBy: payload.new.presentador_email
+                        };
+
+                        setLocalDcs(prev => {
+                            const exists = prev.some(dc => dc.id === newDC.id);
+                            return exists ? prev : [...prev, newDC];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        if (payload.new.estado === 'activo') {
+                            const updatedDC = {
+                                id: payload.new.id,
+                                timestamp: payload.new.created_at,
+                                date: payload.new.fecha_dc,
+                                presenter: payload.new.presentador,
+                                product: payload.new.producto,
+                                ticket: payload.new.ticket,
+                                flow: payload.new.flujo,
+                                type: payload.new.tipo,
+                                descartaDate: payload.new.descarta_fecha || '',
+                                notes: payload.new.notas || '',
+                                status: payload.new.estado,
+                                createdBy: payload.new.presentador_email
+                            };
+
+                            setLocalDcs(prev => prev.map(dc => dc.id === updatedDC.id ? updatedDC : dc));
+                        } else {
+                            // Estado cambiado a 'eliminado' o 'descartado'
+                            setLocalDcs(prev => prev.filter(dc => dc.id !== payload.new.id));
+                        }
+                    } else if (payload.eventType === 'DELETE') {
+                        setLocalDcs(prev => prev.filter(dc => dc.id !== payload.old.id));
+                    }
+                });
+
+                return () => {
+                    console.log('🔌 Unsubscribing from realtime (Calendar)');
+                    dataService.unsubscribe(channel);
+                };
+            }, [dataService]);
 
             const getWeekDays = () => {
                 const days = [];
@@ -1388,7 +1453,7 @@
 
             const getDCsForDate = (date) => {
                 const dateStr = date.toISOString().split('T')[0];
-                return dcs.filter(dc => dc.date === dateStr);
+                return localDcs.filter(dc => dc.date === dateStr);
             };
 
             const handleAddClick = (date) => {
@@ -1494,13 +1559,80 @@
         }
 
         // History Page
-        function HistoryPage({ dcs, user, onEditDC, onDeleteDC, isLoading }) {
+        function HistoryPage({ dcs, user, onEditDC, onDeleteDC, isLoading, dataService }) {
             const [filter, setFilter] = useState('all');
             const [editingDC, setEditingDC] = useState(null);
             const [modalOpen, setModalOpen] = useState(false);
             const [isSubmitting, setIsSubmitting] = useState(false);
+            const [localDcs, setLocalDcs] = useState(dcs);
 
-            const filteredDCs = filter === 'mine' ? dcs.filter(dc => dc.createdBy === user.email) : dcs;
+            // Sincronizar con props
+            useEffect(() => {
+                setLocalDcs(dcs);
+            }, [dcs]);
+
+            // Realtime subscription
+            useEffect(() => {
+                if (!dataService || !dataService.supabase) return;
+
+                console.log('📡 Subscribing to realtime changes (History)');
+
+                const channel = dataService.subscribeToChanges((payload) => {
+                    console.log('🔔 Realtime event:', payload);
+
+                    if (payload.eventType === 'INSERT' && payload.new.estado === 'activo') {
+                        const newDC = {
+                            id: payload.new.id,
+                            timestamp: payload.new.created_at,
+                            date: payload.new.fecha_dc,
+                            presenter: payload.new.presentador,
+                            product: payload.new.producto,
+                            ticket: payload.new.ticket,
+                            flow: payload.new.flujo,
+                            type: payload.new.tipo,
+                            descartaDate: payload.new.descarta_fecha || '',
+                            notes: payload.new.notas || '',
+                            status: payload.new.estado,
+                            createdBy: payload.new.presentador_email
+                        };
+
+                        setLocalDcs(prev => {
+                            const exists = prev.some(dc => dc.id === newDC.id);
+                            return exists ? prev : [...prev, newDC];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        if (payload.new.estado === 'activo') {
+                            const updatedDC = {
+                                id: payload.new.id,
+                                timestamp: payload.new.created_at,
+                                date: payload.new.fecha_dc,
+                                presenter: payload.new.presentador,
+                                product: payload.new.producto,
+                                ticket: payload.new.ticket,
+                                flow: payload.new.flujo,
+                                type: payload.new.tipo,
+                                descartaDate: payload.new.descarta_fecha || '',
+                                notes: payload.new.notas || '',
+                                status: payload.new.estado,
+                                createdBy: payload.new.presentador_email
+                            };
+
+                            setLocalDcs(prev => prev.map(dc => dc.id === updatedDC.id ? updatedDC : dc));
+                        } else {
+                            setLocalDcs(prev => prev.filter(dc => dc.id !== payload.new.id));
+                        }
+                    } else if (payload.eventType === 'DELETE') {
+                        setLocalDcs(prev => prev.filter(dc => dc.id !== payload.old.id));
+                    }
+                });
+
+                return () => {
+                    console.log('🔌 Unsubscribing from realtime (History)');
+                    dataService.unsubscribe(channel);
+                };
+            }, [dataService]);
+
+            const filteredDCs = filter === 'mine' ? localDcs.filter(dc => dc.createdBy === user.email) : localDcs;
             const sortedDCs = [...filteredDCs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const handleEditClick = (dc) => {
@@ -1613,7 +1745,7 @@
                         console.log('🔄 Restoring session for:', session.email);
                         setIsLoading(true);
                         try {
-                            const service = new SheetsDataService(session.accessToken);
+                            const service = new SupabaseDataService(session.email);
                             await service.init();
                             const loadedDCs = await service.readAll();
 
@@ -1648,7 +1780,7 @@
 
                 setIsLoading(true);
                 try {
-                    const service = new SheetsDataService(userData.accessToken);
+                    const service = new SupabaseDataService(userData.email);
                     await service.init();
                     const loadedDCs = await service.readAll();
 
@@ -1659,7 +1791,7 @@
                     setLoginError(null);
                 } catch (error) {
                     console.error('Error loading data:', error);
-                    setLoginError('Error al cargar datos. Verifica tus permisos en Google Sheets.');
+                    setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
                 }
                 setIsLoading(false);
             };
@@ -1731,7 +1863,21 @@
                             <div className="logo">
                                 <div className="logo-icon">🎯</div>
                                 <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 600 }}>Design Critics</div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Design Critics
+                                        {dataService && dataService.supabase && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                padding: '2px 6px',
+                                                background: '#10B981',
+                                                color: 'white',
+                                                borderRadius: '8px',
+                                                fontWeight: 600
+                                            }}>
+                                                🔴 EN VIVO
+                                            </span>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>Prestamype</div>
                                 </div>
                             </div>
@@ -1778,6 +1924,7 @@
                             onEditDC={handleEditDC}
                             onDeleteDC={handleDeleteDC}
                             isLoading={isLoading}
+                            dataService={dataService}
                         />
                     )}
 
@@ -1788,6 +1935,7 @@
                             onEditDC={handleEditDC}
                             onDeleteDC={handleDeleteDC}
                             isLoading={isLoading}
+                            dataService={dataService}
                         />
                     )}
 
