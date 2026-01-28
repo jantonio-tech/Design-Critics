@@ -1319,42 +1319,38 @@
                         return;
                     }
 
-                    // 3. Consultar Jira API
-                    const jql = encodeURIComponent('assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC');
-                    const auth = btoa(`${user.email}:${jira_api_token}`);
+                    // 3. Consultar Jira API a través del proxy de Vercel
+                    console.log('🔍 Fetching Jira tickets via proxy...');
+                    const response = await fetch('/api/jira/search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: user.email,
+                            token: jira_api_token,
+                            domain: jira_domain,
+                            jql: 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC'
+                        })
+                    });
 
-                    console.log('🔍 Fetching Jira tickets...');
-                    const response = await fetch(
-                        `https://${jira_domain}/rest/api/3/search?jql=${jql}&maxResults=50&fields=key,summary,status,assignee`,
-                        {
-                            headers: {
-                                'Authorization': `Basic ${auth}`,
-                                'Accept': 'application/json'
-                            }
-                        }
-                    );
+                    const data = await response.json();
 
-                    if (!response.ok) {
+                    if (!response.ok || !data.success) {
                         if (response.status === 401) {
                             setJiraError('Token de Jira inválido. Ve a Configuración ⚙️');
                         } else if (response.status === 404) {
                             setJiraError('Dominio de Jira incorrecto');
                         } else {
-                            setJiraError('Error al consultar Jira');
+                            setJiraError(data.message || 'Error al consultar Jira');
                         }
                         setJiraConfigured(false);
                         setLoadingJira(false);
                         return;
                     }
 
-                    const data = await response.json();
-
-                    // 4. Transformar tickets
-                    const tickets = data.issues.map(issue => ({
-                        key: issue.key,
-                        summary: issue.fields.summary,
-                        status: issue.fields.status.name
-                    }));
+                    // 4. Tickets ya vienen transformados del proxy
+                    const tickets = data.tickets;
 
                     console.log(`✅ Loaded ${tickets.length} Jira tickets`);
 
@@ -1731,27 +1727,33 @@
                 setTestResult(null);
 
                 try {
-                    const auth = btoa(`${user.email}:${jiraToken}`);
-                    const response = await fetch(`https://${jiraDomain}/rest/api/3/myself`, {
+                    const response = await fetch('/api/jira/test', {
+                        method: 'POST',
                         headers: {
-                            'Authorization': `Basic ${auth}`,
-                            'Accept': 'application/json'
-                        }
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: user.email,
+                            token: jiraToken,
+                            domain: jiraDomain
+                        })
                     });
 
-                    if (response.ok) {
-                        const userData = await response.json();
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
                         setTestResult({
                             success: true,
-                            message: `✅ Conexión exitosa. Bienvenido ${userData.displayName}`
+                            message: `✅ Conexión exitosa. Bienvenido ${data.displayName}`
                         });
                     } else {
                         setTestResult({
                             success: false,
-                            message: '❌ Token inválido o dominio incorrecto'
+                            message: data.message || '❌ Token inválido o dominio incorrecto'
                         });
                     }
                 } catch (error) {
+                    console.error('Error testing connection:', error);
                     setTestResult({
                         success: false,
                         message: '❌ Error de conexión. Verifica tu dominio.'
