@@ -1399,7 +1399,7 @@
                             email: jira_email || user.email, // Use Jira email if configured
                             token: jira_api_token,
                             domain: jira_domain,
-                            jql: 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) AND issuetype != Sub-task ORDER BY updated DESC'
+                            jql: 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) AND issuetype in (Task, Sub-task) ORDER BY updated DESC'
                         })
                     });
 
