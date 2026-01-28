@@ -1092,106 +1092,60 @@
         // Login Component
         function LoginPage({ onLogin, error }) {
             const [isAuthenticating, setIsAuthenticating] = useState(false);
-            const [tokenClientReady, setTokenClientReady] = useState(false);
 
-            useEffect(() => {
-                // Initialize Google Identity Services Token Client
-                const initTokenClient = () => {
-                    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-                        try {
-                            window.tokenClient = window.google.accounts.oauth2.initTokenClient({
-                                client_id: CONFIG.clientId,
-                                scope: CONFIG.scope,
-                                callback: async (tokenResponse) => {
-                                    if (tokenResponse.access_token) {
-                                        try {
-                                            // Get user info using the access token
-                                            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-                                                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                                            });
-                                            const userInfo = await userInfoResponse.json();
-
-                                            // Validate email domain
-                                            if (!userInfo.email.endsWith('@prestamype.com')) {
-                                                onLogin(null, 'Debes usar un correo @prestamype.com');
-                                                setIsAuthenticating(false);
-                                                return;
-                                            }
-
-                                            const user = {
-                                                name: userInfo.name,
-                                                email: userInfo.email,
-                                                picture: userInfo.picture,
-                                                initials: userInfo.name.split(' ').map(n => n[0]).join('').substring(0, 2),
-                                                accessToken: tokenResponse.access_token
-                                            };
-
-                                            // Store consent after successful authentication
-                                            AuthStorage.setUserConsent(userInfo.email);
-                                            AuthStorage.setLastUserEmail(userInfo.email);
-
-                                            // Save session for auto-login
-                                            AuthStorage.saveSession(user);
-
-                                            console.log('✅ Consent and session stored for:', userInfo.email);
-
-                                            onLogin(user, null);
-                                        } catch (error) {
-                                            console.error('Error getting user info:', error);
-                                            onLogin(null, 'Error al obtener información del usuario');
-                                            setIsAuthenticating(false);
-                                        }
-                                    } else if (tokenResponse.error) {
-                                        console.error('Token error:', tokenResponse.error);
-                                        onLogin(null, 'Error en la autenticación');
-                                        setIsAuthenticating(false);
-                                    }
-                                },
-                            });
-                            setTokenClientReady(true);
-                        } catch (error) {
-                            console.error('Error initializing token client:', error);
-                            setTimeout(initTokenClient, 500); // Retry after 500ms
-                        }
-                    } else {
-                        // Google API not loaded yet, retry
-                        setTimeout(initTokenClient, 100);
-                    }
-                };
-
-                initTokenClient();
-            }, [onLogin]);
-
-            const handleGoogleLogin = () => {
-                if (!tokenClientReady || !window.tokenClient) {
-                    onLogin(null, 'Error: Google OAuth no está disponible. Por favor recarga la página.');
-                    return;
-                }
-
+            const handleGoogleLogin = async () => {
                 setIsAuthenticating(true);
 
                 try {
-                    // Check if this is a returning user
-                    const lastUserEmail = AuthStorage.getLastUserEmail();
-                    const hasConsented = lastUserEmail && AuthStorage.hasUserConsented(lastUserEmail);
+                    // Firebase Auth - Google Sign-In with Popup
+                    const provider = new firebase.auth.GoogleAuthProvider();
 
-                    // DEBUG: Log consent status
-                    console.log('🔍 Debug - Login attempt:');
-                    console.log('  Last user email:', lastUserEmail);
-                    console.log('  Has consented:', hasConsented);
-                    console.log('  localStorage data:', localStorage.getItem('dc_user_consent'));
+                    // Force account selection for better UX
+                    provider.setCustomParameters({
+                        prompt: 'select_account'
+                    });
 
-                    // Determine prompt type:
-                    // - For new users: show account selection + consent
-                    // - For returning users with consent: silent authentication (no prompts)
-                    const promptType = hasConsented ? '' : 'consent select_account';
+                    console.log('🔐 Starting Firebase Auth with Google...');
+                    const result = await firebase.auth().signInWithPopup(provider);
+                    const firebaseUser = result.user;
 
-                    console.log('  Prompt type:', promptType === '' ? '✅ SILENT (no dialogs)' : '⚠️ ' + promptType);
+                    console.log('✅ Firebase Auth successful:', firebaseUser.email);
 
-                    window.tokenClient.requestAccessToken({ prompt: promptType });
+                    // Validate email domain
+                    if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                        await firebase.auth().signOut();
+                        onLogin(null, 'Debes usar un correo @prestamype.com');
+                        setIsAuthenticating(false);
+                        return;
+                    }
+
+                    const user = {
+                        name: firebaseUser.displayName,
+                        email: firebaseUser.email,
+                        picture: firebaseUser.photoURL,
+                        initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+                        uid: firebaseUser.uid
+                    };
+
+                    // Store consent and session
+                    AuthStorage.setUserConsent(firebaseUser.email);
+                    AuthStorage.setLastUserEmail(firebaseUser.email);
+                    AuthStorage.saveSession(user);
+
+                    onLogin(user, null);
                 } catch (error) {
-                    console.error('Error requesting access token:', error);
-                    onLogin(null, 'Error al iniciar sesión. Por favor intenta nuevamente.');
+                    console.error('Firebase Auth error:', error);
+
+                    let errorMessage = 'Error en la autenticación';
+                    if (error.code === 'auth/popup-closed-by-user') {
+                        errorMessage = 'Login cancelado';
+                    } else if (error.code === 'auth/popup-blocked') {
+                        errorMessage = 'Por favor permite popups para este sitio';
+                    } else if (error.code === 'auth/cancelled-popup-request') {
+                        errorMessage = 'Intentando login...';
+                    }
+
+                    onLogin(null, errorMessage);
                     setIsAuthenticating(false);
                 }
             };
