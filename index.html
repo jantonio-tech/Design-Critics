@@ -9,7 +9,9 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -756,13 +758,30 @@
 <body>
     <div id="root"></div>
 
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVWsgVPtxRL_zhEvZxb7hJF4M7UP3wBqY",
+            authDomain: "dc-tracker-prestamype.firebaseapp.com",
+            projectId: "dc-tracker-prestamype",
+            storageBucket: "dc-tracker-prestamype.firebasestorage.app",
+            messagingSenderId: "361814771154",
+            appId: "1:361814771154:web:860d287f6cc8b984bb3eab",
+            measurementId: "G-VZ5273YGQ3"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
         // Config
         const CONFIG = {
-            clientId: '36181471154-gugfgq8aalobbqbfs4qecka9a3k8svbv.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/spreadsheets openid profile email'
+            clientId: '361814771154-gugfgq8aalobbqbfs4qecka9a3k8svbv.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/spreadsheets openid profile email',
+            jiraDomain: 'prestamype.atlassian.net'
         };
 
         const productos = ["PGH", "Factoring", "Gestora", "Transversal", "Cambio Seguro", "Recadia"];
@@ -866,55 +885,57 @@
             }
         };
 
-        // Supabase Data Service
-        class SupabaseDataService {
+        // Firebase Firestore Data Service
+        class FirestoreDataService {
             constructor(userEmail) {
                 this.userEmail = userEmail;
-                this.supabase = window.supabase.createClient(
-                    'https://hcexarvcecansoglvzqv.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZXhhcnZjZWNhbnNvZ2x2enF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NjY2MTMsImV4cCI6MjA4NTE0MjYxM30.OnAwtCiEN6d8KVtyRXgK03oCD4BS-LoiIlT4zB5-6YM'
-                );
+                this.db = firebase.firestore();
+                this.collection = 'dc_registrations';
             }
 
             async init() {
-                // Supabase no requiere inicialización adicional
+                // Firestore no requiere inicialización adicional
                 return Promise.resolve();
             }
 
             async readAll() {
                 try {
-                    const { data, error } = await this.supabase
-                        .from('dc_registrations')
-                        .select('*')
-                        .eq('estado', 'activo')
-                        .order('fecha_dc', { ascending: false });
+                    const snapshot = await this.db
+                        .collection(this.collection)
+                        .where('estado', '==', 'activo')
+                        .orderBy('fecha_dc', 'desc')
+                        .get();
 
-                    if (error) throw error;
+                    const dcs = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        dcs.push({
+                            id: doc.id,
+                            timestamp: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+                            date: data.fecha_dc,
+                            presenter: data.presentador,
+                            product: data.producto,
+                            ticket: data.ticket,
+                            flow: data.flujo,
+                            type: data.tipo,
+                            descartaDate: data.descarta_fecha || '',
+                            notes: data.notas || '',
+                            status: data.estado,
+                            createdBy: data.presentador_email
+                        });
+                    });
 
-                    // Mapear de nomenclatura Supabase a nomenclatura actual
-                    return (data || []).map(row => ({
-                        id: row.id,
-                        timestamp: row.created_at,
-                        date: row.fecha_dc,
-                        presenter: row.presentador,
-                        product: row.producto,
-                        ticket: row.ticket,
-                        flow: row.flujo,
-                        type: row.tipo,
-                        descartaDate: row.descarta_fecha || '',
-                        notes: row.notas || '',
-                        status: row.estado,
-                        createdBy: row.presentador_email
-                    }));
+                    return dcs;
                 } catch (error) {
-                    console.error('Error reading from Supabase:', error);
-                    throw new Error('Error al leer datos de Supabase');
+                    console.error('Error reading from Firestore:', error);
+                    throw new Error('Error al leer datos de Firestore');
                 }
             }
 
             async create(dcData) {
                 try {
-                    const newRow = {
+                    const newDoc = {
+                        created_at: firebase.firestore.FieldValue.serverTimestamp(),
                         fecha_dc: dcData.date,
                         presentador: dcData.presenter,
                         presentador_email: dcData.createdBy,
@@ -922,18 +943,12 @@
                         ticket: dcData.ticket,
                         flujo: dcData.flow,
                         tipo: dcData.type,
-                        descarta_fecha: dcData.descartaDate || null,
+                        descarta_fecha: dcData.descartaDate || '',
                         notas: dcData.notes || '',
                         estado: 'activo'
                     };
 
-                    const { data, error } = await this.supabase
-                        .from('dc_registrations')
-                        .insert([newRow])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
+                    const docRef = await this.db.collection(this.collection).add(newDoc);
 
                     // Si es tipo Reemplazo, marcar el DC original como descartado
                     if (dcData.type === 'Reemplazo' && dcData.descartaDate) {
@@ -943,99 +958,117 @@
                     // Retornar en formato esperado
                     return {
                         ...dcData,
-                        id: data.id,
-                        timestamp: data.created_at
+                        id: docRef.id,
+                        timestamp: new Date().toISOString()
                     };
                 } catch (error) {
                     console.error('Error creating DC:', error);
-                    throw new Error('Error al guardar en Supabase');
+                    throw new Error('Error al guardar en Firestore');
                 }
             }
 
             async update(dcData) {
                 try {
-                    const updatedRow = {
+                    const updatedDoc = {
                         fecha_dc: dcData.date,
                         presentador: dcData.presenter,
                         producto: dcData.product,
                         ticket: dcData.ticket,
                         flujo: dcData.flow,
                         tipo: dcData.type,
-                        descarta_fecha: dcData.descartaDate || null,
+                        descarta_fecha: dcData.descartaDate || '',
                         notas: dcData.notes || ''
                     };
 
-                    const { data, error } = await this.supabase
-                        .from('dc_registrations')
-                        .update(updatedRow)
-                        .eq('id', dcData.id)
-                        .select()
-                        .single();
-
-                    if (error) throw error;
+                    await this.db
+                        .collection(this.collection)
+                        .doc(dcData.id)
+                        .update(updatedDoc);
 
                     return dcData;
                 } catch (error) {
                     console.error('Error updating DC:', error);
-                    throw new Error('Error al actualizar en Supabase');
+                    throw new Error('Error al actualizar en Firestore');
                 }
             }
 
             async delete(dcId) {
                 try {
                     // Soft delete: cambiar estado a 'eliminado'
-                    const { error } = await this.supabase
-                        .from('dc_registrations')
-                        .update({ estado: 'eliminado' })
-                        .eq('id', dcId);
-
-                    if (error) throw error;
+                    await this.db
+                        .collection(this.collection)
+                        .doc(dcId)
+                        .update({ estado: 'eliminado' });
                 } catch (error) {
                     console.error('Error deleting DC:', error);
-                    throw new Error('Error al eliminar en Supabase');
+                    throw new Error('Error al eliminar en Firestore');
                 }
             }
 
             async markAsDiscarded(ticket, date) {
                 try {
-                    // Marcar como descartado el DC con el mismo ticket en la fecha especificada
-                    const { error } = await this.supabase
-                        .from('dc_registrations')
-                        .update({ estado: 'descartado' })
-                        .eq('ticket', ticket)
-                        .eq('fecha_dc', date)
-                        .eq('estado', 'activo');
+                    // Buscar y marcar como descartado el DC con el mismo ticket en la fecha especificada
+                    const snapshot = await this.db
+                        .collection(this.collection)
+                        .where('ticket', '==', ticket)
+                        .where('fecha_dc', '==', date)
+                        .where('estado', '==', 'activo')
+                        .get();
 
-                    if (error) throw error;
+                    const batch = this.db.batch();
+                    snapshot.forEach(doc => {
+                        batch.update(doc.ref, { estado: 'descartado' });
+                    });
+
+                    await batch.commit();
                 } catch (error) {
                     console.error('Error marking as discarded:', error);
                     // No lanzar error aquí ya que es una operación secundaria
                 }
             }
 
-            // Suscribirse a cambios en tiempo real
             subscribeToChanges(callback) {
-                const channel = this.supabase
-                    .channel('dc_changes')
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'dc_registrations'
-                        },
-                        (payload) => {
-                            callback(payload);
-                        }
-                    )
-                    .subscribe();
+                // Listener en tiempo real para cambios en la colección
+                const unsubscribe = this.db
+                    .collection(this.collection)
+                    .where('estado', '==', 'activo')
+                    .onSnapshot(snapshot => {
+                        snapshot.docChanges().forEach(change => {
+                            const data = change.doc.data();
+                            const dc = {
+                                id: change.doc.id,
+                                timestamp: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+                                fecha_dc: data.fecha_dc,
+                                presentador: data.presentador,
+                                producto: data.producto,
+                                ticket: data.ticket,
+                                flujo: data.flujo,
+                                tipo: data.tipo,
+                                descarta_fecha: data.descarta_fecha || '',
+                                notas: data.notas || '',
+                                estado: data.estado,
+                                presentador_email: data.presentador_email
+                            };
 
-                return channel;
+                            if (change.type === 'added') {
+                                callback({ eventType: 'INSERT', new: dc });
+                            } else if (change.type === 'modified') {
+                                callback({ eventType: 'UPDATE', new: dc });
+                            } else if (change.type === 'removed') {
+                                callback({ eventType: 'DELETE', old: dc });
+                            }
+                        });
+                    }, error => {
+                        console.error('Firestore snapshot error:', error);
+                    });
+
+                return unsubscribe;
             }
 
-            // Cancelar suscripción
-            unsubscribe(channel) {
-                this.supabase.removeChannel(channel);
+            unsubscribe(unsubscribeFunction) {
+                if (unsubscribeFunction && typeof unsubscribeFunction === 'function') {
+                    unsubscribeFunction();
+                }
             }
         }
 
@@ -1751,7 +1784,7 @@
                         console.log('🔄 Restoring session for:', session.email);
                         setIsLoading(true);
                         try {
-                            const service = new SupabaseDataService(session.email);
+                            const service = new FirestoreDataService(session.email);
                             await service.init();
                             const loadedDCs = await service.readAll();
 
@@ -1786,7 +1819,7 @@
 
                 setIsLoading(true);
                 try {
-                    const service = new SupabaseDataService(userData.email);
+                    const service = new FirestoreDataService(userData.email);
                     await service.init();
                     const loadedDCs = await service.readAll();
 
@@ -1871,7 +1904,7 @@
                                 <div>
                                     <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         Design Critics
-                                        {dataService && dataService.supabase && (
+                                        {dataService && dataService.userEmail && (
                                             <span style={{
                                                 fontSize: '10px',
                                                 padding: '2px 6px',
