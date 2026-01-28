@@ -1,5 +1,17 @@
-// Vercel Serverless Function v2 - Search Jira Tickets
+// Vercel Serverless Function - Jira Search v3
+// Simplified version for debugging
+
 module.exports = async function handler(req, res) {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -10,7 +22,7 @@ module.exports = async function handler(req, res) {
 
         // Validate inputs
         if (!email || !token || !domain) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({ error: 'Missing required fields', received: { email: !!email, token: !!token, domain: !!domain } });
         }
 
         // Default JQL if not provided
@@ -22,6 +34,8 @@ module.exports = async function handler(req, res) {
         // Build URL with query parameters
         const url = `https://${domain}/rest/api/3/search?jql=${encodeURIComponent(searchJql)}&maxResults=50&fields=key,summary,status,assignee`;
 
+        console.log('Fetching from Jira:', url.substring(0, 100) + '...');
+
         // Call Jira API
         const response = await fetch(url, {
             method: 'GET',
@@ -31,6 +45,8 @@ module.exports = async function handler(req, res) {
                 'Content-Type': 'application/json'
             }
         });
+
+        console.log('Jira response status:', response.status);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -52,30 +68,34 @@ module.exports = async function handler(req, res) {
 
             return res.status(response.status).json({
                 error: 'Jira API error',
-                message: 'Error al consultar Jira'
+                message: 'Error al consultar Jira',
+                details: errorText.substring(0, 200)
             });
         }
 
         const data = await response.json();
 
         // Transform issues to simpler format
-        const tickets = data.issues.map(issue => ({
+        const tickets = (data.issues || []).map(issue => ({
             key: issue.key,
-            summary: issue.fields.summary,
-            status: issue.fields.status.name
+            summary: issue.fields?.summary || 'No summary',
+            status: issue.fields?.status?.name || 'Unknown'
         }));
+
+        console.log('Returning', tickets.length, 'tickets');
 
         return res.status(200).json({
             success: true,
-            total: data.total,
+            total: data.total || 0,
             tickets: tickets
         });
 
     } catch (error) {
-        console.error('Server error:', error);
+        console.error('Server error:', error.message, error.stack);
         return res.status(500).json({
             error: 'Internal server error',
-            message: 'Error de conexión con Jira'
+            message: 'Error de conexión con Jira',
+            debug: error.message
         });
     }
-}
+};
