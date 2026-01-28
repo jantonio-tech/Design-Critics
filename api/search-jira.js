@@ -1,5 +1,5 @@
-// Vercel Serverless Function - Jira Search v3
-// Simplified version for debugging
+// Vercel Serverless Function - Jira Search v4
+// Updated to use new Jira API endpoint (CHANGE-2846)
 
 module.exports = async function handler(req, res) {
     // Set CORS headers
@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
 
         // Validate inputs
         if (!email || !token || !domain) {
-            return res.status(400).json({ error: 'Missing required fields', received: { email: !!email, token: !!token, domain: !!domain } });
+            return res.status(400).json({ error: 'Missing required fields' });
         }
 
         // Default JQL if not provided
@@ -31,19 +31,24 @@ module.exports = async function handler(req, res) {
         // Create Basic Auth header
         const auth = Buffer.from(`${email}:${token}`).toString('base64');
 
-        // Build URL with query parameters
-        const url = `https://${domain}/rest/api/3/search?jql=${encodeURIComponent(searchJql)}&maxResults=50&fields=key,summary,status,assignee`;
+        // NEW Jira API endpoint (POST /rest/api/3/search/jql)
+        const url = `https://${domain}/rest/api/3/search/jql`;
 
-        console.log('Fetching from Jira:', url.substring(0, 100) + '...');
+        console.log('Fetching from Jira (new API):', url);
 
-        // Call Jira API
+        // Call Jira API with POST method and JQL in body
         const response = await fetch(url, {
-            method: 'GET',
+            method: 'POST',
             headers: {
                 'Authorization': `Basic ${auth}`,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                jql: searchJql,
+                maxResults: 50,
+                fields: ['key', 'summary', 'status', 'assignee']
+            })
         });
 
         console.log('Jira response status:', response.status);
@@ -68,8 +73,7 @@ module.exports = async function handler(req, res) {
 
             return res.status(response.status).json({
                 error: 'Jira API error',
-                message: 'Error al consultar Jira',
-                details: errorText.substring(0, 200)
+                message: 'Error al consultar Jira'
             });
         }
 
@@ -91,11 +95,10 @@ module.exports = async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error('Server error:', error.message, error.stack);
+        console.error('Server error:', error.message);
         return res.status(500).json({
             error: 'Internal server error',
-            message: 'Error de conexión con Jira',
-            debug: error.message
+            message: 'Error de conexión con Jira'
         });
     }
 };
