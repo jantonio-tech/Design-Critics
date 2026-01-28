@@ -1,3 +1,4 @@
+// Vercel Serverless Function v2 - Search Jira Tickets
 module.exports = async function handler(req, res) {
     // Only allow POST requests
     if (req.method !== 'POST') {
