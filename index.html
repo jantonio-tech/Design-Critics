@@ -2128,7 +2128,7 @@
                                                         <div className="dc-presenter">{dc.presenter}</div>
                                                         <div className="dc-ticket">{dc.ticket}</div>
                                                         <div className="dc-product">📦 {dc.product}</div>
-                                                        {user.email.endsWith('@prestamype.com') && (
+                                                        {dc.createdBy === user.email && (
                                                             <div className="dc-actions">
                                                                 <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
                                                                 <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)} title="Eliminar">🗑️</button>
