@@ -1762,6 +1762,7 @@
         // Settings Page Component
         function SettingsPage({ user }) {
             const [jiraDomain, setJiraDomain] = useState('prestamype.atlassian.net');
+            const [jiraEmail, setJiraEmail] = useState(user.email);
             const [jiraToken, setJiraToken] = useState('');
             const [isSaving, setIsSaving] = useState(false);
             const [isTesting, setIsTesting] = useState(false);
@@ -1779,6 +1780,7 @@
                     if (doc.exists) {
                         const data = doc.data();
                         setJiraDomain(data.jira_domain || 'prestamype.atlassian.net');
+                        setJiraEmail(data.jira_email || data.email || user.email);
                         setJiraToken(data.jira_api_token || '');
                     }
                 } catch (error) {
@@ -1802,7 +1804,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            email: user.email,
+                            email: jiraEmail,
                             token: jiraToken,
                             domain: jiraDomain
                         })
@@ -1844,6 +1846,7 @@
                     const db = firebase.firestore();
                     await db.collection('user_settings').doc(user.email).set({
                         email: user.email,
+                        jira_email: jiraEmail,
                         jira_domain: jiraDomain,
                         jira_api_token: jiraToken,
                         updated_at: firebase.firestore.FieldValue.serverTimestamp()
@@ -1879,6 +1882,20 @@
                                 />
                                 <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
                                     Tu dominio de Jira Cloud (sin https://)
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">✉️ Email de Jira</label>
+                                <input
+                                    type="email"
+                                    className="form-input"
+                                    value={jiraEmail}
+                                    onChange={(e) => setJiraEmail(e.target.value)}
+                                    placeholder="usuario@prestamype.com"
+                                />
+                                <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
+                                    El correo de tu cuenta de Atlassian (puede ser diferente al login)
                                 </div>
                             </div>
 
