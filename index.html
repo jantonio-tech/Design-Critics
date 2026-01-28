@@ -1462,10 +1462,19 @@
             };
 
             const handleDeleteClick = async (dc) => {
+                console.log('🗑️ Delete clicked for DC:', dc.id, dc);
                 if (window.confirm('¿Estás seguro de eliminar este DC?')) {
+                    console.log('✅ User confirmed deletion');
                     setIsSubmitting(true);
-                    await onDeleteDC(dc.id);
+                    try {
+                        await onDeleteDC(dc.id);
+                        console.log('✅ Delete successful');
+                    } catch (error) {
+                        console.error('❌ Delete error:', error);
+                    }
                     setIsSubmitting(false);
+                } else {
+                    console.log('❌ User cancelled deletion');
                 }
             };
 
