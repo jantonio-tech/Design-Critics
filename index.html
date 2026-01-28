@@ -1162,8 +1162,23 @@
                     });
 
                     console.log('🔐 Starting Firebase Auth with Google...');
-                    const result = await firebase.auth().signInWithPopup(provider);
-                    const firebaseUser = result.user;
+
+                    // Detect if mobile browser
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                    let firebaseUser;
+
+                    if (isMobile) {
+                        // Use redirect for mobile (more reliable)
+                        console.log('📱 Mobile detected, using redirect auth...');
+                        await firebase.auth().signInWithRedirect(provider);
+                        // The result will be handled by getRedirectResult on page load
+                        return;
+                    } else {
+                        // Use popup for desktop
+                        const result = await firebase.auth().signInWithPopup(provider);
+                        firebaseUser = result.user;
+                    }
 
                     console.log('✅ Firebase Auth successful:', firebaseUser.email);
 
@@ -2060,7 +2075,7 @@
                                                         <div className="dc-presenter">{dc.presenter}</div>
                                                         <div className="dc-ticket">{dc.ticket}</div>
                                                         <div className="dc-product">📦 {dc.product}</div>
-                                                        {dc.createdBy === user.email && (
+                                                        {user.email.endsWith('@prestamype.com') && (
                                                             <div className="dc-actions">
                                                                 <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
                                                                 <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)} title="Eliminar">🗑️</button>
