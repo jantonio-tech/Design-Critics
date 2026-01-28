@@ -1230,19 +1230,28 @@
                 setIsAuthenticating(true);
                 console.log('🧪 Demo login as Dana...');
 
-                const demoUser = {
-                    name: 'Dana Vallejos',
-                    email: 'dvallejos@prestamype.com',
-                    picture: null,
-                    initials: 'DV',
-                    uid: 'demo-dana-001',
-                    isDemo: true
-                };
+                try {
+                    // Sign in anonymously to get valid Firebase Auth session
+                    const anonResult = await firebase.auth().signInAnonymously();
+                    console.log('🔐 Anonymous auth successful:', anonResult.user.uid);
 
-                // Store session for demo user
-                AuthStorage.saveSession(demoUser);
+                    const demoUser = {
+                        name: 'Dana Vallejos',
+                        email: 'dvallejos@prestamype.com',
+                        picture: null,
+                        initials: 'DV',
+                        uid: anonResult.user.uid,
+                        isDemo: true
+                    };
 
-                onLogin(demoUser, null);
+                    // Store session for demo user
+                    AuthStorage.saveSession(demoUser);
+
+                    onLogin(demoUser, null);
+                } catch (error) {
+                    console.error('Demo login error:', error);
+                    onLogin(null, 'Error en login de prueba. Habilita Anonymous Auth en Firebase Console.');
+                }
                 setIsAuthenticating(false);
             };
 
