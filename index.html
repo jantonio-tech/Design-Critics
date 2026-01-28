@@ -1253,13 +1253,19 @@
             const handleSubmit = (e) => {
                 e.preventDefault();
                 if (validate()) {
-                    onSubmit({
+                    const dcData = {
                         ...formData,
                         date: selectedDate,
                         presenter: user.name,
-                        createdBy: user.email,
-                        id: editingDC ? editingDC.id : Date.now()
-                    });
+                        createdBy: user.email
+                    };
+
+                    // Solo agregar ID si estamos editando un DC existente
+                    if (editingDC) {
+                        dcData.id = editingDC.id;
+                    }
+
+                    onSubmit(dcData);
                 }
             };
 
