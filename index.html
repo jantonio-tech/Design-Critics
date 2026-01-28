@@ -2330,6 +2330,19 @@
             useEffect(() => {
                 console.log('🔄 Setting up Firebase Auth listener...');
 
+                // Handle redirect result for mobile login
+                firebase.auth().getRedirectResult().then(async (result) => {
+                    if (result.user) {
+                        console.log('📱 Redirect result received:', result.user.email);
+                        // User will be handled by onAuthStateChanged
+                    }
+                }).catch((error) => {
+                    console.error('Redirect result error:', error);
+                    if (error.code !== 'auth/popup-closed-by-user') {
+                        setLoginError('Error en autenticación móvil. Intenta de nuevo.');
+                    }
+                });
+
                 const unsubscribe = firebase.auth().onAuthStateChanged(async (firebaseUser) => {
                     if (firebaseUser && firebaseUser.email.endsWith('@prestamype.com')) {
                         console.log('🔄 Firebase user detected:', firebaseUser.email);
