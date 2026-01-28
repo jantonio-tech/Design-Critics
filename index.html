@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Critics - Prestamype</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0EA5E9;
+            --primary-dark: #0284C7;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            --error: #EF4444;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #root {
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 24px;
+            }
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .page-header p {
+            color: var(--gray-600);
+            font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+            .page-header h1 {
+                font-size: 30px;
+            }
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 640px) {
+            .calendar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .calendar-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .day-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--gray-100);
+            margin-bottom: 16px;
+        }
+
+        .day-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .dc-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .dc-card {
+            background: var(--gray-50);
+            border-left: 3px solid var(--primary);
+            padding: 12px;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .dc-card:hover {
+            background: var(--gray-100);
+        }
+
+        .dc-card:hover .dc-actions {
+            opacity: 1;
+        }
+
+        .dc-presenter {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .dc-ticket {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 2px;
+        }
+
+        .dc-product {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        .dc-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .icon-btn {
+            background: white;
+            border: 1px solid var(--gray-300);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+        }
+
+        .icon-btn-delete:hover {
+            background: #FEE;
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-400);
+            font-size: 13px;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .add-btn:active {
+            transform: scale(0.98);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--gray-400);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .close-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .required::after {
+            content: ' *';
+            color: var(--error);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .form-input:disabled {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-error {
+            font-size: 12px;
+            color: var(--error);
+            margin-top: 4px;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+
+        .radio-option input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .radio-label {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .radio-description {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-50);
+        }
+
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #E0F2FE 0%, var(--gray-50) 100%);
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 24px;
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--gray-600);
+            margin-bottom: 32px;
+        }
+
+        .login-error {
+            background: #FEE;
+            color: var(--error);
+
+
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .tab {
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .conditional-field {
+            margin-top: 16px;
+            padding: 16px;
+            background: #FEF3C7;
+            border: 1px solid #FCD34D;
+            border-radius: 8px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-600);
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--gray-50);
+        }
+
+        .table-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .table-badge-gray {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .table-badge-blue {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .table-badge-yellow {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .spinner {
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 3000;
+            animation: slideIn 0.3s;
+            max-width: 400px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-error {
+            border-left: 4px solid var(--error);
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--success);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Config
+        const CONFIG = {
+            clientId: '36181471154-gugfgq8aalobbqbfs4qecka9a3k8svbv.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/spreadsheets openid profile email'
+        };
+
+        const productos = ["PGH", "Factoring", "Gestora", "Transversal", "Cambio Seguro", "Recadia"];
+
+        // Authentication Helper Functions
+        const AuthStorage = {
+            CONSENT_KEY: 'dc_user_consent',
+
+            hasUserConsented(email) {
+                if (!email) return false;
+                const consentData = localStorage.getItem(this.CONSENT_KEY);
+                if (!consentData) return false;
+                try {
+                    const consents = JSON.parse(consentData);
+                    return consents[email] === true;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            setUserConsent(email) {
+                if (!email) return;
+                try {
+                    let consents = {};
+                    const existing = localStorage.getItem(this.CONSENT_KEY);
+                    if (existing) {
+                        consents = JSON.parse(existing);
+                    }
+                    consents[email] = true;
+                    localStorage.setItem(this.CONSENT_KEY, JSON.stringify(consents));
+                } catch (e) {
+                    console.error('Error saving consent:', e);
+                }
+            },
+
+            clearUserConsent(email) {
+                if (!email) return;
+                try {
+                    const existing = localStorage.getItem(this.CONSENT_KEY);
+                    if (existing) {
+                        const consents = JSON.parse(existing);
+                        delete consents[email];
+                        localStorage.setItem(this.CONSENT_KEY, JSON.stringify(consents));
+                    }
+                } catch (e) {
+                    console.error('Error clearing consent:', e);
+                }
+            },
+
+            getLastUserEmail() {
+                return localStorage.getItem('dc_last_user_email');
+            },
+
+            setLastUserEmail(email) {
+                if (email) {
+                    localStorage.setItem('dc_last_user_email', email);
+                }
+            },
+
+            clearLastUserEmail() {
+                localStorage.removeItem('dc_last_user_email');
+            },
+
+            // Session management
+            saveSession(user) {
+                try {
+                    const sessionData = {
+                        name: user.name,
+                        email: user.email,
+                        picture: user.picture,
+                        initials: user.initials,
+                        accessToken: user.accessToken,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('dc_session', JSON.stringify(sessionData));
+                } catch (e) {
+                    console.error('Error saving session:', e);
+                }
+            },
+
+            getSession() {
+                try {
+                    const session = localStorage.getItem('dc_session');
+                    if (!session) return null;
+
+                    const sessionData = JSON.parse(session);
+                    // Check if session is less than 1 hour old
+                    const oneHour = 60 * 60 * 1000;
+                    if (Date.now() - sessionData.timestamp > oneHour) {
+                        this.clearSession();
+                        return null;
+                    }
+                    return sessionData;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            clearSession() {
+                localStorage.removeItem('dc_session');
+            }
+        };
+
+        // Supabase Data Service
+        class SupabaseDataService {
+            constructor(userEmail) {
+                this.userEmail = userEmail;
+                this.supabase = window.supabase.createClient(
+                    'https://hcexarvcecansoglvzqv.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZXhhcnZjZWNhbnNvZ2x2enF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1NjY2MTMsImV4cCI6MjA4NTE0MjYxM30.OnAwtCiEN6d8KVtyRXgK03oCD4BS-LoiIlT4zB5-6YM'
+                );
+            }
+
+            async init() {
+                // Supabase no requiere inicialización adicional
+                return Promise.resolve();
+            }
+
+            async readAll() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .select('*')
+                        .eq('estado', 'activo')
+                        .order('fecha_dc', { ascending: false });
+
+                    if (error) throw error;
+
+                    // Mapear de nomenclatura Supabase a nomenclatura actual
+                    return (data || []).map(row => ({
+                        id: row.id,
+                        timestamp: row.created_at,
+                        date: row.fecha_dc,
+                        presenter: row.presentador,
+                        product: row.producto,
+                        ticket: row.ticket,
+                        flow: row.flujo,
+                        type: row.tipo,
+                        descartaDate: row.descarta_fecha || '',
+                        notes: row.notas || '',
+                        status: row.estado,
+                        createdBy: row.presentador_email
+                    }));
+                } catch (error) {
+                    console.error('Error reading from Supabase:', error);
+                    throw new Error('Error al leer datos de Supabase');
+                }
+            }
+
+            async create(dcData) {
+                try {
+                    const newRow = {
+                        fecha_dc: dcData.date,
+                        presentador: dcData.presenter,
+                        presentador_email: dcData.createdBy,
+                        producto: dcData.product,
+                        ticket: dcData.ticket,
+                        flujo: dcData.flow,
+                        tipo: dcData.type,
+                        descarta_fecha: dcData.descartaDate || null,
+                        notas: dcData.notes || '',
+                        estado: 'activo'
+                    };
+
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .insert([newRow])
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    // Si es tipo Reemplazo, marcar el DC original como descartado
+                    if (dcData.type === 'Reemplazo' && dcData.descartaDate) {
+                        await this.markAsDiscarded(dcData.ticket, dcData.descartaDate);
+                    }
+
+                    // Retornar en formato esperado
+                    return {
+                        ...dcData,
+                        id: data.id,
+                        timestamp: data.created_at
+                    };
+                } catch (error) {
+                    console.error('Error creating DC:', error);
+                    throw new Error('Error al guardar en Supabase');
+                }
+            }
+
+            async update(dcData) {
+                try {
+                    const updatedRow = {
+                        fecha_dc: dcData.date,
+                        presentador: dcData.presenter,
+                        producto: dcData.product,
+                        ticket: dcData.ticket,
+                        flujo: dcData.flow,
+                        tipo: dcData.type,
+                        descarta_fecha: dcData.descartaDate || null,
+                        notas: dcData.notes || ''
+                    };
+
+                    const { data, error } = await this.supabase
+                        .from('dc_registrations')
+                        .update(updatedRow)
+                        .eq('id', dcData.id)
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    return dcData;
+                } catch (error) {
+                    console.error('Error updating DC:', error);
+                    throw new Error('Error al actualizar en Supabase');
+                }
+            }
+
+            async delete(dcId) {
+                try {
+                    // Soft delete: cambiar estado a 'eliminado'
+                    const { error } = await this.supabase
+                        .from('dc_registrations')
+                        .update({ estado: 'eliminado' })
+                        .eq('id', dcId);
+
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('Error deleting DC:', error);
+                    throw new Error('Error al eliminar en Supabase');
+                }
+            }
+
+            async markAsDiscarded(ticket, date) {
+                try {
+                    // Marcar como descartado el DC con el mismo ticket en la fecha especificada
+                    const { error } = await this.supabase
+                        .from('dc_registrations')
+                        .update({ estado: 'descartado' })
+                        .eq('ticket', ticket)
+                        .eq('fecha_dc', date)
+                        .eq('estado', 'activo');
+
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('Error marking as discarded:', error);
+                    // No lanzar error aquí ya que es una operación secundaria
+                }
+            }
+
+            // Suscribirse a cambios en tiempo real
+            subscribeToChanges(callback) {
+                const channel = this.supabase
+                    .channel('dc_changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'dc_registrations'
+                        },
+                        (payload) => {
+                            callback(payload);
+                        }
+                    )
+                    .subscribe();
+
+                return channel;
+            }
+
+            // Cancelar suscripción
+            unsubscribe(channel) {
+                this.supabase.removeChannel(channel);
+            }
+        }
+
+        // Toast Component
+        function Toast({ message, type, onClose }) {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 5000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            return (
+                <div className={`toast toast-${type}`}>
+                    <div>{message}</div>
+                    <button className="btn btn-secondary" onClick={onClose} style={{ padding: '4px 8px', fontSize: '12px' }}>
+                        Cerrar
+                    </button>
+                </div>
+            );
+        }
+
+        // Login Component
+        function LoginPage({ onLogin, error }) {
+            const [isAuthenticating, setIsAuthenticating] = useState(false);
+            const [tokenClientReady, setTokenClientReady] = useState(false);
+
+            useEffect(() => {
+                // Initialize Google Identity Services Token Client
+                const initTokenClient = () => {
+                    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+                        try {
+                            window.tokenClient = window.google.accounts.oauth2.initTokenClient({
+                                client_id: CONFIG.clientId,
+                                scope: CONFIG.scope,
+                                callback: async (tokenResponse) => {
+                                    if (tokenResponse.access_token) {
+                                        try {
+                                            // Get user info using the access token
+                                            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                                                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                                            });
+                                            const userInfo = await userInfoResponse.json();
+
+                                            // Validate email domain
+                                            if (!userInfo.email.endsWith('@prestamype.com')) {
+                                                onLogin(null, 'Debes usar un correo @prestamype.com');
+                                                setIsAuthenticating(false);
+                                                return;
+                                            }
+
+                                            const user = {
+                                                name: userInfo.name,
+                                                email: userInfo.email,
+                                                picture: userInfo.picture,
+                                                initials: userInfo.name.split(' ').map(n => n[0]).join('').substring(0, 2),
+                                                accessToken: tokenResponse.access_token
+                                            };
+
+                                            // Store consent after successful authentication
+                                            AuthStorage.setUserConsent(userInfo.email);
+                                            AuthStorage.setLastUserEmail(userInfo.email);
+
+                                            // Save session for auto-login
+                                            AuthStorage.saveSession(user);
+
+                                            console.log('✅ Consent and session stored for:', userInfo.email);
+
+                                            onLogin(user, null);
+                                        } catch (error) {
+                                            console.error('Error getting user info:', error);
+                                            onLogin(null, 'Error al obtener información del usuario');
+                                            setIsAuthenticating(false);
+                                        }
+                                    } else if (tokenResponse.error) {
+                                        console.error('Token error:', tokenResponse.error);
+                                        onLogin(null, 'Error en la autenticación');
+                                        setIsAuthenticating(false);
+                                    }
+                                },
+                            });
+                            setTokenClientReady(true);
+                        } catch (error) {
+                            console.error('Error initializing token client:', error);
+                            setTimeout(initTokenClient, 500); // Retry after 500ms
+                        }
+                    } else {
+                        // Google API not loaded yet, retry
+                        setTimeout(initTokenClient, 100);
+                    }
+                };
+
+                initTokenClient();
+            }, [onLogin]);
+
+            const handleGoogleLogin = () => {
+                if (!tokenClientReady || !window.tokenClient) {
+                    onLogin(null, 'Error: Google OAuth no está disponible. Por favor recarga la página.');
+                    return;
+                }
+
+                setIsAuthenticating(true);
+
+                try {
+                    // Check if this is a returning user
+                    const lastUserEmail = AuthStorage.getLastUserEmail();
+                    const hasConsented = lastUserEmail && AuthStorage.hasUserConsented(lastUserEmail);
+
+                    // DEBUG: Log consent status
+                    console.log('🔍 Debug - Login attempt:');
+                    console.log('  Last user email:', lastUserEmail);
+                    console.log('  Has consented:', hasConsented);
+                    console.log('  localStorage data:', localStorage.getItem('dc_user_consent'));
+
+                    // Determine prompt type:
+                    // - For new users: show account selection + consent
+                    // - For returning users with consent: silent authentication (no prompts)
+                    const promptType = hasConsented ? '' : 'consent select_account';
+
+                    console.log('  Prompt type:', promptType === '' ? '✅ SILENT (no dialogs)' : '⚠️ ' + promptType);
+
+                    window.tokenClient.requestAccessToken({ prompt: promptType });
+                } catch (error) {
+                    console.error('Error requesting access token:', error);
+                    onLogin(null, 'Error al iniciar sesión. Por favor intenta nuevamente.');
+                    setIsAuthenticating(false);
+                }
+            };
+
+            return (
+                <div className="login-container">
+                    <div className="login-card">
+                        <div className="login-icon">🎯</div>
+                        <h1 className="login-title">Design Critics</h1>
+                        <p className="login-subtitle">Prestamype</p>
+                        {error && <div className="login-error">{error}</div>}
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleGoogleLogin}
+                            disabled={isAuthenticating}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24">
+                                <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            {isAuthenticating ? 'Autenticando...' : 'Iniciar sesión con Google'}
+                        </button>
+                        <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--gray-500)', marginTop: '16px' }}>
+                            Solo para usuarios @prestamype.com
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Modal Component
+        function Modal({ isOpen, onClose, selectedDate, user, onSubmit, editingDC, isSubmitting }) {
+            const [formData, setFormData] = useState({
+                product: '',
+                ticket: '',
+                flow: '',
+                type: 'Normal',
+                descartaDate: '',
+                notes: ''
+            });
+            const [errors, setErrors] = useState({});
+
+            useEffect(() => {
+                if (editingDC) {
+                    setFormData({
+                        product: editingDC.product,
+                        ticket: editingDC.ticket,
+                        flow: editingDC.flow,
+                        type: editingDC.type,
+                        descartaDate: editingDC.descartaDate || '',
+                        notes: editingDC.notes || ''
+                    });
+                } else {
+                    setFormData({
+                        product: '',
+                        ticket: '',
+                        flow: '',
+                        type: 'Normal',
+                        descartaDate: '',
+                        notes: ''
+                    });
+                }
+            }, [editingDC, isOpen]);
+
+            if (!isOpen) return null;
+
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+                if (errors[field]) {
+                    setErrors(prev => ({ ...prev, [field]: '' }));
+                }
+            };
+
+            const validate = () => {
+                const newErrors = {};
+                if (!formData.product) newErrors.product = 'El producto es obligatorio';
+                if (!formData.ticket) newErrors.ticket = 'El ticket es obligatorio';
+                if (formData.ticket && !formData.ticket.startsWith('UX-')) {
+                    newErrors.ticket = 'El ticket debe comenzar con UX-';
+                }
+                if (!formData.flow) newErrors.flow = 'El flujo es obligatorio';
+                if (formData.type === 'Reemplazo' && !formData.descartaDate) {
+                    newErrors.descartaDate = 'Debes indicar la fecha a descartar';
+                }
+                setErrors(newErrors);
+                return Object.keys(newErrors).length === 0;
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (validate()) {
+                    const dcData = {
+                        ...formData,
+                        date: selectedDate,
+                        presenter: user.name,
+                        createdBy: user.email
+                    };
+
+                    // Solo agregar ID si estamos editando un DC existente
+                    if (editingDC) {
+                        dcData.id = editingDC.id;
+                    }
+
+                    onSubmit(dcData);
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">{editingDC ? 'Editar DC' : 'Registrar DC'}</h2>
+                            <button className="close-btn" onClick={onClose}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="form-label">📅 Fecha</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={new Date(selectedDate).toLocaleDateString('es-ES', {
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long'
+                                        })}
+                                        disabled
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">👤 Presentador</label>
+                                    <input type="text" className="form-input" value={user.name} disabled />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label required">🏢 Producto</label>
+                                    <select className="form-select" value={formData.product} onChange={(e) => handleChange('product', e.target.value)}>
+                                        <option value="">Seleccionar...</option>
+                                        {productos.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                    {errors.product && <div className="form-error">{errors.product}</div>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label required">🎫 Ticket Jira</label>
+                                    <input type="text" className="form-input" placeholder="UX-" value={formData.ticket} onChange={(e) => handleChange('ticket', e.target.value)} />
+                                    {errors.ticket && <div className="form-error">{errors.ticket}</div>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label required">🔀 Flujo</label>
+                                    <input type="text" className="form-input" placeholder="Ej: Flujo 1 - Onboarding inversiones" value={formData.flow} onChange={(e) => handleChange('flow', e.target.value)} />
+                                    {errors.flow && <div className="form-error">{errors.flow}</div>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label required">📊 Tipo</label>
+                                    <div className="radio-group">
+                                        <label className="radio-option">
+                                            <input type="radio" name="type" value="Normal" checked={formData.type === 'Normal'} onChange={(e) => handleChange('type', e.target.value)} />
+                                            <div className="radio-label">
+                                                <div>Normal</div>
+                                                <div className="radio-description">Primera vez o iteración</div>
+                                            </div>
+                                        </label>
+                                        <label className="radio-option">
+                                            <input type="radio" name="type" value="Reemplazo" checked={formData.type === 'Reemplazo'} onChange={(e) => handleChange('type', e.target.value)} />
+                                            <div className="radio-label">
+                                                <div>Reemplazo</div>
+                                                <div className="radio-description">Descarta versión anterior</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {formData.type === 'Reemplazo' && (
+                                    <div className="conditional-field">
+                                        <div className="form-group" style={{ marginBottom: 0 }}>
+                                            <label className="form-label required">🗑️ Descarta DC del</label>
+                                            <input type="date" className="form-input" value={formData.descartaDate} onChange={(e) => handleChange('descartaDate', e.target.value)} />
+                                            {errors.descartaDate && <div className="form-error">{errors.descartaDate}</div>}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="form-group">
+                                    <label className="form-label">📝 Notas</label>
+                                    <textarea className="form-textarea" placeholder="Información adicional..." value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                                    {editingDC ? 'Guardar' : 'Registrar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Calendar Page
+        function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading, dataService }) {
+            const [modalOpen, setModalOpen] = useState(false);
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [editingDC, setEditingDC] = useState(null);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [localDcs, setLocalDcs] = useState(dcs);
+
+            // Sincronizar con props
+            useEffect(() => {
+                setLocalDcs(dcs);
+            }, [dcs]);
+
+            // Realtime subscription
+            useEffect(() => {
+                if (!dataService || !dataService.supabase) return;
+
+                console.log('📡 Subscribing to realtime changes (Calendar)');
+
+                const channel = dataService.subscribeToChanges((payload) => {
+                    console.log('🔔 Realtime event:', payload);
+
+                    if (payload.eventType === 'INSERT' && payload.new.estado === 'activo') {
+                        const newDC = {
+                            id: payload.new.id,
+                            timestamp: payload.new.created_at,
+                            date: payload.new.fecha_dc,
+                            presenter: payload.new.presentador,
+                            product: payload.new.producto,
+                            ticket: payload.new.ticket,
+                            flow: payload.new.flujo,
+                            type: payload.new.tipo,
+                            descartaDate: payload.new.descarta_fecha || '',
+                            notes: payload.new.notas || '',
+                            status: payload.new.estado,
+                            createdBy: payload.new.presentador_email
+                        };
+
+                        setLocalDcs(prev => {
+                            const exists = prev.some(dc => dc.id === newDC.id);
+                            return exists ? prev : [...prev, newDC];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        if (payload.new.estado === 'activo') {
+                            const updatedDC = {
+                                id: payload.new.id,
+                                timestamp: payload.new.created_at,
+                                date: payload.new.fecha_dc,
+                                presenter: payload.new.presentador,
+                                product: payload.new.producto,
+                                ticket: payload.new.ticket,
+                                flow: payload.new.flujo,
+                                type: payload.new.tipo,
+                                descartaDate: payload.new.descarta_fecha || '',
+                                notes: payload.new.notas || '',
+                                status: payload.new.estado,
+                                createdBy: payload.new.presentador_email
+                            };
+
+                            setLocalDcs(prev => prev.map(dc => dc.id === updatedDC.id ? updatedDC : dc));
+                        } else {
+                            // Estado cambiado a 'eliminado' o 'descartado'
+                            setLocalDcs(prev => prev.filter(dc => dc.id !== payload.new.id));
+                        }
+                    } else if (payload.eventType === 'DELETE') {
+                        setLocalDcs(prev => prev.filter(dc => dc.id !== payload.old.id));
+                    }
+                });
+
+                return () => {
+                    console.log('🔌 Unsubscribing from realtime (Calendar)');
+                    dataService.unsubscribe(channel);
+                };
+            }, [dataService]);
+
+            const getWeekDays = () => {
+                const days = [];
+                const today = new Date();
+                const currentDay = today.getDay();
+                const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+
+                for (let i = 0; i < 5; i++) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() + mondayOffset + i);
+                    days.push(date);
+                }
+                return days;
+            };
+
+            const weekDays = getWeekDays();
+            const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+            const getDCsForDate = (date) => {
+                const dateStr = date.toISOString().split('T')[0];
+                return localDcs.filter(dc => dc.date === dateStr);
+            };
+
+            const handleAddClick = (date) => {
+                setSelectedDate(date.toISOString().split('T')[0]);
+                setEditingDC(null);
+                setModalOpen(true);
+            };
+
+            const handleEditClick = (dc) => {
+                setSelectedDate(dc.date);
+                setEditingDC(dc);
+                setModalOpen(true);
+            };
+
+            const handleDeleteClick = async (dc) => {
+                if (window.confirm('¿Estás seguro de eliminar este DC?')) {
+                    setIsSubmitting(true);
+                    await onDeleteDC(dc.id);
+                    setIsSubmitting(false);
+                }
+            };
+
+            const handleSubmit = async (data) => {
+                setIsSubmitting(true);
+                if (editingDC) {
+                    await onEditDC(data);
+                } else {
+                    await onAddDC(data);
+                }
+                setIsSubmitting(false);
+                setModalOpen(false);
+            };
+
+            return (
+                <>
+                    <div className="container">
+                        <div className="page-header">
+                            <h1>Calendario Semanal</h1>
+                            <p>Gestiona las presentaciones de Design Critics</p>
+                        </div>
+
+                        <div className="calendar-grid">
+                            {weekDays.map((day, index) => {
+                                const dayDCs = getDCsForDate(day);
+                                const slotsUsed = dayDCs.length;
+                                const slotsAvailable = 3 - slotsUsed;
+                                const canAdd = slotsAvailable > 0;
+
+                                return (
+                                    <div key={index} className="day-card">
+                                        <div className="day-header">
+                                            <div>
+                                                <div className="day-name">{dayNames[index]}</div>
+                                                <div className="day-date">
+                                                    {day.getDate()} {day.toLocaleDateString('es-ES', { month: 'short' })}
+                                                </div>
+                                            </div>
+                                            <span className={`badge ${slotsAvailable > 0 ? 'badge-success' : 'badge-warning'}`}>
+                                                {slotsUsed}/3
+                                            </span>
+                                        </div>
+
+                                        <div className="dc-list">
+                                            {dayDCs.length === 0 ? (
+                                                <div className="empty-state">Sin presentaciones</div>
+                                            ) : (
+                                                dayDCs.map(dc => (
+                                                    <div key={dc.id} className="dc-card">
+                                                        <div className="dc-presenter">{dc.presenter}</div>
+                                                        <div className="dc-ticket">{dc.ticket}</div>
+                                                        <div className="dc-product">📦 {dc.product}</div>
+                                                        {dc.createdBy === user.email && (
+                                                            <div className="dc-actions">
+                                                                <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
+                                                                <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)} title="Eliminar">🗑️</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        {canAdd && (
+                                            <button className="add-btn" onClick={() => handleAddClick(day)}>+ Agregar</button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <Modal
+                        isOpen={modalOpen}
+                        onClose={() => setModalOpen(false)}
+                        selectedDate={selectedDate}
+                        user={user}
+                        onSubmit={handleSubmit}
+                        editingDC={editingDC}
+                        isSubmitting={isSubmitting}
+                    />
+                </>
+            );
+        }
+
+        // History Page
+        function HistoryPage({ dcs, user, onEditDC, onDeleteDC, isLoading, dataService }) {
+            const [filter, setFilter] = useState('all');
+            const [editingDC, setEditingDC] = useState(null);
+            const [modalOpen, setModalOpen] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [localDcs, setLocalDcs] = useState(dcs);
+
+            // Sincronizar con props
+            useEffect(() => {
+                setLocalDcs(dcs);
+            }, [dcs]);
+
+            // Realtime subscription
+            useEffect(() => {
+                if (!dataService || !dataService.supabase) return;
+
+                console.log('📡 Subscribing to realtime changes (History)');
+
+                const channel = dataService.subscribeToChanges((payload) => {
+                    console.log('🔔 Realtime event:', payload);
+
+                    if (payload.eventType === 'INSERT' && payload.new.estado === 'activo') {
+                        const newDC = {
+                            id: payload.new.id,
+                            timestamp: payload.new.created_at,
+                            date: payload.new.fecha_dc,
+                            presenter: payload.new.presentador,
+                            product: payload.new.producto,
+                            ticket: payload.new.ticket,
+                            flow: payload.new.flujo,
+                            type: payload.new.tipo,
+                            descartaDate: payload.new.descarta_fecha || '',
+                            notes: payload.new.notas || '',
+                            status: payload.new.estado,
+                            createdBy: payload.new.presentador_email
+                        };
+
+                        setLocalDcs(prev => {
+                            const exists = prev.some(dc => dc.id === newDC.id);
+                            return exists ? prev : [...prev, newDC];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        if (payload.new.estado === 'activo') {
+                            const updatedDC = {
+                                id: payload.new.id,
+                                timestamp: payload.new.created_at,
+                                date: payload.new.fecha_dc,
+                                presenter: payload.new.presentador,
+                                product: payload.new.producto,
+                                ticket: payload.new.ticket,
+                                flow: payload.new.flujo,
+                                type: payload.new.tipo,
+                                descartaDate: payload.new.descarta_fecha || '',
+                                notes: payload.new.notas || '',
+                                status: payload.new.estado,
+                                createdBy: payload.new.presentador_email
+                            };
+
+                            setLocalDcs(prev => prev.map(dc => dc.id === updatedDC.id ? updatedDC : dc));
+                        } else {
+                            setLocalDcs(prev => prev.filter(dc => dc.id !== payload.new.id));
+                        }
+                    } else if (payload.eventType === 'DELETE') {
+                        setLocalDcs(prev => prev.filter(dc => dc.id !== payload.old.id));
+                    }
+                });
+
+                return () => {
+                    console.log('🔌 Unsubscribing from realtime (History)');
+                    dataService.unsubscribe(channel);
+                };
+            }, [dataService]);
+
+            const filteredDCs = filter === 'mine' ? localDcs.filter(dc => dc.createdBy === user.email) : localDcs;
+            const sortedDCs = [...filteredDCs].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const handleEditClick = (dc) => {
+                setEditingDC(dc);
+                setModalOpen(true);
+            };
+
+            const handleDeleteClick = async (dc) => {
+                if (window.confirm('¿Estás seguro de eliminar este DC?')) {
+                    setIsSubmitting(true);
+                    await onDeleteDC(dc.id);
+                    setIsSubmitting(false);
+                }
+            };
+
+            return (
+                <>
+                    <div className="container">
+                        <div className="page-header">
+                            <h1>Historial de DC</h1>
+                            <p>Todos los Design Critics registrados</p>
+                        </div>
+
+                        <div className="tabs">
+                            <button className={`tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
+                                Todos ({dcs.length})
+                            </button>
+                            <button className={`tab ${filter === 'mine' ? 'active' : ''}`} onClick={() => setFilter('mine')}>
+                                Mis DC ({dcs.filter(dc => dc.createdBy === user.email).length})
+                            </button>
+                        </div>
+
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Presentador</th>
+                                        <th>Producto</th>
+                                        <th>Ticket</th>
+                                        <th>Flujo</th>
+                                        <th>Tipo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedDCs.map(dc => (
+                                        <tr key={dc.id}>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                                                {new Date(dc.date).toLocaleDateString('es-ES')}
+                                            </td>
+                                            <td>{dc.presenter}</td>
+                                            <td><span className="table-badge table-badge-gray">{dc.product}</span></td>
+                                            <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--primary)' }}>{dc.ticket}</td>
+                                            <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dc.flow}</td>
+                                            <td>
+                                                <span className={`table-badge ${dc.type === 'Normal' ? 'table-badge-blue' : 'table-badge-yellow'}`}>
+                                                    {dc.type}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {dc.createdBy === user.email && (
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button className="icon-btn" onClick={() => handleEditClick(dc)}>✏️</button>
+                                                        <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)}>🗑️</button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <Modal
+                        isOpen={modalOpen}
+                        onClose={() => setModalOpen(false)}
+                        selectedDate={editingDC?.date}
+                        user={user}
+                        onSubmit={async (data) => {
+                            setIsSubmitting(true);
+                            await onEditDC(data);
+                            setIsSubmitting(false);
+                            setModalOpen(false);
+                        }}
+                        editingDC={editingDC}
+                        isSubmitting={isSubmitting}
+                    />
+                </>
+            );
+        }
+
+        // Main App
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [user, setUser] = useState(null);
+            const [currentTab, setCurrentTab] = useState('calendar');
+            const [dcs, setDcs] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
+            const [dataService, setDataService] = useState(null);
+            const [toast, setToast] = useState(null);
+            const [loginError, setLoginError] = useState(null);
+
+            // Auto-login on mount
+            useEffect(() => {
+                const restoreSession = async () => {
+                    const session = AuthStorage.getSession();
+                    if (session && session.accessToken) {
+                        console.log('🔄 Restoring session for:', session.email);
+                        setIsLoading(true);
+                        try {
+                            const service = new SupabaseDataService(session.email);
+                            await service.init();
+                            const loadedDCs = await service.readAll();
+
+                            setDataService(service);
+                            setDcs(loadedDCs);
+                            setUser(session);
+                            setIsLoggedIn(true);
+                            console.log('✅ Session restored successfully');
+                        } catch (error) {
+                            console.error('Session restore failed:', error);
+                            // Clear invalid session
+                            AuthStorage.clearSession();
+                        }
+                        setIsLoading(false);
+                    }
+                };
+
+                restoreSession();
+            }, []);
+
+            const showToast = (message, type = 'error') => {
+                setToast({ message, type });
+            };
+
+            const handleLogin = async (userData, error) => {
+                if (error) {
+                    setLoginError(error);
+                    return;
+                }
+
+                if (!userData) return;
+
+                setIsLoading(true);
+                try {
+                    const service = new SupabaseDataService(userData.email);
+                    await service.init();
+                    const loadedDCs = await service.readAll();
+
+                    setDataService(service);
+                    setDcs(loadedDCs);
+                    setUser(userData);
+                    setIsLoggedIn(true);
+                    setLoginError(null);
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
+                }
+                setIsLoading(false);
+            };
+
+            const handleLogout = () => {
+                // Clear session and consent
+                AuthStorage.clearSession();
+                if (user && user.email) {
+                    AuthStorage.clearUserConsent(user.email);
+                    AuthStorage.clearLastUserEmail();
+                }
+
+                setIsLoggedIn(false);
+                setUser(null);
+                setDcs([]);
+                setDataService(null);
+                if (window.google) {
+                    window.google.accounts.id.disableAutoSelect();
+                }
+            };
+
+            const handleAddDC = async (dcData) => {
+                try {
+                    await dataService.create(dcData);
+                    setDcs(prev => [...prev, dcData]);
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
+
+            const handleEditDC = async (dcData) => {
+                try {
+                    await dataService.update(dcData);
+                    setDcs(prev => prev.map(dc => dc.id === dcData.id ? dcData : dc));
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
+
+            const handleDeleteDC = async (dcId) => {
+                try {
+                    await dataService.delete(dcId);
+                    setDcs(prev => prev.filter(dc => dc.id !== dcId));
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="loading-overlay">
+                        <div className="spinner"></div>
+                        <div>Cargando datos...</div>
+                    </div>
+                );
+            }
+
+            if (!isLoggedIn) {
+                return <LoginPage onLogin={handleLogin} error={loginError} />;
+            }
+
+            return (
+                <>
+                    <nav className="navbar">
+                        <div className="navbar-content">
+                            <div className="logo">
+                                <div className="logo-icon">🎯</div>
+                                <div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Design Critics
+                                        {dataService && dataService.supabase && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                padding: '2px 6px',
+                                                background: '#10B981',
+                                                color: 'white',
+                                                borderRadius: '8px',
+                                                fontWeight: 600
+                                            }}>
+                                                🔴 EN VIVO
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>Prestamype</div>
+                                </div>
+                            </div>
+                            <div className="user-info">
+                                {user.picture ? (
+                                    <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
+                                ) : (
+                                    <div className="avatar">{user.initials}</div>
+                                )}
+                                <div>
+                                    <div style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</div>
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{
+                                            fontSize: '11px',
+                                            color: 'var(--gray-500)',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: 0
+                                        }}
+                                    >
+                                        Salir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div className="tabs container">
+                        <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>
+                            📅 Calendario
+                        </button>
+                        <button className={`tab ${currentTab === 'history' ? 'active' : ''}`} onClick={() => setCurrentTab('history')}>
+                            📋 Historial
+                        </button>
+                    </div>
+
+                    {currentTab === 'calendar' && (
+                        <CalendarPage
+                            dcs={dcs}
+                            user={user}
+                            onAddDC={handleAddDC}
+                            onEditDC={handleEditDC}
+                            onDeleteDC={handleDeleteDC}
+                            isLoading={isLoading}
+                            dataService={dataService}
+                        />
+                    )}
+
+                    {currentTab === 'history' && (
+                        <HistoryPage
+                            dcs={dcs}
+                            user={user}
+                            onEditDC={handleEditDC}
+                            onDeleteDC={handleDeleteDC}
+                            isLoading={isLoading}
+                            dataService={dataService}
+                        />
+                    )}
+
+                    {toast && (
+                        <Toast
+                            message={toast.message}
+                            type={toast.type}
+                            onClose={() => setToast(null)}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
