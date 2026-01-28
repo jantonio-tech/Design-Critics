@@ -1225,32 +1225,41 @@
                 }
             };
 
-            // Demo login for testing purposes (Dana's profile)
+            // Demo login for testing purposes (Test User)
             const handleDemoLogin = async () => {
                 setIsAuthenticating(true);
-                console.log('🧪 Demo login as Dana...');
+                console.log('🧪 Demo login as Usuario de Prueba...');
 
                 try {
-                    // Sign in anonymously to get valid Firebase Auth session
-                    const anonResult = await firebase.auth().signInAnonymously();
-                    console.log('🔐 Anonymous auth successful:', anonResult.user.uid);
+                    // Sign in with email/password for test user
+                    const result = await firebase.auth().signInWithEmailAndPassword(
+                        'usuariodeprueba@prestamype.com',
+                        'Prueba12345@@'
+                    );
+                    console.log('🔐 Test user auth successful:', result.user.email);
 
-                    const demoUser = {
-                        name: 'Dana Vallejos',
-                        email: 'dvallejos@prestamype.com',
+                    const testUser = {
+                        name: 'Usuario de Prueba',
+                        email: result.user.email,
                         picture: null,
-                        initials: 'DV',
-                        uid: anonResult.user.uid,
+                        initials: 'UP',
+                        uid: result.user.uid,
                         isDemo: true
                     };
 
-                    // Store session for demo user
-                    AuthStorage.saveSession(demoUser);
+                    // Store session for test user
+                    AuthStorage.saveSession(testUser);
 
-                    onLogin(demoUser, null);
+                    onLogin(testUser, null);
                 } catch (error) {
                     console.error('Demo login error:', error);
-                    onLogin(null, 'Error en login de prueba. Habilita Anonymous Auth en Firebase Console.');
+                    let errorMessage = 'Error en login de prueba';
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'Usuario de prueba no existe en Firebase';
+                    } else if (error.code === 'auth/wrong-password') {
+                        errorMessage = 'Contraseña incorrecta para usuario de prueba';
+                    }
+                    onLogin(null, errorMessage);
                 }
                 setIsAuthenticating(false);
             };
@@ -1283,7 +1292,7 @@
                             disabled={isAuthenticating}
                             style={{ width: '100%', marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                         >
-                            🧪 Pruebas (Dana)
+                            🧪 Pruebas
                         </button>
 
                         <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--gray-500)', marginTop: '16px' }}>
