@@ -1244,6 +1244,10 @@
                 descartaDate: '',
                 notes: ''
             });
+            const [jiraTickets, setJiraTickets] = useState([]);
+            const [loadingJira, setLoadingJira] = useState(false);
+            const [jiraError, setJiraError] = useState(null);
+            const [jiraConfigured, setJiraConfigured] = useState(false);
             const [errors, setErrors] = useState({});
 
             useEffect(() => {
@@ -1267,6 +1271,118 @@
                     });
                 }
             }, [editingDC, isOpen]);
+
+            // Function to load Jira tickets
+            async function loadJiraTickets() {
+                // No cargar si estamos editando
+                if (editingDC) return;
+
+                setLoadingJira(true);
+                setJiraError(null);
+
+                try {
+                    // 1. Verificar si hay caché válido
+                    const cacheKey = `jira_tickets_${user.email}`;
+                    const cached = localStorage.getItem(cacheKey);
+
+                    if (cached) {
+                        const data = JSON.parse(cached);
+                        const FIVE_MINUTES = 5 * 60 * 1000;
+                        const age = Date.now() - data.cached_at;
+
+                        if (age < FIVE_MINUTES) {
+                            console.log('📦 Using cached Jira tickets');
+                            setJiraTickets(data.tickets);
+                            setJiraConfigured(true);
+                            setLoadingJira(false);
+                            return;
+                        }
+                    }
+
+                    // 2. Obtener config de Jira del usuario
+                    const db = firebase.firestore();
+                    const settingsDoc = await db.collection('user_settings').doc(user.email).get();
+
+                    if (!settingsDoc.exists) {
+                        setJiraError('No has configurado Jira. Ve a Configuración ⚙️');
+                        setJiraConfigured(false);
+                        setLoadingJira(false);
+                        return;
+                    }
+
+                    const { jira_domain, jira_api_token } = settingsDoc.data();
+
+                    if (!jira_api_token) {
+                        setJiraError('No has configurado tu token de Jira');
+                        setJiraConfigured(false);
+                        setLoadingJira(false);
+                        return;
+                    }
+
+                    // 3. Consultar Jira API
+                    const jql = encodeURIComponent('assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC');
+                    const auth = btoa(`${user.email}:${jira_api_token}`);
+
+                    console.log('🔍 Fetching Jira tickets...');
+                    const response = await fetch(
+                        `https://${jira_domain}/rest/api/3/search?jql=${jql}&maxResults=50&fields=key,summary,status,assignee`,
+                        {
+                            headers: {
+                                'Authorization': `Basic ${auth}`,
+                                'Accept': 'application/json'
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            setJiraError('Token de Jira inválido. Ve a Configuración ⚙️');
+                        } else if (response.status === 404) {
+                            setJiraError('Dominio de Jira incorrecto');
+                        } else {
+                            setJiraError('Error al consultar Jira');
+                        }
+                        setJiraConfigured(false);
+                        setLoadingJira(false);
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    // 4. Transformar tickets
+                    const tickets = data.issues.map(issue => ({
+                        key: issue.key,
+                        summary: issue.fields.summary,
+                        status: issue.fields.status.name
+                    }));
+
+                    console.log(`✅ Loaded ${tickets.length} Jira tickets`);
+
+                    // 5. Guardar en caché
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        tickets,
+                        cached_at: Date.now(),
+                        user_email: user.email
+                    }));
+
+                    setJiraTickets(tickets);
+                    setJiraConfigured(true);
+
+                } catch (error) {
+                    console.error('Error loading Jira tickets:', error);
+                    setJiraError('Error de conexión con Jira');
+                    setJiraConfigured(false);
+                }
+
+                setLoadingJira(false);
+            }
+
+            // Load Jira tickets when modal opens (only for new DCs)
+            useEffect(() => {
+                if (isOpen && !editingDC) {
+                    loadJiraTickets();
+                }
+            }, [isOpen, editingDC]);
 
             if (!isOpen) return null;
 
@@ -1350,7 +1466,88 @@
 
                                 <div className="form-group">
                                     <label className="form-label required">🎫 Ticket Jira</label>
-                                    <input type="text" className="form-input" placeholder="UX-" value={formData.ticket} onChange={(e) => handleChange('ticket', e.target.value)} />
+
+                                    {loadingJira ? (
+                                        <div style={{
+                                            padding: '12px',
+                                            textAlign: 'center',
+                                            color: 'var(--gray-500)',
+                                            background: 'var(--gray-50)',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--gray-200)'
+                                        }}>
+                                            <div style={{ marginBottom: '8px' }}>Cargando tickets de Jira...</div>
+                                            <div className="spinner" style={{ width: '24px', height: '24px', margin: '0 auto' }}></div>
+                                        </div>
+                                    ) : jiraError ? (
+                                        <div>
+                                            <div style={{
+                                                padding: '12px',
+                                                marginBottom: '12px',
+                                                background: '#FEF3C7',
+                                                borderRadius: '6px',
+                                                border: '1px solid #FCD34D',
+                                                fontSize: '13px',
+                                                color: '#92400E'
+                                            }}>
+                                                {jiraError}
+                                            </div>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="UX-"
+                                                value={formData.ticket}
+                                                onChange={(e) => handleChange('ticket', e.target.value)}
+                                            />
+                                            <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
+                                                Ingresa manualmente mientras tanto
+                                            </div>
+                                        </div>
+                                    ) : jiraTickets.length === 0 ? (
+                                        <div>
+                                            <div style={{
+                                                padding: '12px',
+                                                marginBottom: '12px',
+                                                background: 'var(--gray-50)',
+                                                borderRadius: '6px',
+                                                border: '1px solid var(--gray-200)',
+                                                fontSize: '13px',
+                                                color: 'var(--gray-600)'
+                                            }}>
+                                                No tienes tickets activos en Jira
+                                            </div>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="UX-"
+                                                value={formData.ticket}
+                                                onChange={(e) => handleChange('ticket', e.target.value)}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <select
+                                            className="form-select"
+                                            value={formData.ticket}
+                                            onChange={(e) => {
+                                                const selectedKey = e.target.value;
+                                                handleChange('ticket', selectedKey);
+
+                                                // Auto-completar flujo
+                                                const selectedTicket = jiraTickets.find(t => t.key === selectedKey);
+                                                if (selectedTicket) {
+                                                    handleChange('flow', selectedTicket.summary);
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Seleccionar ticket...</option>
+                                            {jiraTickets.map(ticket => (
+                                                <option key={ticket.key} value={ticket.key}>
+                                                    {ticket.key} - {ticket.summary}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+
                                     {errors.ticket && <div className="form-error">{errors.ticket}</div>}
                                 </div>
 
@@ -1442,6 +1639,236 @@
                                     {isSubmitting ? 'Eliminando...' : 'Eliminar'}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Jira Status Badge Component
+        function JiraStatusBadge({ user }) {
+            const [hasJira, setHasJira] = useState(false);
+
+            useEffect(() => {
+                checkJiraConfig();
+            }, [user]);
+
+            async function checkJiraConfig() {
+                try {
+                    const db = firebase.firestore();
+                    const doc = await db.collection('user_settings').doc(user.email).get();
+                    setHasJira(doc.exists && doc.data().jira_api_token);
+                } catch (error) {
+                    console.error('Error checking Jira config:', error);
+                }
+            }
+
+            if (!hasJira) {
+                return (
+                    <span style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'var(--gray-200)',
+                        color: 'var(--gray-600)',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        marginLeft: '8px'
+                    }}>
+                        Configurar Jira
+                    </span>
+                );
+            }
+
+            return (
+                <span style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    background: '#D1FAE5',
+                    color: '#065F46',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    marginLeft: '8px'
+                }}>
+                    ✓ Jira
+                </span>
+            );
+        }
+
+        // Settings Page Component
+        function SettingsPage({ user }) {
+            const [jiraDomain, setJiraDomain] = useState('prestamype.atlassian.net');
+            const [jiraToken, setJiraToken] = useState('');
+            const [isSaving, setIsSaving] = useState(false);
+            const [isTesting, setIsTesting] = useState(false);
+            const [testResult, setTestResult] = useState(null);
+
+            useEffect(() => {
+                loadExistingConfig();
+            }, []);
+
+            async function loadExistingConfig() {
+                try {
+                    const db = firebase.firestore();
+                    const doc = await db.collection('user_settings').doc(user.email).get();
+
+                    if (doc.exists) {
+                        const data = doc.data();
+                        setJiraDomain(data.jira_domain || 'prestamype.atlassian.net');
+                        setJiraToken(data.jira_api_token || '');
+                    }
+                } catch (error) {
+                    console.error('Error loading Jira config:', error);
+                }
+            }
+
+            async function handleTestConnection() {
+                if (!jiraToken) {
+                    setTestResult({ success: false, message: 'Por favor ingresa tu API token' });
+                    return;
+                }
+
+                setIsTesting(true);
+                setTestResult(null);
+
+                try {
+                    const auth = btoa(`${user.email}:${jiraToken}`);
+                    const response = await fetch(`https://${jiraDomain}/rest/api/3/myself`, {
+                        headers: {
+                            'Authorization': `Basic ${auth}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const userData = await response.json();
+                        setTestResult({
+                            success: true,
+                            message: `✅ Conexión exitosa. Bienvenido ${userData.displayName}`
+                        });
+                    } else {
+                        setTestResult({
+                            success: false,
+                            message: '❌ Token inválido o dominio incorrecto'
+                        });
+                    }
+                } catch (error) {
+                    setTestResult({
+                        success: false,
+                        message: '❌ Error de conexión. Verifica tu dominio.'
+                    });
+                }
+
+                setIsTesting(false);
+            }
+
+            async function handleSave() {
+                if (!jiraToken) {
+                    alert('Por favor ingresa tu API token');
+                    return;
+                }
+
+                setIsSaving(true);
+
+                try {
+                    const db = firebase.firestore();
+                    await db.collection('user_settings').doc(user.email).set({
+                        email: user.email,
+                        jira_domain: jiraDomain,
+                        jira_api_token: jiraToken,
+                        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    setTestResult({ success: true, message: '✅ Configuración guardada correctamente' });
+                } catch (error) {
+                    console.error('Error saving config:', error);
+                    alert('Error al guardar configuración');
+                }
+
+                setIsSaving(false);
+            }
+
+            return (
+                <div className="container">
+                    <div className="page-header">
+                        <h1>Configuración de Jira</h1>
+                        <p>Conecta tu cuenta de Jira para autocompletar tickets</p>
+                    </div>
+
+                    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--gray-200)' }}>
+
+                            <div className="form-group">
+                                <label className="form-label">🌐 Dominio de Jira</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={jiraDomain}
+                                    onChange={(e) => setJiraDomain(e.target.value)}
+                                    placeholder="prestamype.atlassian.net"
+                                />
+                                <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
+                                    Tu dominio de Jira Cloud (sin https://)
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">🔑 API Token de Jira</label>
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    value={jiraToken}
+                                    onChange={(e) => setJiraToken(e.target.value)}
+                                    placeholder="ATATT3xFfGF0..."
+                                />
+                                <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
+                                    Genera tu token aquí: <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Jira API Tokens</a>
+                                </div>
+                            </div>
+
+                            {testResult && (
+                                <div style={{
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    marginBottom: '16px',
+                                    background: testResult.success ? '#D1FAE5' : '#FEE2E2',
+                                    color: testResult.success ? '#065F46' : '#991B1B',
+                                    fontSize: '14px'
+                                }}>
+                                    {testResult.message}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleTestConnection}
+                                    disabled={isTesting}
+                                    style={{ flex: 1 }}
+                                >
+                                    {isTesting ? 'Probando...' : 'Probar Conexión'}
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    style={{ flex: 1 }}
+                                >
+                                    {isSaving ? 'Guardando...' : 'Guardar'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '24px', padding: '16px', background: '#FEF3C7', borderRadius: '8px', border: '1px solid #FCD34D' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+                                📌 ¿Cómo obtener tu API Token?
+                            </div>
+                            <ol style={{ fontSize: '13px', color: 'var(--gray-700)', marginLeft: '20px', lineHeight: '1.6' }}>
+                                <li>Ve a <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>Jira API Tokens</a></li>
+                                <li>Click en "Create API token"</li>
+                                <li>Dale un nombre (ej: "DC Tracker App")</li>
+                                <li>Copia el token y pégalo arriba</li>
+                                <li>Guarda la configuración</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
@@ -2024,8 +2451,9 @@
                             <div className="logo">
                                 <div className="logo-icon">🎯</div>
                                 <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
                                         Design Critics
+                                        <JiraStatusBadge user={user} />
                                         {dataService && dataService.userEmail && (
                                             <span style={{
                                                 fontSize: '10px',
@@ -2075,6 +2503,9 @@
                         <button className={`tab ${currentTab === 'history' ? 'active' : ''}`} onClick={() => setCurrentTab('history')}>
                             📋 Historial
                         </button>
+                        <button className={`tab ${currentTab === 'settings' ? 'active' : ''}`} onClick={() => setCurrentTab('settings')}>
+                            ⚙️ Configuración
+                        </button>
                     </div>
 
                     {currentTab === 'calendar' && (
@@ -2098,6 +2529,10 @@
                             isLoading={isLoading}
                             dataService={dataService}
                         />
+                    )}
+
+                    {currentTab === 'settings' && (
+                        <SettingsPage user={user} />
                     )}
 
                     {toast && (
