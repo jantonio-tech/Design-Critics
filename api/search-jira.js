@@ -37,10 +37,10 @@ module.exports = async function handler(req, res) {
         // We use the Central Token to search on behalf of the user
         let searchJql;
         if (userEmail) {
-            searchJql = `assignee = "${userEmail}" AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
+            searchJql = `assignee = "${userEmail}" AND Sprint in openSprints() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
         } else {
             // Fallback or generic search (e.g. project UX)
-            searchJql = `project = UX AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
+            searchJql = `project = UX AND Sprint in openSprints() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
         }
 
         // Create Basic Auth header
