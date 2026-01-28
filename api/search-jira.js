@@ -18,15 +18,30 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { email, token, domain, jql } = req.body;
 
-        // Validate inputs
-        if (!email || !token || !domain) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        const { userEmail } = req.body; // Solo necesitamos saber QUIÉN pide los tickets para filtrar
+
+        // Use server-side environment variables
+        const email = process.env.JIRA_EMAIL;
+        const token = process.env.JIRA_API_TOKEN;
+        const domain = process.env.JIRA_DOMAIN || 'prestamype.atlassian.net';
+
+        // Validate server config
+        if (!email || !token) {
+            console.error('Missing server-side Jira configuration');
+            return res.status(500).json({ error: 'Server configuration error' });
         }
 
-        // Default JQL if not provided
-        const searchJql = jql || 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) ORDER BY updated DESC';
+        // Construct JQL: Filter by the requesting user if provided, otherwise generic
+        // If userEmail is provided, search for their assigned tickets
+        // We use the Central Token to search on behalf of the user
+        let searchJql;
+        if (userEmail) {
+            searchJql = `assignee = "${userEmail}" AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
+        } else {
+            // Fallback or generic search (e.g. project UX)
+            searchJql = `project = UX AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
+        }
 
         // Create Basic Auth header
         const auth = Buffer.from(`${email}:${token}`).toString('base64');

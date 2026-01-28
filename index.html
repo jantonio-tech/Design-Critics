@@ -1368,38 +1368,18 @@
                         }
                     }
 
-                    // 2. Obtener config de Jira del usuario
-                    const db = firebase.firestore();
-                    const settingsDoc = await db.collection('user_settings').doc(user.email).get();
+                    // 2. Fetch directly (Centralized Auth)
+                    // No need to check user settings anymore, backend handles auth
 
-                    if (!settingsDoc.exists) {
-                        setJiraError('No has configurado Jira. Ve a Configuración ⚙️');
-                        setJiraConfigured(false);
-                        setLoadingJira(false);
-                        return;
-                    }
-
-                    const { jira_domain, jira_api_token, jira_email } = settingsDoc.data();
-
-                    if (!jira_api_token) {
-                        setJiraError('No has configurado tu token de Jira');
-                        setJiraConfigured(false);
-                        setLoadingJira(false);
-                        return;
-                    }
-
-                    // 3. Consultar Jira API a través del proxy de Vercel
-                    console.log('🔍 Fetching Jira tickets via proxy...');
+                    // 3. Consultar Jira API a través del proxy de Vercel (Centralized)
+                    console.log('🔍 Fetching Jira tickets via centralized proxy...');
                     const response = await fetch('/api/search-jira', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            email: jira_email || user.email, // Use Jira email if configured
-                            token: jira_api_token,
-                            domain: jira_domain,
-                            jql: 'assignee = currentUser() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC'
+                            userEmail: user.email // Send user email for filtering tickets
                         })
                     });
 
@@ -2610,9 +2590,7 @@
                         <button className={`tab ${currentTab === 'history' ? 'active' : ''}`} onClick={() => setCurrentTab('history')}>
                             📋 Historial
                         </button>
-                        <button className={`tab ${currentTab === 'settings' ? 'active' : ''}`} onClick={() => setCurrentTab('settings')}>
-                            ⚙️ Configuración
-                        </button>
+
                     </div>
 
                     {currentTab === 'calendar' && (
@@ -2638,9 +2616,7 @@
                         />
                     )}
 
-                    {currentTab === 'settings' && (
-                        <SettingsPage user={user} />
-                    )}
+
 
                     {toast && (
                         <Toast
