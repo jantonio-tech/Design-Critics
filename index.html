@@ -2388,7 +2388,13 @@
                 });
 
                 const unsubscribe = firebase.auth().onAuthStateChanged(async (firebaseUser) => {
-                    if (firebaseUser && firebaseUser.email.endsWith('@prestamype.com')) {
+                    // Skip anonymous users (they're handled by demo login flow)
+                    if (firebaseUser && firebaseUser.isAnonymous) {
+                        console.log('🔄 Anonymous user detected, skipping auth listener handling');
+                        return;
+                    }
+
+                    if (firebaseUser && firebaseUser.email && firebaseUser.email.endsWith('@prestamype.com')) {
                         console.log('🔄 Firebase user detected:', firebaseUser.email);
                         setIsLoading(true);
 
