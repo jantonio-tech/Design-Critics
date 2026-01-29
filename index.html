@@ -1501,11 +1501,15 @@
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label required">🏢 Producto</label>
-                                    <select className="form-select" value={formData.product} onChange={(e) => handleChange('product', e.target.value)}>
-                                        <option value="">Seleccionar...</option>
-                                        {productos.map(p => <option key={p} value={p}>{p}</option>)}
-                                    </select>
+                                    <label className="form-label required">🏢 Producto (Detectado)</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.product}
+                                        placeholder="Se detectará automáticamente al seleccionar ticket"
+                                        disabled
+                                        style={{ background: 'var(--gray-50)', color: 'var(--gray-700)' }}
+                                    />
                                     {errors.product && <div className="form-error">{errors.product}</div>}
                                 </div>
 
@@ -1577,10 +1581,11 @@
                                                 const selectedKey = e.target.value;
                                                 handleChange('ticket', selectedKey);
 
-                                                // Auto-completar flujo y producto
+                                                // Auto-completar producto (Flujo manual)
                                                 const selectedTicket = jiraTickets.find(t => t.key === selectedKey);
                                                 if (selectedTicket) {
-                                                    handleChange('flow', selectedTicket.summary);
+                                                    // Ya no autocompletamos el flujo con el summary
+                                                    // handleChange('flow', selectedTicket.summary);
 
                                                     // Auto-detectar producto
                                                     const summaryUpper = selectedTicket.summary.toUpperCase();
