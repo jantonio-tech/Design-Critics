@@ -1050,11 +1050,12 @@
 
             async delete(dcId) {
                 try {
-                    // Soft delete: cambiar estado a 'eliminado'
+                    // Hard delete: eliminar el documento físicamente
+                    // Esto suele tener menos restricciones de validación de campos que un update
                     await this.db
                         .collection(this.collection)
                         .doc(dcId)
-                        .update({ estado: 'eliminado' });
+                        .delete();
                 } catch (error) {
                     console.error('Error deleting DC:', error);
                     throw new Error('Error al eliminar en Firestore');
