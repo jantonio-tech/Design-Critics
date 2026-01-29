@@ -1577,10 +1577,25 @@
                                                 const selectedKey = e.target.value;
                                                 handleChange('ticket', selectedKey);
 
-                                                // Auto-completar flujo
+                                                // Auto-completar flujo y producto
                                                 const selectedTicket = jiraTickets.find(t => t.key === selectedKey);
                                                 if (selectedTicket) {
                                                     handleChange('flow', selectedTicket.summary);
+
+                                                    // Auto-detectar producto
+                                                    const summaryUpper = selectedTicket.summary.toUpperCase();
+                                                    let detectedProduct = '';
+
+                                                    if (summaryUpper.includes('PGH')) detectedProduct = 'PGH';
+                                                    else if (summaryUpper.includes('RECADIA')) detectedProduct = 'Recadia';
+                                                    else if (summaryUpper.includes('CAMBIO SEGURO') || summaryUpper.includes('CS ') || summaryUpper.startsWith('CS:')) detectedProduct = 'Cambio Seguro';
+                                                    else if (summaryUpper.includes('FACTORING')) detectedProduct = 'Factoring';
+                                                    else if (summaryUpper.includes('GESTORA')) detectedProduct = 'Gestora';
+                                                    else if (summaryUpper.includes('TRANSVERSAL')) detectedProduct = 'Transversal';
+
+                                                    if (detectedProduct) {
+                                                        handleChange('product', detectedProduct);
+                                                    }
                                                 }
                                             }}
                                         >
