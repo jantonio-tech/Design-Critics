@@ -1034,7 +1034,8 @@
                     return {
                         ...dcData,
                         id: docRef.id,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        status: 'activo' // CRITICAL: Required for checking active status in UI immediately
                     };
                 } catch (error) {
                     console.error('Error creating DC:', error);
@@ -2561,7 +2562,7 @@
                                                 alignItems: 'center',
                                                 gap: '4px'
                                             }}>
-                                                {item.active ? '● EN CURSO' : '○ FINALIZADO'}
+                                                {item.active ? '● EN CURSO' : '○ JIRA: FINALIZADO'}
                                             </div>
                                         </div>
 
@@ -2583,7 +2584,7 @@
                                     }}>
                                         <div>
                                             <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                                Iteraciones
+                                                Critics
                                             </div>
                                             <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--gray-900)' }}>
                                                 {item.totalCritics}
