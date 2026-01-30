@@ -1472,39 +1472,44 @@
                             <h2 className="modal-title">{editingDC ? 'Editar DC' : 'Registrar DC'}</h2>
                             <button className="close-btn" onClick={onClose}>×</button>
                         </div>
+                        <div style={{
+                            padding: '12px 20px',
+                            background: 'var(--gray-50)',
+                            borderBottom: '1px solid var(--gray-200)',
+                            display: 'flex',
+                            gap: '24px',
+                            fontSize: '13px',
+                            color: 'var(--gray-600)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>📅</span>
+                                <strong>{new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>👤</span>
+                                <strong>{user.name}</strong>
+                            </div>
+                        </div>
+
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
-                                <div className="form-group">
-                                    <label className="form-label">📅 Fecha</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={new Date(selectedDate).toLocaleDateString('es-ES', {
-                                            weekday: 'long',
-                                            day: 'numeric',
-                                            month: 'long'
-                                        })}
-                                        disabled
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">👤 Presentador</label>
-                                    <input type="text" className="form-input" value={user.name} disabled />
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label required">🏢 Producto (Detectado)</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.product}
-                                        placeholder="Se detectará automáticamente al seleccionar ticket"
-                                        disabled
-                                        style={{ background: 'var(--gray-50)', color: 'var(--gray-700)' }}
-                                    />
-                                    {errors.product && <div className="form-error">{errors.product}</div>}
-                                </div>
+                                {/* Error de producto si no se detecta (fallback UX) */}
+                                {errors.product && (
+                                    <div style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '6px',
+                                        background: '#FEF2F2',
+                                        color: '#B91C1C',
+                                        fontSize: '13px',
+                                        marginBottom: '16px',
+                                        border: '1px solid #FECACA',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        ⚠️ <span>Selecciona un ticket para detectar el producto.</span>
+                                    </div>
+                                )}
 
                                 <div className="form-group">
                                     <label className="form-label required">🎫 Ticket Jira</label>
@@ -1607,6 +1612,36 @@
                                     )}
 
                                     {errors.ticket && <div className="form-error">{errors.ticket}</div>}
+
+                                    {formData.product && (
+                                        <div style={{
+                                            marginTop: '12px',
+                                            padding: '10px',
+                                            background: '#F0F9FF',
+                                            border: '1px solid #BAE6FD',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            animation: 'slideUp 0.3s ease-out'
+                                        }}>
+                                            <div style={{
+                                                background: '#0EA5E9',
+                                                color: 'white',
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '12px'
+                                            }}>✓</div>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: '#0369A1', fontWeight: 600 }}>PRODUCTO DETECTADO</div>
+                                                <div style={{ fontSize: '13px', color: '#0C4A6E', fontWeight: 500 }}>{formData.product}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
