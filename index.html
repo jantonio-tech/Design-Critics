@@ -2778,19 +2778,11 @@
                                                                 <div className="dc-ticket">{dc.ticket}</div>
                                                                 <div className="dc-product">📦 {dc.product}</div>
                                                             </div>
-                                                            <span style={{
-                                                                fontSize: '10px',
-                                                                padding: '2px 6px',
-                                                                borderRadius: '8px',
-                                                                fontWeight: '600',
-                                                                marginLeft: '4px',
-                                                                whiteSpace: 'nowrap'
-                                                            }} className={
-                                                                dc.type === 'Critic' ? 'table-badge-blue' :
-                                                                    dc.type === 'Iteración DS' ? 'table-badge-purple' :
-                                                                        'table-badge-yellow'
-                                                            }>
-                                                                {dc.type === 'Iteración DS' ? 'DS' : dc.type === 'Cambio de alcance' ? 'Alcance' : dc.type}
+                                                            <span className={`table-badge ${dc.type === 'Critic' || dc.type === 'Normal' ? 'table-badge-blue' :
+                                                                dc.type === 'Iteración DS' ? 'table-badge-purple' :
+                                                                    'table-badge-yellow'
+                                                                }`}>
+                                                                {dc.type}
                                                             </span>
                                                         </div>
                                                         {dc.createdBy === user.email && (
@@ -3071,7 +3063,7 @@
                                             <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--primary)' }}>{dc.ticket}</td>
                                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dc.flow}</td>
                                             <td>
-                                                <span className={`table-badge ${dc.type === 'Normal' ? 'table-badge-blue' :
+                                                <span className={`table-badge ${dc.type === 'Critic' || dc.type === 'Normal' ? 'table-badge-blue' :
                                                     dc.type === 'Iteración DS' ? 'table-badge-purple' :
                                                         'table-badge-yellow'
                                                     }`}>
