@@ -2091,14 +2091,21 @@
                                             <label className="form-label required">📊 Tipo de sesión</label>
                                             <div className="radio-group">
                                                 <label className="radio-option">
-                                                    <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                    <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => {
+                                                        handleChange('type', e.target.value);
+                                                        // Reset flows/acuerdo input when switching types to avoid data mixing
+                                                        setFormData(prev => ({ ...prev, flows: [''] }));
+                                                    }} />
                                                     <div className="radio-label">
                                                         <div>Critic</div>
                                                         <div className="radio-description">Revisión estándar de avance o propuesta</div>
                                                     </div>
                                                 </label>
                                                 <label className="radio-option">
-                                                    <input type="radio" name="type" value="Iteración DS" checked={formData.type === 'Iteración DS'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                    <input type="radio" name="type" value="Iteración DS" checked={formData.type === 'Iteración DS'} onChange={(e) => {
+                                                        handleChange('type', e.target.value);
+                                                        setFormData(prev => ({ ...prev, flows: [''] }));
+                                                    }} />
                                                     <div className="radio-label">
                                                         <div>Iteración DS</div>
                                                         <div className="radio-description">Mejora componentes Design System</div>
@@ -2106,7 +2113,10 @@
                                                 </label>
                                                 {previousDCsCount > 0 && (
                                                     <label className="radio-option">
-                                                        <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                        <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => {
+                                                            handleChange('type', e.target.value);
+                                                            setFormData(prev => ({ ...prev, flows: [''] }));
+                                                        }} />
                                                         <div className="radio-label">
                                                             <div>Cambio de alcance</div>
                                                             <div className="radio-description">Descarta los critics previos y reinicia el conteo de critics</div>
