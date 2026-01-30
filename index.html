@@ -2085,114 +2085,118 @@
                                     {errors.ticket && <div className="form-error">{errors.ticket}</div>}
                                 </div>
 
-                                <div className="form-group">
-                                    <label className="form-label required">📊 Tipo de sesión</label>
-                                    <div className="radio-group">
-                                        <label className="radio-option">
-                                            <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => handleChange('type', e.target.value)} />
-                                            <div className="radio-label">
-                                                <div>Critic</div>
-                                                <div className="radio-description">Revisión estándar de avance o propuesta</div>
-                                            </div>
-                                        </label>
-                                        <label className="radio-option">
-                                            <input type="radio" name="type" value="Iteración DS" checked={formData.type === 'Iteración DS'} onChange={(e) => handleChange('type', e.target.value)} />
-                                            <div className="radio-label">
-                                                <div>Iteración DS</div>
-                                                <div className="radio-description">Mejora componentes Design System</div>
-                                            </div>
-                                        </label>
-                                        {previousDCsCount > 0 && (
-                                            <label className="radio-option">
-                                                <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
-                                                <div className="radio-label">
-                                                    <div>Cambio de alcance</div>
-                                                    <div className="radio-description">Descarta los critics previos y reinicia el conteo de critics</div>
-                                                </div>
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {formData.type === 'Cambio de alcance' && (
-                                    <div className="conditional-field" style={{ background: '#FFF7ED', borderColor: '#FDBA74' }}>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'start' }}>
-                                            <div style={{ fontSize: '18px' }}>⚠️</div>
-                                            <div>
-                                                <div style={{ fontWeight: 600, fontSize: '13px', color: '#9A3412', marginBottom: '4px' }}>
-                                                    Acción Destructiva
-                                                </div>
-                                                <div style={{ fontSize: '12px', color: '#C2410C', lineHeight: '1.4' }}>
-                                                    Al guardar, se <strong>archivarán {previousDCsCount} revisiones anteriores</strong> asociadas al ticket <strong>{formData.ticket || '...'}</strong>.
-                                                    <br />
-                                                    El historial se mantiene, pero solo esta nueva sesión aparecerá activa.
-                                                </div>
+                                {formData.ticket && (
+                                    <>
+                                        <div className="form-group">
+                                            <label className="form-label required">📊 Tipo de sesión</label>
+                                            <div className="radio-group">
+                                                <label className="radio-option">
+                                                    <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                    <div className="radio-label">
+                                                        <div>Critic</div>
+                                                        <div className="radio-description">Revisión estándar de avance o propuesta</div>
+                                                    </div>
+                                                </label>
+                                                <label className="radio-option">
+                                                    <input type="radio" name="type" value="Iteración DS" checked={formData.type === 'Iteración DS'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                    <div className="radio-label">
+                                                        <div>Iteración DS</div>
+                                                        <div className="radio-description">Mejora componentes Design System</div>
+                                                    </div>
+                                                </label>
+                                                {previousDCsCount > 0 && (
+                                                    <label className="radio-option">
+                                                        <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                        <div className="radio-label">
+                                                            <div>Cambio de alcance</div>
+                                                            <div className="radio-description">Descarta los critics previos y reinicia el conteo de critics</div>
+                                                        </div>
+                                                    </label>
+                                                )}
                                             </div>
                                         </div>
-                                    </div>
-                                )}
 
-                                <div className="form-group">
-                                    <label className="form-label required">🔀 Happy path</label>
-                                    {formData.flows && formData.flows.map((flow, index) => (
-                                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                            <input
-                                                type="text"
-                                                className="form-input"
-                                                placeholder="Pega aquí el nombre de tu happy path"
-                                                value={flow}
-                                                onChange={(e) => updateFlow(index, e.target.value)}
-                                                style={{ flex: 1 }}
-                                            />
-                                            {index > 0 && (
+                                        {formData.type === 'Cambio de alcance' && (
+                                            <div className="conditional-field" style={{ background: '#FFF7ED', borderColor: '#FDBA74' }}>
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'start' }}>
+                                                    <div style={{ fontSize: '18px' }}>⚠️</div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, fontSize: '13px', color: '#9A3412', marginBottom: '4px' }}>
+                                                            Acción Destructiva
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#C2410C', lineHeight: '1.4' }}>
+                                                            Al guardar, se <strong>archivarán {previousDCsCount} revisiones anteriores</strong> asociadas al ticket <strong>{formData.ticket || '...'}</strong>.
+                                                            <br />
+                                                            El historial se mantiene, pero solo esta nueva sesión aparecerá activa.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="form-group">
+                                            <label className="form-label required">🔀 Happy path</label>
+                                            {formData.flows && formData.flows.map((flow, index) => (
+                                                <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                                    <input
+                                                        type="text"
+                                                        className="form-input"
+                                                        placeholder="Pega aquí el nombre de tu happy path"
+                                                        value={flow}
+                                                        onChange={(e) => updateFlow(index, e.target.value)}
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    {index > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeFlow(index)}
+                                                            className="icon-btn"
+                                                            style={{ width: '36px', height: '36px' }}
+                                                            title="Eliminar flujo"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {!editingDC && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeFlow(index)}
-                                                    className="icon-btn"
-                                                    style={{ width: '36px', height: '36px' }}
-                                                    title="Eliminar flujo"
+                                                    onClick={addFlow}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        border: '1px dashed var(--primary)',
+                                                        borderRadius: '8px',
+                                                        background: 'transparent',
+                                                        color: 'var(--primary)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '13px',
+                                                        fontWeight: 500,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        transition: 'all 0.2s ease',
+                                                        marginTop: '4px'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.background = 'transparent';
+                                                    }}
                                                 >
-                                                    ✕
+                                                    + Añadir flujo
                                                 </button>
                                             )}
+                                            {errors.flows && <div className="form-error">{errors.flows}</div>}
                                         </div>
-                                    ))}
-                                    {!editingDC && (
-                                        <button
-                                            type="button"
-                                            onClick={addFlow}
-                                            style={{
-                                                padding: '8px 16px',
-                                                border: '1px dashed var(--primary)',
-                                                borderRadius: '8px',
-                                                background: 'transparent',
-                                                color: 'var(--primary)',
-                                                cursor: 'pointer',
-                                                fontSize: '13px',
-                                                fontWeight: 500,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                transition: 'all 0.2s ease',
-                                                marginTop: '4px'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.target.style.background = 'rgba(16, 185, 129, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.target.style.background = 'transparent';
-                                            }}
-                                        >
-                                            + Añadir flujo
-                                        </button>
-                                    )}
-                                    {errors.flows && <div className="form-error">{errors.flows}</div>}
-                                </div>
 
-                                <div className="form-group">
-                                    <label className="form-label">📝 Notas</label>
-                                    <textarea className="form-textarea" placeholder="Información adicional..." value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} />
-                                </div>
+                                        <div className="form-group">
+                                            <label className="form-label">📝 Notas</label>
+                                            <textarea className="form-textarea" placeholder="Información adicional..." value={formData.notes} onChange={(e) => handleChange('notes', e.target.value)} />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
