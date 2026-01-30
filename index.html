@@ -2010,7 +2010,13 @@
                                                     else if (summaryUpper.includes('CAMBIO SEGURO') || summaryUpper.includes('CS ') || summaryUpper.startsWith('CS:')) detectedProduct = 'Cambio Seguro';
                                                     else if (summaryUpper.includes('FACTORING')) detectedProduct = 'Factoring';
                                                     else if (summaryUpper.includes('GESTORA')) detectedProduct = 'Gestora';
-                                                    else if (summaryUpper.includes('TRANSVERSAL')) detectedProduct = 'Transversal';
+
+                                                    // Logic specific to Transversal (before colon)
+                                                    if (/^TRANSVERSAL\s*:/i.test(selectedTicket.summary)) {
+                                                        detectedProduct = 'TRANSVERSAL';
+                                                    } else if (summaryUpper.includes('TRANSVERSAL')) {
+                                                        detectedProduct = 'Transversal';
+                                                    }
 
                                                     if (detectedProduct) {
                                                         handleChange('product', detectedProduct);
@@ -3146,7 +3152,11 @@
                                 summary: i.summary || i.fields?.summary,
                                 status: i.status || i.fields?.status?.name,
                                 statusCategory: i.statusCategory || i.fields?.status?.statusCategory?.key,
-                                project: (i.key.split('-')[0] === 'UX' ? 'Product' : i.key.split('-')[0]) // Simple heuristic
+                                project: (() => {
+                                    const summary = (i.summary || i.fields?.summary || '').toUpperCase();
+                                    if (/^TRANSVERSAL\s*:/.test(summary)) return 'TRANSVERSAL';
+                                    return (i.key.split('-')[0] === 'UX' ? 'Product' : i.key.split('-')[0]);
+                                })()
                             }));
                             setActiveJiraTickets(active);
                         }
