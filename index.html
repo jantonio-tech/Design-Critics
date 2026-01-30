@@ -1394,9 +1394,9 @@
 
                     const docRef = await this.db.collection(this.collection).add(newDoc);
 
-                    // Si es tipo Cambio de alcance, marcar TODOS los DCs anteriores de este ticket como descartados
+                    // Si es tipo Nuevo scope (o legacy Cambio de alcance), marcar TODOS los DCs anteriores de este ticket como descartados
                     // (excluyendo el recién creado)
-                    if (dcData.type === 'Cambio de alcance') {
+                    if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance') {
                         await this.archiveAllPrevious(dcData.ticket, docRef.id);
                     }
 
@@ -2158,12 +2158,12 @@
                                                 </label>
                                                 {previousDCsCount > 0 && (
                                                     <label className="radio-option">
-                                                        <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => {
+                                                        <input type="radio" name="type" value="Nuevo scope" checked={formData.type === 'Nuevo scope'} onChange={(e) => {
                                                             handleChange('type', e.target.value);
                                                             setFormData(prev => ({ ...prev, flows: [''] }));
                                                         }} />
                                                         <div className="radio-label">
-                                                            <div>Cambio de alcance</div>
+                                                            <div>Nuevo scope</div>
                                                             <div className="radio-description">Descarta los critics previos y reinicia el conteo de critics</div>
                                                         </div>
                                                     </label>
@@ -2171,7 +2171,7 @@
                                             </div>
                                         </div>
 
-                                        {formData.type === 'Cambio de alcance' && (
+                                        {formData.type === 'Nuevo scope' && (
                                             <div className="conditional-field" style={{ background: '#FFF7ED', borderColor: '#FDBA74' }}>
                                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'start' }}>
                                                     <div style={{ fontSize: '18px' }}>⚠️</div>
@@ -3212,8 +3212,8 @@
                         ticketsMap[ticketKey].lastDate = dc.date;
                     }
 
-                    // Encontrar la fecha del Cambio de alcance más reciente
-                    if (dc.type === 'Cambio de alcance') {
+                    // Encontrar la fecha del Nuevo scope (o Cambio de alcance legacy) más reciente
+                    if (dc.type === 'Nuevo scope' || dc.type === 'Cambio de alcance') {
                         if (!ticketsMap[ticketKey].lastReemplazoDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastReemplazoDate)) {
                             ticketsMap[ticketKey].lastReemplazoDate = dc.date;
                         }
@@ -3225,11 +3225,14 @@
                     const lastReemplazo = ticket.lastReemplazoDate;
 
                     ticket.totalCritics = ticket.history.filter(dc => {
-                        // Only count "Critic" and "Cambio de alcance" (which counts as 1 critic for itself)
-                        if (dc.type !== 'Critic' && dc.type !== 'Cambio de alcance') return false;
+                        // Only count "Critic" and "Nuevo scope" (which counts as 1 critic for itself)
+                        // Also support legacy "Cambio de alcance"
+                        const isScopeChange = dc.type === 'Nuevo scope' || dc.type === 'Cambio de alcance';
 
-                        // CRITICAL: Exclude archived items! "Cambio de alcance" sets previous items to 'descartado'.
-                        // This prevents double-counting items on the same day as the "Cambio de alcance" event.
+                        if (dc.type !== 'Critic' && !isScopeChange) return false;
+
+                        // CRITICAL: Exclude archived items! "Nuevo scope/Cambio de alcance" sets previous items to 'descartado'.
+                        // This prevents double-counting items on the same day as the event.
                         if (dc.status === 'descartado') return false;
 
                         // Si hay un Reemplazo, solo contar DCs desde esa fecha en adelante
