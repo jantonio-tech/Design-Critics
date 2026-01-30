@@ -958,7 +958,6 @@
                 try {
                     const snapshot = await this.db
                         .collection(this.collection)
-                        .where('estado', '==', 'activo')
                         .orderBy('fecha_dc', 'desc')
                         .get();
 
@@ -1083,7 +1082,6 @@
                 // Listener en tiempo real para cambios en la colección
                 const unsubscribe = this.db
                     .collection(this.collection)
-                    .where('estado', '==', 'activo')
                     .onSnapshot(snapshot => {
                         snapshot.docChanges().forEach(change => {
                             const data = change.doc.data();
@@ -2111,7 +2109,7 @@
 
             const getDCsForDate = (date) => {
                 const dateStr = date.toISOString().split('T')[0];
-                return localDcs.filter(dc => dc.date === dateStr);
+                return localDcs.filter(dc => dc.date === dateStr && dc.status === 'activo');
             };
 
             const handleAddClick = (date) => {
@@ -2436,11 +2434,160 @@
             );
         }
 
+        // Dashboard Page
+        function DashboardPage({ dcs, user }) {
+            const [myTickets, setMyTickets] = useState([]);
+
+            useEffect(() => {
+                if (!user || !dcs) return;
+
+                // 1. Filtrar mis DCs
+                const myDcs = dcs.filter(dc => dc.createdBy === user.email);
+
+                // 2. Agrupar por Ticket
+                const ticketsMap = {};
+
+                myDcs.forEach(dc => {
+                    const ticketKey = dc.ticket;
+                    if (!ticketsMap[ticketKey]) {
+                        ticketsMap[ticketKey] = {
+                            ticket: ticketKey,
+                            product: dc.product,
+                            totalCritics: 0,
+                            active: false,
+                            lastDate: null,
+                            history: []
+                        };
+                    }
+
+                    ticketsMap[ticketKey].totalCritics++;
+                    ticketsMap[ticketKey].history.push(dc);
+
+                    if (dc.status === 'activo') {
+                        ticketsMap[ticketKey].active = true;
+                        ticketsMap[ticketKey].currentData = dc;
+                    }
+
+                    // Calcular última fecha
+                    if (!ticketsMap[ticketKey].lastDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastDate)) {
+                        ticketsMap[ticketKey].lastDate = dc.date;
+                    }
+                });
+
+                // 3. Convertir a array y ordenar por fecha reciente
+                const ticketsArray = Object.values(ticketsMap).sort((a, b) =>
+                    new Date(b.lastDate) - new Date(a.lastDate)
+                );
+
+                setMyTickets(ticketsArray);
+
+            }, [dcs, user]);
+
+            return (
+                <div className="container">
+                    <div className="page-header">
+                        <h1>Dashboard Personal</h1>
+                        <p>Resumen de tus tickets y sesiones de crítica</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                        {myTickets.length === 0 ? (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--gray-500)', background: 'white', borderRadius: '12px' }}>
+                                Aún no tienes tickets registrados.
+                            </div>
+                        ) : (
+                            myTickets.map(item => (
+                                <div key={item.ticket} style={{
+                                    background: 'white',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--gray-200)',
+                                    padding: '24px',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    {/* Status Line */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        height: '4px',
+                                        background: item.active ? 'var(--success)' : 'var(--gray-300)'
+                                    }}></div>
+
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                            <div style={{
+                                                fontSize: '11px',
+                                                fontWeight: 700,
+                                                padding: '4px 8px',
+                                                background: '#F0F9FF',
+                                                color: '#0369A1',
+                                                borderRadius: '6px',
+                                                letterSpacing: '0.05em'
+                                            }}>
+                                                {item.product.toUpperCase()}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: item.active ? 'var(--success)' : 'var(--gray-400)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                {item.active ? '● EN CURSO' : '○ FINALIZADO'}
+                                            </div>
+                                        </div>
+
+                                        <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', fontFamily: 'monospace' }}>
+                                            {item.ticket}
+                                        </h3>
+
+                                        <div style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '24px' }}>
+                                            última sesión: {new Date(item.lastDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                        </div>
+                                    </div>
+
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        paddingTop: '16px',
+                                        borderTop: '1px solid var(--gray-100)'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                Iteraciones
+                                            </div>
+                                            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--gray-900)' }}>
+                                                {item.totalCritics}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            {/* Placeholder text or small graph could go here */}
+                                            <div style={{ fontSize: '32px', color: 'var(--gray-200)' }}>
+                                                📊
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         // Main App
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [user, setUser] = useState(null);
-            const [currentTab, setCurrentTab] = useState('calendar');
+            const [currentTab, setCurrentTab] = useState('dashboard');
             const [dcs, setDcs] = useState([]);
             const [isLoading, setIsLoading] = useState(false);
             const [dataService, setDataService] = useState(null);
@@ -2486,12 +2633,15 @@
 
                             const service = new FirestoreDataService(userData.email);
                             await service.init();
+                            // MODIFIED: readAll fetches everything including archived, filtering happens in views
                             const loadedDCs = await service.readAll();
 
                             setDataService(service);
                             setDcs(loadedDCs);
                             setUser(userData);
                             setIsLoggedIn(true);
+                            // Set dashboard as default once logged in
+                            setCurrentTab('dashboard');
                             console.log('✅ Session restored from Firebase Auth');
                         } catch (error) {
                             console.error('Session restore failed:', error);
@@ -2655,6 +2805,9 @@
                     </nav>
 
                     <div className="tabs container">
+                        <button className={`tab ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentTab('dashboard')}>
+                            📊 Dashboard
+                        </button>
                         <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>
                             📅 Calendario
                         </button>
@@ -2663,6 +2816,10 @@
                         </button>
 
                     </div>
+
+                    {currentTab === 'dashboard' && (
+                        <DashboardPage dcs={dcs} user={user} />
+                    )}
 
                     {currentTab === 'calendar' && (
                         <CalendarPage
