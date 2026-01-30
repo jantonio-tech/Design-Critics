@@ -2534,13 +2534,18 @@
                         const data = await response.json();
                         console.log('✅ Jira response:', data);
                         const details = {};
-                        if (data.issues) {
-                            data.issues.forEach(issue => {
-                                details[issue.key] = {
-                                    summary: issue.fields.summary,
-                                    status: issue.fields.status.name,
-                                    statusCategory: issue.fields.status.statusCategory?.key
-                                };
+                        // API returns `tickets` array based on logs, fallback to `issues` just in case
+                        const issues = data.tickets || data.issues || [];
+
+                        if (issues.length > 0) {
+                            issues.forEach(issue => {
+                                if (issue && issue.key && issue.fields) {
+                                    details[issue.key] = {
+                                        summary: issue.fields.summary,
+                                        status: issue.fields.status.name,
+                                        statusCategory: issue.fields.status.statusCategory?.key
+                                    };
+                                }
                             });
                         }
                         setJiraDetails(details);
