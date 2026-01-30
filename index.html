@@ -1681,8 +1681,8 @@
 
                 try {
                     // 1. Verificar si hay caché válido
-                    // Cache key versioned to force refresh with status info
-                    const cacheKey = `jira_tickets_v2_${user.email}`;
+                    // Cache key versioned to force refresh with status info AND updated strict filters
+                    const cacheKey = `jira_tickets_v3_${user.email}`;
                     const cached = localStorage.getItem(cacheKey);
 
                     if (cached) {
@@ -1695,7 +1695,15 @@
 
                         if (age < FIVE_MINUTES && hasStatusInfo) {
                             console.log('📦 Using cached Jira tickets');
-                            setJiraTickets(data.tickets);
+
+                            // Apply Strict Filter to cached data as well
+                            const filteredCached = data.tickets.filter(t => {
+                                const cat = t.statusCategory || (t.status && t.status.statusCategory && t.status.statusCategory.key);
+                                const statusName = (t.status && t.status.name ? t.status.name : (typeof t.status === 'string' ? t.status : '')).toUpperCase();
+                                return cat === 'indeterminate' && !statusName.includes('ESPERA');
+                            });
+
+                            setJiraTickets(filteredCached);
                             setJiraConfigured(true);
                             setLoadingJira(false);
                             return;
