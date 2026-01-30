@@ -954,36 +954,56 @@
                 return Promise.resolve();
             }
 
+            _mapDoc(doc) {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    timestamp: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+                    date: data.fecha_dc,
+                    presenter: data.presentador,
+                    product: data.producto,
+                    ticket: data.ticket,
+                    flow: data.flujo,
+                    type: data.tipo,
+                    descartaDate: data.descarta_fecha || '',
+                    notes: data.notas || '',
+                    status: data.estado,
+                    createdBy: data.presentador_email
+                };
+            }
+
             async readAll() {
                 try {
                     const snapshot = await this.db
                         .collection(this.collection)
+                        .where('estado', '==', 'activo')
                         .orderBy('fecha_dc', 'desc')
                         .get();
 
                     const dcs = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        dcs.push({
-                            id: doc.id,
-                            timestamp: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
-                            date: data.fecha_dc,
-                            presenter: data.presentador,
-                            product: data.producto,
-                            ticket: data.ticket,
-                            flow: data.flujo,
-                            type: data.tipo,
-                            descartaDate: data.descarta_fecha || '',
-                            notes: data.notas || '',
-                            status: data.estado,
-                            createdBy: data.presentador_email
-                        });
-                    });
+                    snapshot.forEach(doc => dcs.push(this._mapDoc(doc)));
 
                     return dcs;
                 } catch (error) {
                     console.error('Error reading from Firestore:', error);
                     throw new Error('Error al leer datos de Firestore');
+                }
+            }
+
+            async readUserHistory() {
+                try {
+                    const snapshot = await this.db
+                        .collection(this.collection)
+                        .where('presentador_email', '==', this.userEmail)
+                        .get();
+
+                    const dcs = [];
+                    snapshot.forEach(doc => dcs.push(this._mapDoc(doc)));
+                    // Sort in memory since we removed orderBy to avoid index requirements
+                    return dcs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                } catch (error) {
+                    console.error('Error reading user history:', error);
+                    return [];
                 }
             }
 
@@ -1082,6 +1102,7 @@
                 // Listener en tiempo real para cambios en la colección
                 const unsubscribe = this.db
                     .collection(this.collection)
+                    .where('estado', '==', 'activo')
                     .onSnapshot(snapshot => {
                         snapshot.docChanges().forEach(change => {
                             const data = change.doc.data();
@@ -2634,7 +2655,20 @@
                             const service = new FirestoreDataService(userData.email);
                             await service.init();
                             // MODIFIED: readAll fetches everything including archived, filtering happens in views
-                            const loadedDCs = await service.readAll();
+                            // Carga paralela segura (Activos + Mios)
+                            const [activeDCs, myDCs] = await Promise.all([
+                                service.readAll(),
+                                service.readUserHistory()
+                            ]);
+
+                            // Merge: activeDCs + unique from myDCs
+                            const loadedDCs = [...activeDCs];
+                            const activeIds = new Set(activeDCs.map(d => d.id));
+                            myDCs.forEach(d => {
+                                if (!activeIds.has(d.id)) {
+                                    loadedDCs.push(d);
+                                }
+                            });
 
                             setDataService(service);
                             setDcs(loadedDCs);
@@ -2676,7 +2710,20 @@
                 try {
                     const service = new FirestoreDataService(userData.email);
                     await service.init();
-                    const loadedDCs = await service.readAll();
+                    // Carga paralela segura (Activos + Mios)
+                    const [activeDCs, myDCs] = await Promise.all([
+                        service.readAll(),
+                        service.readUserHistory()
+                    ]);
+
+                    // Merge: activeDCs + unique from myDCs
+                    const loadedDCs = [...activeDCs];
+                    const activeIds = new Set(activeDCs.map(d => d.id));
+                    myDCs.forEach(d => {
+                        if (!activeIds.has(d.id)) {
+                            loadedDCs.push(d);
+                        }
+                    });
 
                     setDataService(service);
                     setDcs(loadedDCs);
