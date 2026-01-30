@@ -3206,7 +3206,7 @@
                                     // Apply same detection logic as Modal
                                     if (summary.includes('PGH') || (prefix && /\bPGH\b/.test(prefix))) return 'PGH';
                                     if (summary.includes('RECADIA')) return 'RECADIA';
-                                    if (summary.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) return 'CD SEGURO'; // Display name
+                                    if (summary.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) return 'CAMBIO SEGURO'; // Display name
                                     if (summary.includes('FACTORING') || (prefix && /\bFACTORING\b/.test(prefix))) return 'FACTORING';
                                     if (summary.includes('GESTORA')) return 'GESTORA';
                                     if (summary.startsWith('TRANSVERSAL')) return 'TRANSVERSAL';
