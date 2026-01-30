@@ -1485,7 +1485,10 @@
                         const FIVE_MINUTES = 5 * 60 * 1000;
                         const age = Date.now() - data.cached_at;
 
-                        if (age < FIVE_MINUTES) {
+                        // Check if cached data has status info (enrichment check)
+                        const hasStatusInfo = data.tickets.length === 0 || !!data.tickets[0].status;
+
+                        if (age < FIVE_MINUTES && hasStatusInfo) {
                             console.log('📦 Using cached Jira tickets');
                             setJiraTickets(data.tickets);
                             setJiraConfigured(true);
@@ -1525,9 +1528,43 @@
                     }
 
                     // 4. Tickets ya vienen transformados del proxy
-                    const tickets = data.tickets;
+                    let tickets = data.tickets || [];
 
-                    console.log(`✅ Loaded ${tickets.length} Jira tickets`);
+                    // ENRICHMENT STEP: Fetch details to ensure status is available
+                    if (tickets.length > 0) {
+                        try {
+                            console.log('🔍 Enriching tickets with status details...');
+                            const keys = tickets.map(t => t.key);
+                            const detailResponse = await fetch('/api/search-jira', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ticketKeys: keys })
+                            });
+
+                            if (detailResponse.ok) {
+                                const detailData = await detailResponse.json();
+                                const details = detailData.tickets || detailData.issues || [];
+                                const detailsMap = {};
+                                details.forEach(d => detailsMap[d.key] = d);
+
+                                tickets = tickets.map(t => {
+                                    const detail = detailsMap[t.key];
+                                    if (detail) {
+                                        return {
+                                            ...t,
+                                            status: detail.status || t.status, // Ensure status object exists
+                                            statusCategory: detail.statusCategory || t.statusCategory
+                                        };
+                                    }
+                                    return t;
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ Failed to enrich tickets details:', e);
+                        }
+                    }
+
+                    console.log(`✅ Loaded and enriched ${tickets.length} Jira tickets`);
 
                     // 5. Guardar en caché
                     localStorage.setItem(cacheKey, JSON.stringify({
