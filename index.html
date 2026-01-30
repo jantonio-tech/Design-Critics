@@ -3187,10 +3187,13 @@
                         if (data.success) {
                             const issues = data.tickets || data.issues || [];
                             // Filtrar solo los que están "En Curso" (In Progress/Indeterminate)
-                            // Y excluir los que ya tienen Done statusCategory
+                            // Y excluir explícitamente "En espera"
                             const active = issues.filter(i => {
                                 const cat = i.statusCategory || (i.fields?.status?.statusCategory?.key);
-                                return cat !== 'done';
+                                const statusName = (i.status || i.fields?.status?.name || '').toUpperCase();
+
+                                // Must be In Progress category AND not "En espera"
+                                return cat === 'indeterminate' && !statusName.includes('ESPERA');
                             }).map(i => ({
                                 key: i.key,
                                 summary: i.summary || i.fields?.summary,
