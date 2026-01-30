@@ -2013,9 +2013,14 @@
                                                     const summaryUpper = selectedTicket.summary.toUpperCase();
                                                     let detectedProduct = '';
 
+                                                    // Extract prefix (before first colon) to check for specific codes like CS
+                                                    const colonIndex = summaryUpper.indexOf(':');
+                                                    const prefix = colonIndex > -1 ? summaryUpper.substring(0, colonIndex) : '';
+
                                                     if (summaryUpper.includes('PGH')) detectedProduct = 'PGH';
                                                     else if (summaryUpper.includes('RECADIA')) detectedProduct = 'Recadia';
-                                                    else if (summaryUpper.includes('CAMBIO SEGURO') || summaryUpper.includes('CS ') || summaryUpper.startsWith('CS:')) detectedProduct = 'Cambio Seguro';
+                                                    // "CS" must be a whole word in the prefix (e.g. "CS:", "PROYECTO CS:")
+                                                    else if (summaryUpper.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) detectedProduct = 'Cambio Seguro';
                                                     else if (summaryUpper.includes('FACTORING')) detectedProduct = 'Factoring';
                                                     else if (summaryUpper.includes('GESTORA')) detectedProduct = 'Gestora';
 
