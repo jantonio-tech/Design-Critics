@@ -1909,7 +1909,7 @@
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 className="modal-title">{editingDC ? 'Editar DC' : 'Registrar DC'}</h2>
+                            <h2 className="modal-title">{editingDC ? 'Editar DC' : 'Registrar sesión'}</h2>
                             <button className="close-btn" onClick={onClose}>×</button>
                         </div>
                         <div style={{
@@ -1952,7 +1952,7 @@
                                 )}
 
                                 <div className="form-group">
-                                    <label className="form-label required">🎫 Ticket Jira</label>
+                                    <label className="form-label required">🎫 Ticket de Jira</label>
 
                                     {loadingJira ? (
                                         <div style={{
@@ -2085,13 +2085,13 @@
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label required">📊 Tipo</label>
+                                    <label className="form-label required">📊 Tipo de sesión</label>
                                     <div className="radio-group">
                                         <label className="radio-option">
                                             <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => handleChange('type', e.target.value)} />
                                             <div className="radio-label">
                                                 <div>Critic</div>
-                                                <div className="radio-description">Primera vez o iteración</div>
+                                                <div className="radio-description">Revisión estándar de avance o propuesta</div>
                                             </div>
                                         </label>
                                         <label className="radio-option">
@@ -2106,7 +2106,7 @@
                                                 <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
                                                 <div className="radio-label">
                                                     <div>Cambio de alcance</div>
-                                                    <div className="radio-description">Descarta items anteriores</div>
+                                                    <div className="radio-description">Descarta los critics previos y reinicia el conteo de critics</div>
                                                 </div>
                                             </label>
                                         )}
@@ -2132,7 +2132,7 @@
                                 )}
 
                                 <div className="form-group">
-                                    <label className="form-label required">🔀 Flujos</label>
+                                    <label className="form-label required">🔀 Happy path</label>
                                     {formData.flows && formData.flows.map((flow, index) => (
                                         <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                             <input
