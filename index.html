@@ -3032,7 +3032,35 @@
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                        {myTickets.length === 0 ? (
+                        {loadingJira ? (
+                            // Loading Skeletons
+                            Array(3).fill(0).map((_, i) => (
+                                <div key={i} style={{
+                                    background: 'white',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--gray-200)',
+                                    padding: '24px',
+                                    height: '220px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between'
+                                }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                            <div className="skeleton-text" style={{ width: '60px', height: '24px', borderRadius: '6px' }}></div>
+                                            <div className="skeleton-text" style={{ width: '80px', height: '24px', borderRadius: '6px' }}></div>
+                                        </div>
+                                        <div className="skeleton-text" style={{ width: '120px', height: '20px', marginBottom: '12px' }}></div>
+                                        <div className="skeleton-text" style={{ width: '100%', height: '16px', marginBottom: '8px' }}></div>
+                                        <div className="skeleton-text" style={{ width: '80%', height: '16px' }}></div>
+                                    </div>
+                                    <div style={{ borderTop: '1px solid var(--gray-100)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <div className="skeleton-text" style={{ width: '100px', height: '24px' }}></div>
+                                        <div className="skeleton-text" style={{ width: '100px', height: '32px', borderRadius: '8px' }}></div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : myTickets.length === 0 ? (
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--gray-500)', background: 'white', borderRadius: '12px' }}>
                                 Aún no tienes tickets registrados.
                             </div>
