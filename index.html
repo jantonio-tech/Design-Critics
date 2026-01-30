@@ -2560,6 +2560,7 @@
                 // 2. Agrupar por Ticket
                 const ticketsMap = {};
 
+                // Primero, agrupar todos los DCs por ticket y guardar el historial
                 myDcs.forEach(dc => {
                     const ticketKey = dc.ticket;
                     if (!ticketsMap[ticketKey]) {
@@ -2569,14 +2570,11 @@
                             totalCritics: 0,
                             active: false,
                             lastDate: null,
+                            lastReemplazoDate: null, // Fecha del último Reemplazo
                             history: []
                         };
                     }
 
-                    // Solo contar si NO es un Reemplazo (los reemplazos no suman, solo sustituyen)
-                    if (dc.type !== 'Reemplazo') {
-                        ticketsMap[ticketKey].totalCritics++;
-                    }
                     ticketsMap[ticketKey].history.push(dc);
 
                     if (dc.status === 'activo') {
@@ -2588,6 +2586,27 @@
                     if (!ticketsMap[ticketKey].lastDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastDate)) {
                         ticketsMap[ticketKey].lastDate = dc.date;
                     }
+
+                    // Encontrar la fecha del Reemplazo más reciente
+                    if (dc.type === 'Reemplazo') {
+                        if (!ticketsMap[ticketKey].lastReemplazoDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastReemplazoDate)) {
+                            ticketsMap[ticketKey].lastReemplazoDate = dc.date;
+                        }
+                    }
+                });
+
+                // Segundo paso: calcular totalCritics contando solo desde el último Reemplazo
+                Object.values(ticketsMap).forEach(ticket => {
+                    const lastReemplazo = ticket.lastReemplazoDate;
+
+                    ticket.totalCritics = ticket.history.filter(dc => {
+                        // Si hay un Reemplazo, solo contar DCs desde esa fecha en adelante
+                        if (lastReemplazo) {
+                            return new Date(dc.date) >= new Date(lastReemplazo);
+                        }
+                        // Si no hay Reemplazo, contar todos
+                        return true;
+                    }).length;
                 });
 
                 // 3. Convertir a array y ordenar por fecha reciente
