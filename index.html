@@ -78,6 +78,7 @@
 
         /* Dark Mode Theme Overrides */
         [data-theme="dark"] {
+            color-scheme: dark;
             --bg-body: #0f172a;
             /* Slate 900 */
             --bg-card: #1e293b;
@@ -601,13 +602,23 @@
             border-bottom: none;
         }
 
-        tbody tr:hover {
-            background: var(--bg-hover);
+        /* Ensure transparent rows for dark mode - NUCLEAR OPTION */
+        table,
+        thead,
+        tbody,
+        tr,
+        th,
+        td {
+            background-color: transparent !important;
+            color: inherit;
         }
 
-        /* Ensure transparent rows for dark mode */
+        tbody tr:hover {
+            background-color: var(--bg-hover) !important;
+        }
+
         tbody tr {
-            background: transparent;
+            background-color: transparent !important;
         }
 
         .btn-primary {
