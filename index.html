@@ -2970,16 +2970,16 @@
                 <>
                     <div className="container">
                         <div className="page-header">
-                            <h1>Historial de DC</h1>
+                            <h1>Historial de sesiones</h1>
                             <p>Todos los Design Critics registrados</p>
                         </div>
 
                         <div className="tabs">
                             <button className={`tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
-                                Todos ({dcs.length})
+                                Todas las sesiones ({dcs.length})
                             </button>
                             <button className={`tab ${filter === 'mine' ? 'active' : ''}`} onClick={() => setFilter('mine')}>
-                                Mis DC ({dcs.filter(dc => dc.createdBy === user.email).length})
+                                Mis sesiones ({dcs.filter(dc => dc.createdBy === user.email).length})
                             </button>
                         </div>
 
@@ -3060,7 +3060,11 @@
                                     {sortedDCs.map(dc => (
                                         <tr key={dc.id}>
                                             <td>
-                                                {new Date(dc.date).toLocaleDateString('es-ES')}
+                                                {(() => {
+                                                    const [y, m, d] = dc.date.split('-').map(Number);
+                                                    const date = new Date(y, m - 1, d);
+                                                    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
+                                                })()}
                                             </td>
                                             {filter !== 'mine' && <td>{dc.presenter}</td>}
                                             <td><span className="table-badge table-badge-gray">{dc.product}</span></td>
