@@ -1968,12 +1968,12 @@
                 setLoadingJira(false);
             }
 
-            // Load Jira tickets when modal opens (only for new DCs)
+            // Load Jira tickets when modal opens (only for new DCs and when not pre-filled)
             useEffect(() => {
-                if (isOpen && !editingDC) {
+                if (isOpen && !editingDC && !prefillData) {
                     loadJiraTickets();
                 }
-            }, [isOpen, editingDC]);
+            }, [isOpen, editingDC, prefillData]);
 
             if (!isOpen) return null;
 
@@ -2153,17 +2153,18 @@
                                         </div>
                                     ) : jiraTickets.length === 0 ? (
                                         <div>
-                                            <div style={{
-                                                padding: '12px',
-                                                marginBottom: '12px',
-                                                background: 'var(--gray-50)',
-                                                borderRadius: '6px',
-                                                border: '1px solid var(--gray-200)',
-                                                fontSize: '13px',
-                                                color: 'var(--gray-600)'
-                                            }}>
-                                                No tienes tickets activos en Jira
-                                            </div>
+                                            {!prefillData && (
+                                                <div style={{
+                                                    padding: '12px',
+                                                    marginBottom: '12px',
+                                                    background: 'var(--gray-50)',
+                                                    border: '1px solid var(--gray-200)',
+                                                    fontSize: '13px',
+                                                    color: 'var(--gray-600)'
+                                                }}>
+                                                    No tienes tickets activos en Jira
+                                                </div>
+                                            )}
                                             <input
                                                 type="text"
                                                 className="form-input"
