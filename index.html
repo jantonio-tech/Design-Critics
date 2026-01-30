@@ -125,6 +125,16 @@
             --glass-border: rgba(255, 255, 255, 0.1);
         }
 
+        [data-theme="dark"] .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-gradient, linear-gradient(135deg, #f5f7fa 0%, #e8eef5 50%, #f0f4fc 100%));
@@ -3471,26 +3481,21 @@
                         <div className="user-info">
                             <button
                                 onClick={toggleDarkMode}
+                                className="btn btn-secondary"
                                 style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '20px',
-                                    padding: '4px 8px',
-                                    marginRight: '8px',
+                                    fontSize: '18px',
+                                    padding: '6px 10px',
+                                    marginRight: '12px',
                                     borderRadius: '8px',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    transition: 'background 0.2s'
+                                    justifyContent: 'center'
                                 }}
                                 title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                                onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                             >
                                 {darkMode ? '☀️' : '🌙'}
                             </button>
-                            <span>{user.name && user.name.split(' ')[0]}</span>
+                            {/* Removed redundant name span */}
                             {user.picture ? (
                                 <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
                             ) : (
