@@ -2158,13 +2158,15 @@
                                                 <div className="radio-description">Mejora componentes Design System</div>
                                             </div>
                                         </label>
-                                        <label className="radio-option">
-                                            <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
-                                            <div className="radio-label">
-                                                <div>Cambio de alcance</div>
-                                                <div className="radio-description">Descarta items anteriores</div>
-                                            </div>
-                                        </label>
+                                        {previousDCsCount > 0 && (
+                                            <label className="radio-option">
+                                                <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
+                                                <div className="radio-label">
+                                                    <div>Cambio de alcance</div>
+                                                    <div className="radio-description">Descarta items anteriores</div>
+                                                </div>
+                                            </label>
+                                        )}
                                     </div>
                                 </div>
 
