@@ -2518,6 +2518,7 @@
 
             const fetchJiraDetails = async (keys) => {
                 if (keys.length === 0) return;
+                console.log('🔍 Fetching Jira details for keys:', keys);
                 setLoadingJira(true);
                 try {
                     // Usamos el endpoint de búsqueda para obtener múltiples tickets
@@ -2531,6 +2532,7 @@
 
                     if (response.ok) {
                         const data = await response.json();
+                        console.log('✅ Jira response:', data);
                         const details = {};
                         if (data.issues) {
                             data.issues.forEach(issue => {
@@ -2542,9 +2544,11 @@
                             });
                         }
                         setJiraDetails(details);
+                    } else {
+                        console.error('❌ Jira API Error:', response.status, response.statusText);
                     }
                 } catch (error) {
-                    console.error('Error fetching Jira details:', error);
+                    console.error('❌ Error fetching Jira details:', error);
                 } finally {
                     setLoadingJira(false);
                 }
