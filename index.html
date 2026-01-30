@@ -1103,8 +1103,9 @@
                     const docRef = await this.db.collection(this.collection).add(newDoc);
 
                     // Si es tipo Reemplazo, marcar TODOS los DCs anteriores de este ticket como descartados
+                    // (excluyendo el recién creado)
                     if (dcData.type === 'Reemplazo') {
-                        await this.archiveAllPrevious(dcData.ticket);
+                        await this.archiveAllPrevious(dcData.ticket, docRef.id);
                     }
 
                     // Retornar en formato esperado
@@ -1153,10 +1154,10 @@
                 }
             }
 
-            async archiveAllPrevious(ticket) {
+            async archiveAllPrevious(ticket, excludeId) {
                 try {
                     // Buscar y marcar como descartado TODOS los DCs activos con el mismo ticket
-                    // Excluimos implícitamente el nuevo porque aún no se ha creado (o si se crea en paralelo, no debería afectar)
+                    // EXCEPTO el recién creado (excludeId)
                     const snapshot = await this.db
                         .collection(this.collection)
                         .where('ticket', '==', ticket)
@@ -1166,12 +1167,19 @@
                     if (snapshot.empty) return;
 
                     const batch = this.db.batch();
+                    let archivedCount = 0;
                     snapshot.forEach(doc => {
-                        batch.update(doc.ref, { estado: 'descartado' });
+                        // Excluir el documento recién creado
+                        if (doc.id !== excludeId) {
+                            batch.update(doc.ref, { estado: 'descartado' });
+                            archivedCount++;
+                        }
                     });
 
-                    await batch.commit();
-                    console.log(`✅ Archivados ${snapshot.size} DCs previos para el ticket ${ticket}`);
+                    if (archivedCount > 0) {
+                        await batch.commit();
+                        console.log(`✅ Archivados ${archivedCount} DCs previos para el ticket ${ticket}`);
+                    }
                 } catch (error) {
                     console.error('Error marking as discarded:', error);
                     // No lanzar error aquí ya que es una operación secundaria
