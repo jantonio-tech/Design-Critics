@@ -2991,7 +2991,7 @@
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
-                                        <th>Presentador</th>
+                                        {filterType !== 'mine' && <th>Presentador</th>}
                                         <th>Producto</th>
                                         <th>Ticket</th>
                                         <th>Flujo</th>
@@ -3002,10 +3002,10 @@
                                 <tbody>
                                     {sortedDCs.map(dc => (
                                         <tr key={dc.id}>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                                            <td>
                                                 {new Date(dc.date).toLocaleDateString('es-ES')}
                                             </td>
-                                            <td>{dc.presenter}</td>
+                                            {filterType !== 'mine' && <td>{dc.presenter}</td>}
                                             <td><span className="table-badge table-badge-gray">{dc.product}</span></td>
                                             <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--primary)' }}>{dc.ticket}</td>
                                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dc.flow}</td>
@@ -3295,13 +3295,13 @@
                         <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             🚀 Tickets en Curso
                             <span style={{ fontSize: '12px', background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px' }}>
-                                {allTickets.length}
+                                {(loadingJira || loadingActive) ? '...' : allTickets.length}
                             </span>
                         </h2>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                            {loadingJira && allTickets.length === 0 ? (
-                                // Loading Skeletons
+                            {(loadingJira || loadingActive) ? (
+                                // Loading Skeletons - Show full skeleton state while loading ANY data
                                 Array(3).fill(0).map((_, i) => (
                                     <div key={i} style={{
                                         background: 'var(--bg-card)',
