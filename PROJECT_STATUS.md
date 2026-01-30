@@ -22,6 +22,10 @@ Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño
    - **Vercel Functions**: Se añadieron `api/search-jira.js` y `api/test-jira.js` para manejar la lógica de negocio sensible.
    - **Vercel Rewrites**: Configuración en `vercel.json` para enrutar `/api/*` correctamente.
 
+4. **Lógica de Reemplazo Inteligente**:
+   - **Auto-Archivado**: Al registrar un DC de tipo "Reemplazo", el sistema busca y archiva automáticamente *todos* los registros previos activos asociados al mismo ticket.
+   - **UX Mejorada**: Se eliminó la selección manual de fecha de descarte. En su lugar, el usuario recibe una alerta informativa sobre cuántas sesiones anteriores serán archivadas.
+
 ## 🛠️ Stack Tecnológico
 - **Frontend**: Single Page Application (SPA) en `index.html` (2600+ líneas).
   - **Framework**: React 18 + ReactDOM + Babel Standalone.
