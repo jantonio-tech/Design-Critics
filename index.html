@@ -3161,7 +3161,12 @@
                         // Only count "Critic" and "Cambio de alcance" (which counts as 1 critic for itself)
                         if (dc.type !== 'Critic' && dc.type !== 'Cambio de alcance') return false;
 
+                        // CRITICAL: Exclude archived items! "Cambio de alcance" sets previous items to 'descartado'.
+                        // This prevents double-counting items on the same day as the "Cambio de alcance" event.
+                        if (dc.status === 'descartado') return false;
+
                         // Si hay un Reemplazo, solo contar DCs desde esa fecha en adelante
+                        // (This is redundant if status check works perfectly, but kept for robust safety)
                         if (lastReemplazo) {
                             return new Date(dc.date) >= new Date(lastReemplazo);
                         }
