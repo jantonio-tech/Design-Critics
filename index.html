@@ -2705,7 +2705,7 @@
                         <div className="calendar-grid">
                             {weekDays.map((day, index) => {
                                 const dayDCs = getDCsForDate(day);
-                                const slotsUsed = dayDCs.length;
+                                const slotsUsed = dayDCs.filter(dc => dc.type !== 'Iteración DS').length;
                                 const slotsAvailable = 3 - slotsUsed;
                                 const canAdd = slotsAvailable > 0;
 
@@ -3007,8 +3007,8 @@
                                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dc.flow}</td>
                                             <td>
                                                 <span className={`table-badge ${dc.type === 'Normal' ? 'table-badge-blue' :
-                                                        dc.type === 'Iteración DS' ? 'table-badge-purple' :
-                                                            'table-badge-yellow'
+                                                    dc.type === 'Iteración DS' ? 'table-badge-purple' :
+                                                        'table-badge-yellow'
                                                     }`}>
                                                     {dc.type}
                                                 </span>
