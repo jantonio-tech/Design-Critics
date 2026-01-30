@@ -3061,8 +3061,10 @@
         // Dashboard Page
         function DashboardPage({ dcs, user, onQuickAdd }) {
             const [myTickets, setMyTickets] = useState([]);
+            const [activeJiraTickets, setActiveJiraTickets] = useState([]);
             const [jiraDetails, setJiraDetails] = useState({});
             const [loadingJira, setLoadingJira] = useState(false);
+            const [loadingActive, setLoadingActive] = useState(false);
 
             useEffect(() => {
                 if (!user || !dcs) return;
@@ -3070,7 +3072,7 @@
                 // 1. Filtrar mis DCs
                 const myDcs = dcs.filter(dc => dc.createdBy === user.email);
 
-                // 2. Agrupar por Ticket
+                // 2. Agrupar por Ticket (Historial)
                 const ticketsMap = {};
 
                 // Primero, agrupar todos los DCs por ticket y guardar el historial
@@ -3129,7 +3131,7 @@
 
                 setMyTickets(ticketsArray);
 
-                // 4. Obtener datos de Jira en tiempo real
+                // 4. Obtener datos de Jira en tiempo real para el historial
                 const uniqueKeys = ticketsArray
                     .map(t => t.ticket)
                     .filter(k => k && k.startsWith('UX-')); // Solo tickets válidos
@@ -3138,7 +3140,45 @@
                     fetchJiraDetails(uniqueKeys);
                 }
 
+                // 5. Cargar tickets activos asignados (NUEVA FUNCIONALIDAD)
+                loadActiveJiraTickets();
+
             }, [dcs, user]);
+
+            const loadActiveJiraTickets = async () => {
+                setLoadingActive(true);
+                try {
+                    const response = await fetch('/api/search-jira', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userEmail: user.email })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            const issues = data.tickets || data.issues || [];
+                            // Filtrar solo los que están "En Curso" (In Progress/Indeterminate)
+                            // Y excluir los que ya tienen Done statusCategory
+                            const active = issues.filter(i => {
+                                const cat = i.statusCategory || (i.fields?.status?.statusCategory?.key);
+                                return cat !== 'done';
+                            }).map(i => ({
+                                key: i.key,
+                                summary: i.summary || i.fields?.summary,
+                                status: i.status || i.fields?.status?.name,
+                                statusCategory: i.statusCategory || i.fields?.status?.statusCategory?.key,
+                                project: (i.key.split('-')[0] === 'UX' ? 'Product' : i.key.split('-')[0]) // Simple heuristic
+                            }));
+                            setActiveJiraTickets(active);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading active tickets:', e);
+                } finally {
+                    setLoadingActive(false);
+                }
+            };
 
             const fetchJiraDetails = async (keys) => {
                 if (keys.length === 0) return;
@@ -3196,11 +3236,71 @@
                 }
             };
 
+            // Filtrar tickets activos que NO estén ya en el historial (para no duplicar UI)
+            const uniqueActiveTickets = activeJiraTickets.filter(at =>
+                !myTickets.some(mt => mt.ticket === at.key)
+            );
+
             return (
                 <div className="container">
                     <div className="page-header">
                         <h1>Dashboard Personal</h1>
                         <p>Resumen de tus tickets y sesiones de crítica</p>
+                    </div>
+
+                    {/* SECCIÓN TICKETS ACTIVOS SIN DC AÚN */}
+                    {uniqueActiveTickets.length > 0 && (
+                        <div style={{ marginBottom: '32px' }}>
+                            <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🚀 Tickets en Curso
+                                <span style={{ fontSize: '12px', background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px' }}>
+                                    {uniqueActiveTickets.length}
+                                </span>
+                            </h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                                {uniqueActiveTickets.map(ticket => (
+                                    <div key={ticket.key} style={{
+                                        background: 'var(--bg-card)',
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--border-color)',
+                                        padding: '20px',
+                                        boxShadow: 'var(--shadow-sm)',
+                                        position: 'relative' // For indicator
+                                    }}>
+                                        <div style={{
+                                            position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
+                                            background: '#3B82F6', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px'
+                                        }}></div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
+                                                {ticket.key}
+                                            </span>
+                                            <span style={{ fontSize: '10px', background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                                                {ticket.status?.toUpperCase() || 'IN PROGRESS'}
+                                            </span>
+                                        </div>
+
+                                        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', lineHeight: '1.4', color: 'var(--text-main)', height: '40px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                            {ticket.summary}
+                                        </h3>
+
+                                        <button
+                                            onClick={() => onQuickAdd && onQuickAdd({ ticket: ticket.key, product: 'PGH' })} // Default product or derive
+                                            className="btn btn-primary"
+                                            style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
+                                        >
+                                            + Crear DC
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SECCIÓN HISTORIAL */}
+                    <div style={{ marginBottom: '16px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>Últimos Critics</h2>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
@@ -3232,9 +3332,9 @@
                                     </div>
                                 </div>
                             ))
-                        ) : myTickets.length === 0 ? (
+                        ) : myTickets.length === 0 && uniqueActiveTickets.length === 0 ? (
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                                Aún no tienes tickets registrados.
+                                Aún no tienes tickets registrados ni activos en Jira.
                             </div>
                         ) : (
                             myTickets
@@ -3295,8 +3395,6 @@
                                                         {item.product.toUpperCase()}
                                                     </div>
                                                     <div style={{
-                                                        fontSize: '10px',
-                                                        fontWeight: 600,
                                                         display: 'flex',
                                                         flexDirection: 'column',
                                                         alignItems: 'flex-end',
@@ -3346,7 +3444,7 @@
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 paddingTop: '16px',
-                                                borderTop: '1px solid var(--gray-100)'
+                                                borderTop: '1px solid var(--border-color)'
                                             }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     <div style={{ fontSize: '12px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>
@@ -3376,6 +3474,7 @@
                                                             }}
                                                             onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
                                                             onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                                            className="btn-primary" // Reuse class for hover effects
                                                         >
                                                             + Agendar DC
                                                         </button>
