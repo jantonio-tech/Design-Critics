@@ -2135,13 +2135,15 @@
                                         )}
 
                                         <div className="form-group">
-                                            <label className="form-label required">🔀 Happy path</label>
+                                            <label className="form-label required">
+                                                {formData.type === 'Iteración DS' ? '🤝 Acuerdo' : '🔀 Happy path'}
+                                            </label>
                                             {formData.flows && formData.flows.map((flow, index) => (
                                                 <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                                     <input
                                                         type="text"
                                                         className="form-input"
-                                                        placeholder="Pega aquí el nombre de tu happy path"
+                                                        placeholder={formData.type === 'Iteración DS' ? 'Especifica el acuerdo realizado' : 'Pega aquí el nombre de tu happy path'}
                                                         value={flow}
                                                         onChange={(e) => updateFlow(index, e.target.value)}
                                                         style={{ flex: 1 }}
