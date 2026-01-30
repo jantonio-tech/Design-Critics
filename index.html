@@ -1920,7 +1920,13 @@
                                     borderRadius: '6px',
                                     border: '1px solid var(--border-color)'
                                 }}>
-                                    📅 {new Date(selectedDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                    📅 {(() => {
+                                        // "YYYY-MM-DD" parses as UTC midnight by default in Date(), causing day shift in local time.
+                                        // We treat the selected date as local explicitly.
+                                        const [y, m, d] = selectedDate.split('-').map(Number);
+                                        const localDate = new Date(y, m - 1, d);
+                                        return localDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+                                    })()}
                                 </span>
                             </div>
                             <button className="close-btn" onClick={onClose}>×</button>
@@ -2517,8 +2523,8 @@
             useEffect(() => {
                 if (prefillData) {
                     // Set today's date
-                    const today = new Date();
-                    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    // Set today's date using Peru timezone (America/Lima)
+                    const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
                     setSelectedDate(dateStr);
                     setQuickAddData(prefillData);
                     setEditingDC(null);
