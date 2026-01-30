@@ -1407,7 +1407,7 @@
         }
 
         // Modal Component
-        function Modal({ isOpen, onClose, selectedDate, user, onSubmit, editingDC, isSubmitting, dcs = [] }) {
+        function Modal({ isOpen, onClose, selectedDate, user, onSubmit, editingDC, isSubmitting, dcs = [], prefillData }) {
             const [formData, setFormData] = useState({
                 product: '',
                 ticket: '',
@@ -1432,6 +1432,15 @@
                         descartaDate: editingDC.descartaDate || '',
                         notes: editingDC.notes || ''
                     });
+                } else if (prefillData) {
+                    // Pre-fill from Quick Add
+                    setFormData({
+                        product: prefillData.product || '',
+                        ticket: prefillData.ticket || '',
+                        flows: [''],
+                        type: 'Normal',
+                        notes: ''
+                    });
                 } else {
                     setFormData({
                         product: '',
@@ -1441,7 +1450,7 @@
                         notes: ''
                     });
                 }
-            }, [editingDC, isOpen]);
+            }, [editingDC, isOpen, prefillData]);
 
             // Effect to count previous/active DCs for the selected ticket
             useEffect(() => {
@@ -2212,12 +2221,14 @@
         }
 
         // Calendar Page
-        function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading, dataService }) {
+        function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, isLoading, dataService, prefillData, onClearPrefill }) {
             const [modalOpen, setModalOpen] = useState(false);
             const [selectedDate, setSelectedDate] = useState(null);
             const [editingDC, setEditingDC] = useState(null);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [localDcs, setLocalDcs] = useState(dcs);
+            const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, -1 = last week, +1 = next week
+            const [quickAddData, setQuickAddData] = useState(null);
 
             // Confirm Modal State
             const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -2227,6 +2238,21 @@
             useEffect(() => {
                 setLocalDcs(dcs);
             }, [dcs]);
+
+            // Handle Quick Add from Dashboard - auto-open modal with prefilled data
+            useEffect(() => {
+                if (prefillData) {
+                    // Set today's date
+                    const today = new Date();
+                    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    setSelectedDate(dateStr);
+                    setQuickAddData(prefillData);
+                    setEditingDC(null);
+                    setModalOpen(true);
+                    // Clear the prefill data in parent
+                    if (onClearPrefill) onClearPrefill();
+                }
+            }, [prefillData, onClearPrefill]);
 
             // Realtime subscription
             useEffect(() => {
@@ -2298,7 +2324,7 @@
 
                 for (let i = 0; i < 5; i++) {
                     const date = new Date(today);
-                    date.setDate(today.getDate() + mondayOffset + i);
+                    date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7));
                     days.push(date);
                 }
                 return days;
@@ -2306,6 +2332,15 @@
 
             const weekDays = getWeekDays();
             const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+            // Get week range for display
+            const getWeekRangeText = () => {
+                if (weekDays.length < 2) return '';
+                const firstDay = weekDays[0];
+                const lastDay = weekDays[weekDays.length - 1];
+                const options = { day: 'numeric', month: 'short' };
+                return `${firstDay.toLocaleDateString('es-ES', options)} - ${lastDay.toLocaleDateString('es-ES', options)}`;
+            };
 
             const getDCsForDate = (date) => {
                 // Ensure local date string construction to avoid timezone shifts from toISOString()
@@ -2365,6 +2400,82 @@
                             <p>Gestiona las presentaciones de Design Critics</p>
                         </div>
 
+                        {/* Week Navigation */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '16px',
+                            marginBottom: '20px',
+                            padding: '12px',
+                            background: 'white',
+                            borderRadius: '12px',
+                            boxShadow: 'var(--shadow-sm)'
+                        }}>
+                            <button
+                                onClick={() => setWeekOffset(prev => prev - 1)}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: '1px solid var(--gray-300)',
+                                    borderRadius: '8px',
+                                    background: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'var(--gray-50)'}
+                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                            >
+                                ← Anterior
+                            </button>
+
+                            <div style={{ textAlign: 'center', minWidth: '180px' }}>
+                                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--gray-900)' }}>
+                                    {getWeekRangeText()}
+                                </div>
+                                {weekOffset !== 0 && (
+                                    <button
+                                        onClick={() => setWeekOffset(0)}
+                                        style={{
+                                            fontSize: '12px',
+                                            color: 'var(--primary)',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            marginTop: '4px'
+                                        }}
+                                    >
+                                        Ir a esta semana
+                                    </button>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => setWeekOffset(prev => prev + 1)}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: '1px solid var(--gray-300)',
+                                    borderRadius: '8px',
+                                    background: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'var(--gray-50)'}
+                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                            >
+                                Siguiente →
+                            </button>
+                        </div>
+
                         <div className="calendar-grid">
                             {weekDays.map((day, index) => {
                                 const dayDCs = getDCsForDate(day);
@@ -2417,13 +2528,17 @@
 
                     <Modal
                         isOpen={modalOpen}
-                        onClose={() => setModalOpen(false)}
+                        onClose={() => {
+                            setModalOpen(false);
+                            setQuickAddData(null);
+                        }}
                         selectedDate={selectedDate}
                         user={user}
                         dcs={localDcs}
                         onSubmit={handleSubmit}
                         editingDC={editingDC}
                         isSubmitting={isSubmitting}
+                        prefillData={quickAddData}
                     />
 
                     <ConfirmModal
@@ -2444,6 +2559,7 @@
         // History Page
         function HistoryPage({ dcs, user, onEditDC, onDeleteDC, isLoading, dataService }) {
             const [filter, setFilter] = useState('all');
+            const [searchQuery, setSearchQuery] = useState('');
             const [editingDC, setEditingDC] = useState(null);
             const [modalOpen, setModalOpen] = useState(false);
             const [isSubmitting, setIsSubmitting] = useState(false);
@@ -2519,7 +2635,23 @@
                 };
             }, [dataService]);
 
-            const filteredDCs = filter === 'mine' ? localDcs.filter(dc => dc.createdBy === user.email) : localDcs;
+            // Apply filters: mine/all + search query
+            const filteredDCs = localDcs.filter(dc => {
+                // Filter by ownership
+                if (filter === 'mine' && dc.createdBy !== user.email) return false;
+
+                // Filter by search query
+                if (searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase();
+                    return (
+                        dc.ticket?.toLowerCase().includes(query) ||
+                        dc.flow?.toLowerCase().includes(query) ||
+                        dc.presenter?.toLowerCase().includes(query) ||
+                        dc.product?.toLowerCase().includes(query)
+                    );
+                }
+                return true;
+            });
             const sortedDCs = [...filteredDCs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const handleEditClick = (dc) => {
@@ -2562,6 +2694,64 @@
                             <button className={`tab ${filter === 'mine' ? 'active' : ''}`} onClick={() => setFilter('mine')}>
                                 Mis DC ({dcs.filter(dc => dc.createdBy === user.email).length})
                             </button>
+                        </div>
+
+                        {/* Search Input */}
+                        <div style={{
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                        }}>
+                            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Buscar por ticket, flujo o presentador..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 16px',
+                                        paddingLeft: '16px',
+                                        border: '1px solid var(--gray-300)',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = 'var(--primary)';
+                                        e.target.style.boxShadow = '0 0 0 3px rgba(14, 165, 233, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = 'var(--gray-300)';
+                                        e.target.style.boxShadow = 'none';
+                                    }}
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '10px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            color: 'var(--gray-400)',
+                                            fontSize: '16px'
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                            {searchQuery && (
+                                <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>
+                                    {sortedDCs.length} resultado{sortedDCs.length !== 1 ? 's' : ''}
+                                </span>
+                            )}
                         </div>
 
                         <div className="table-container">
@@ -2637,7 +2827,7 @@
         }
 
         // Dashboard Page
-        function DashboardPage({ dcs, user }) {
+        function DashboardPage({ dcs, user, onQuickAdd }) {
             const [myTickets, setMyTickets] = useState([]);
             const [jiraDetails, setJiraDetails] = useState({});
             const [loadingJira, setLoadingJira] = useState(false);
@@ -2887,7 +3077,29 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                {/* Badge removed as requested */}
+                                                {onQuickAdd && (
+                                                    <button
+                                                        onClick={() => onQuickAdd({ ticket: item.ticket, product: item.product })}
+                                                        style={{
+                                                            padding: '8px 14px',
+                                                            background: 'var(--primary-gradient)',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '13px',
+                                                            fontWeight: 500,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                                                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                                    >
+                                                        + Agendar DC
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -2909,6 +3121,13 @@
             const [dataService, setDataService] = useState(null);
             const [toast, setToast] = useState(null);
             const [loginError, setLoginError] = useState(null);
+            const [prefillData, setPrefillData] = useState(null); // For Quick Add from Dashboard
+
+            // Quick Add handler - navigate to calendar with pre-filled data
+            const handleQuickAdd = (data) => {
+                setPrefillData(data);
+                setCurrentTab('calendar');
+            };
 
             // Auto-login on mount using Firebase Auth state
             useEffect(() => {
@@ -3164,7 +3383,7 @@
                     </div>
 
                     {currentTab === 'dashboard' && (
-                        <DashboardPage dcs={dcs} user={user} />
+                        <DashboardPage dcs={dcs} user={user} onQuickAdd={handleQuickAdd} />
                     )}
 
                     {currentTab === 'calendar' && (
@@ -3176,6 +3395,8 @@
                             onDeleteDC={handleDeleteDC}
                             isLoading={isLoading}
                             dataService={dataService}
+                            prefillData={prefillData}
+                            onClearPrefill={() => setPrefillData(null)}
                         />
                     )}
 
