@@ -1057,6 +1057,11 @@
             color: #92400E;
         }
 
+        .table-badge-purple {
+            background: #F3E8FF;
+            color: #7E22CE;
+        }
+
         .spinner {
             border: 3px solid var(--gray-200);
             border-top: 3px solid var(--primary);
@@ -2123,6 +2128,13 @@
                                             </div>
                                         </label>
                                         <label className="radio-option">
+                                            <input type="radio" name="type" value="Iteración DS" checked={formData.type === 'Iteración DS'} onChange={(e) => handleChange('type', e.target.value)} />
+                                            <div className="radio-label">
+                                                <div>Iteración DS</div>
+                                                <div className="radio-description">Mejora componentes Design System</div>
+                                            </div>
+                                        </label>
+                                        <label className="radio-option">
                                             <input type="radio" name="type" value="Reemplazo" checked={formData.type === 'Reemplazo'} onChange={(e) => handleChange('type', e.target.value)} />
                                             <div className="radio-label">
                                                 <div>Reemplazo</div>
@@ -2994,7 +3006,10 @@
                                             <td style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--primary)' }}>{dc.ticket}</td>
                                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dc.flow}</td>
                                             <td>
-                                                <span className={`table-badge ${dc.type === 'Normal' ? 'table-badge-blue' : 'table-badge-yellow'}`}>
+                                                <span className={`table-badge ${dc.type === 'Normal' ? 'table-badge-blue' :
+                                                        dc.type === 'Iteración DS' ? 'table-badge-purple' :
+                                                            'table-badge-yellow'
+                                                    }`}>
                                                     {dc.type}
                                                 </span>
                                             </td>
