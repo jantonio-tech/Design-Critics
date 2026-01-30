@@ -3258,42 +3258,142 @@
                                 </span>
                             </h2>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                                {uniqueActiveTickets.map(ticket => (
-                                    <div key={ticket.key} style={{
-                                        background: 'var(--bg-card)',
-                                        borderRadius: '12px',
-                                        border: '1px solid var(--border-color)',
-                                        padding: '20px',
-                                        boxShadow: 'var(--shadow-sm)',
-                                        position: 'relative' // For indicator
-                                    }}>
-                                        <div style={{
-                                            position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
-                                            background: '#3B82F6', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px'
-                                        }}></div>
+                                {uniqueActiveTickets.map(ticket => {
+                                    // Determine badge colors based on status category
+                                    let badgeStyle = { bg: '#F3F4F6', color: '#4B5563' }; // Default Gray
+                                    if (ticket.statusCategory === 'done') {
+                                        badgeStyle = { bg: '#DCFCE7', color: '#166534' }; // Green
+                                    } else if (ticket.statusCategory === 'indeterminate') {
+                                        badgeStyle = { bg: '#DBEAFE', color: '#1E40AF' }; // Blue
+                                    }
 
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', fontFamily: 'monospace' }}>
-                                                {ticket.key}
-                                            </span>
-                                            <span style={{ fontSize: '10px', background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                                                {ticket.status?.toUpperCase() || 'IN PROGRESS'}
-                                            </span>
+                                    return (
+                                        <div key={ticket.key} style={{
+                                            background: 'var(--bg-card)',
+                                            borderRadius: '12px',
+                                            border: '1px solid var(--border-color)',
+                                            padding: '24px',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            color: 'var(--text-main)'
+                                        }}>
+                                            {/* Status Line - Default to blue/gray as it has no active DC session yet */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                height: '4px',
+                                                background: badgeStyle.color === '#1E40AF' ? '#3B82F6' : 'var(--gray-300)'
+                                            }}></div>
+
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                                    <div style={{
+                                                        fontSize: '11px',
+                                                        fontWeight: 700,
+                                                        padding: '4px 8px',
+                                                        background: '#F0F9FF',
+                                                        color: '#0369A1',
+                                                        borderRadius: '6px',
+                                                        letterSpacing: '0.05em'
+                                                    }}>
+                                                        {ticket.project.toUpperCase()}
+                                                    </div>
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'flex-end',
+                                                        gap: '2px'
+                                                    }}>
+                                                        {/* Jira Status */}
+                                                        <div style={{
+                                                            color: badgeStyle.color,
+                                                            background: badgeStyle.bg,
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            transition: 'all 0.3s'
+                                                        }}>
+                                                            {`JIRA: ${ticket.status.toUpperCase()}`}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px', fontFamily: 'monospace', color: 'var(--primary)' }}>
+                                                    {ticket.key}
+                                                </h3>
+
+                                                {/* Ticket Summary (Title) */}
+                                                <div style={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 500,
+                                                    color: 'var(--text-main)',
+                                                    marginBottom: '12px',
+                                                    lineHeight: '1.4',
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: '2',
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    height: '40px'
+                                                }}>
+                                                    {ticket.summary}
+                                                </div>
+
+                                                <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>📅 Último critics:</span>
+                                                    <strong>Aún no realizado</strong>
+                                                </div>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                paddingTop: '16px',
+                                                borderTop: '1px solid var(--border-color)'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{ fontSize: '12px', color: 'var(--gray-500)', textTransform: 'uppercase' }}>
+                                                        Critics realizados:
+                                                    </div>
+                                                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)' }}>
+                                                        0
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    {onQuickAdd && (
+                                                        <button
+                                                            onClick={() => onQuickAdd({ ticket: ticket.key, product: ticket.project })}
+                                                            style={{
+                                                                padding: '8px 14px',
+                                                                background: 'var(--primary-gradient)',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                fontWeight: 500,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                                                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                                            className="btn-primary"
+                                                        >
+                                                            + Agendar DC
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', lineHeight: '1.4', color: 'var(--text-main)', height: '40px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                            {ticket.summary}
-                                        </h3>
-
-                                        <button
-                                            onClick={() => onQuickAdd && onQuickAdd({ ticket: ticket.key, product: 'PGH' })} // Default product or derive
-                                            className="btn btn-primary"
-                                            style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
-                                        >
-                                            + Crear DC
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
