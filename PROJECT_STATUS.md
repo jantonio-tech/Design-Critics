@@ -87,6 +87,7 @@ Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño
 - **Hard Delete Workaround**: Update via delete+create por permisos de Firestore.
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 ## 🧪 Cómo Correr Localmente
 ```bash
 npm i -g vercel
@@ -95,6 +96,8 @@ vercel dev
 Abrir `http://localhost:3000`.
 *Nota: Requiere `.env` con `JIRA_EMAIL` y `JIRA_API_TOKEN`.*
 =======
+=======
+>>>>>>> Stashed changes
 
 
 ### 1. Integración Jira v2.0 (Serverless Proxy)
