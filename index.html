@@ -1349,9 +1349,9 @@
 
                     const docRef = await this.db.collection(this.collection).add(newDoc);
 
-                    // Si es tipo Reemplazo, marcar TODOS los DCs anteriores de este ticket como descartados
+                    // Si es tipo Cambio de alcance, marcar TODOS los DCs anteriores de este ticket como descartados
                     // (excluyendo el recién creado)
-                    if (dcData.type === 'Reemplazo') {
+                    if (dcData.type === 'Cambio de alcance') {
                         await this.archiveAllPrevious(dcData.ticket, docRef.id);
                     }
 
@@ -1613,7 +1613,7 @@
                 product: '',
                 ticket: '',
                 flow: '',
-                type: 'Normal',
+                type: 'Critic',
                 notes: ''
             });
             const [previousDCsCount, setPreviousDCsCount] = useState(0);
@@ -1639,7 +1639,7 @@
                         product: prefillData.product || '',
                         ticket: prefillData.ticket || '',
                         flows: [''],
-                        type: 'Normal',
+                        type: 'Critic',
                         notes: ''
                     });
                 } else {
@@ -1647,7 +1647,7 @@
                         product: '',
                         ticket: '',
                         flows: [''], // Array of flows
-                        type: 'Normal',
+                        type: 'Critic',
                         notes: ''
                     });
                 }
@@ -2121,9 +2121,9 @@
                                     <label className="form-label required">📊 Tipo</label>
                                     <div className="radio-group">
                                         <label className="radio-option">
-                                            <input type="radio" name="type" value="Normal" checked={formData.type === 'Normal'} onChange={(e) => handleChange('type', e.target.value)} />
+                                            <input type="radio" name="type" value="Critic" checked={formData.type === 'Critic'} onChange={(e) => handleChange('type', e.target.value)} />
                                             <div className="radio-label">
-                                                <div>Normal</div>
+                                                <div>Critic</div>
                                                 <div className="radio-description">Primera vez o iteración</div>
                                             </div>
                                         </label>
@@ -2135,16 +2135,16 @@
                                             </div>
                                         </label>
                                         <label className="radio-option">
-                                            <input type="radio" name="type" value="Reemplazo" checked={formData.type === 'Reemplazo'} onChange={(e) => handleChange('type', e.target.value)} />
+                                            <input type="radio" name="type" value="Cambio de alcance" checked={formData.type === 'Cambio de alcance'} onChange={(e) => handleChange('type', e.target.value)} />
                                             <div className="radio-label">
-                                                <div>Reemplazo</div>
-                                                <div className="radio-description">Descarta versión anterior</div>
+                                                <div>Cambio de alcance</div>
+                                                <div className="radio-description">Descarta items anteriores</div>
                                             </div>
                                         </label>
                                     </div>
                                 </div>
 
-                                {formData.type === 'Reemplazo' && (
+                                {formData.type === 'Cambio de alcance' && (
                                     <div className="conditional-field" style={{ background: '#FFF7ED', borderColor: '#FDBA74' }}>
                                         <div style={{ display: 'flex', gap: '10px', alignItems: 'start' }}>
                                             <div style={{ fontSize: '18px' }}>⚠️</div>
@@ -2743,11 +2743,11 @@
                                                                 marginLeft: '4px',
                                                                 whiteSpace: 'nowrap'
                                                             }} className={
-                                                                dc.type === 'Normal' ? 'table-badge-blue' :
+                                                                dc.type === 'Critic' ? 'table-badge-blue' :
                                                                     dc.type === 'Iteración DS' ? 'table-badge-purple' :
                                                                         'table-badge-yellow'
                                                             }>
-                                                                {dc.type === 'Iteración DS' ? 'DS' : dc.type}
+                                                                {dc.type === 'Iteración DS' ? 'DS' : dc.type === 'Cambio de alcance' ? 'Alcance' : dc.type}
                                                             </span>
                                                         </div>
                                                         {dc.createdBy === user.email && (
@@ -3119,8 +3119,8 @@
                         ticketsMap[ticketKey].lastDate = dc.date;
                     }
 
-                    // Encontrar la fecha del Reemplazo más reciente
-                    if (dc.type === 'Reemplazo') {
+                    // Encontrar la fecha del Cambio de alcance más reciente
+                    if (dc.type === 'Cambio de alcance') {
                         if (!ticketsMap[ticketKey].lastReemplazoDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastReemplazoDate)) {
                             ticketsMap[ticketKey].lastReemplazoDate = dc.date;
                         }
@@ -3132,8 +3132,8 @@
                     const lastReemplazo = ticket.lastReemplazoDate;
 
                     ticket.totalCritics = ticket.history.filter(dc => {
-                        // Only count "Normal" critics (Ignore "Iteración DS" and "Reemplazo" types themselves in the count)
-                        if (dc.type !== 'Normal') return false;
+                        // Only count "Critic" and "Cambio de alcance" (which counts as 1 critic for itself)
+                        if (dc.type !== 'Critic' && dc.type !== 'Cambio de alcance') return false;
 
                         // Si hay un Reemplazo, solo contar DCs desde esa fecha en adelante
                         if (lastReemplazo) {
