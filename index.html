@@ -2518,7 +2518,7 @@
 
             const fetchJiraDetails = async (keys) => {
                 if (keys.length === 0) return;
-                console.log('🔍 Fetching Jira details for keys:', keys);
+
                 setLoadingJira(true);
                 try {
                     // Usamos el endpoint de búsqueda para obtener múltiples tickets
@@ -2532,7 +2532,7 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        console.log('✅ Jira response:', data);
+
                         const details = {};
                         // API returns `tickets` array based on logs, fallback to `issues` just in case
                         const issues = data.tickets || data.issues || [];
