@@ -2730,8 +2730,26 @@
                                                 dayDCs.map(dc => (
                                                     <div key={dc.id} className="dc-card">
                                                         <div className="dc-presenter">{dc.presenter}</div>
-                                                        <div className="dc-ticket">{dc.ticket}</div>
-                                                        <div className="dc-product">📦 {dc.product}</div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                            <div>
+                                                                <div className="dc-ticket">{dc.ticket}</div>
+                                                                <div className="dc-product">📦 {dc.product}</div>
+                                                            </div>
+                                                            <span style={{
+                                                                fontSize: '10px',
+                                                                padding: '2px 6px',
+                                                                borderRadius: '8px',
+                                                                fontWeight: '600',
+                                                                marginLeft: '4px',
+                                                                whiteSpace: 'nowrap'
+                                                            }} className={
+                                                                dc.type === 'Normal' ? 'table-badge-blue' :
+                                                                    dc.type === 'Iteración DS' ? 'table-badge-purple' :
+                                                                        'table-badge-yellow'
+                                                            }>
+                                                                {dc.type === 'Iteración DS' ? 'DS' : dc.type}
+                                                            </span>
+                                                        </div>
                                                         {dc.createdBy === user.email && (
                                                             <div className="dc-actions">
                                                                 <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
