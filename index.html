@@ -225,7 +225,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 16px;
         }
@@ -353,26 +353,27 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
+            /* Increased gap */
             margin-bottom: 12px;
         }
 
         .dc-card {
-            background: var(--bg-hover);
-            /* Slightly different in dark mode? or bg-card */
-            border-left: 4px solid var(--primary);
-            padding: 12px;
-            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
             position: relative;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .dc-card:hover {
-            background: var(--bg-body);
-            /* Contrast on hover */
-            transform: translateX(4px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-md);
         }
 
@@ -2815,37 +2816,76 @@
                                             {dayDCs.length === 0 ? (
                                                 <div className="empty-state">Sin presentaciones</div>
                                             ) : (
-                                                dayDCs.map(dc => (
-                                                    <div key={dc.id} className="dc-card">
-                                                        <div className="dc-header">
-                                                            <span className={`table-badge ${dc.type === 'Critic' || dc.type === 'Normal' ? 'table-badge-blue' :
-                                                                dc.type === 'Iteración DS' ? 'table-badge-purple' :
-                                                                    'table-badge-yellow'
-                                                                }`}>
-                                                                {dc.type}
-                                                            </span>
-                                                            <div className="dc-ticket">{dc.ticket}</div>
-                                                        </div>
+                                                dayDCs.map(dc => {
+                                                    // Determine strip color based on type
+                                                    let stripColor = 'var(--gray-300)';
+                                                    if (dc.type === 'Critic' || dc.type === 'Normal') stripColor = '#3B82F6'; // Blue
+                                                    else if (dc.type === 'Iteración DS') stripColor = '#8B5CF6'; // Purple
+                                                    else if (dc.type === 'Cambio de alcance') stripColor = '#F59E0B'; // Amber
 
-                                                        <div className="dc-flow" title={dc.flow}>
-                                                            {dc.flow}
-                                                        </div>
-
-                                                        <div className="dc-meta">
-                                                            <div className="dc-product">📦 {dc.product}</div>
-                                                            <div className="dc-presenter">
-                                                                👤 {dc.presenter.split(' ')[0]} {/* Show first name for space */}
+                                                    return (
+                                                        <div key={dc.id} className="dc-card" style={{ borderTop: `4px solid ${stripColor}` }}>
+                                                            {/* Row 1: Product Badge & Type Text */}
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                                <span style={{
+                                                                    fontSize: '10px',
+                                                                    fontWeight: 700,
+                                                                    padding: '2px 6px',
+                                                                    background: '#F0F9FF',
+                                                                    color: '#0369A1',
+                                                                    borderRadius: '4px',
+                                                                    letterSpacing: '0.05em'
+                                                                }}>
+                                                                    {dc.product.toUpperCase()}
+                                                                </span>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                                                    {dc.type}
+                                                                </span>
                                                             </div>
-                                                        </div>
 
-                                                        {dc.createdBy === user.email && (
-                                                            <div className="dc-actions">
-                                                                <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
-                                                                <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)} title="Eliminar">🗑️</button>
+                                                            {/* Row 2: Ticket Code */}
+                                                            <div style={{
+                                                                fontSize: '14px',
+                                                                fontWeight: 700,
+                                                                fontFamily: 'monospace',
+                                                                color: 'var(--primary)',
+                                                                marginBottom: '4px'
+                                                            }}>
+                                                                {dc.ticket}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ))
+
+                                                            {/* Row 3: Flow (Description) */}
+                                                            <div className="dc-flow" style={{
+                                                                fontSize: '13px',
+                                                                color: 'var(--text-main)',
+                                                                lineHeight: '1.4',
+                                                                marginBottom: '8px'
+                                                            }} title={dc.flow}>
+                                                                {dc.flow}
+                                                            </div>
+
+                                                            {/* Row 4: Presenter (Footer) */}
+                                                            <div style={{
+                                                                fontSize: '11px',
+                                                                color: 'var(--text-muted)',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                paddingTop: '8px',
+                                                                borderTop: '1px solid var(--border-color)'
+                                                            }}>
+                                                                <span>👤 {dc.presenter.split(' ')[0]}</span>
+                                                            </div>
+
+                                                            {dc.createdBy === user.email && (
+                                                                <div className="dc-actions">
+                                                                    <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
+                                                                    <button className="icon-btn icon-btn-delete" onClick={() => handleDeleteClick(dc)} title="Eliminar">🗑️</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
                                             )}
                                         </div>
 
