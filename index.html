@@ -1050,10 +1050,12 @@
                     // simplemente borramos el ticket viejo y creamos uno nuevo.
                     // Esto cambia el ID del documento, pero asegura que funcione con reglas de "Create" estándar.
 
-                    await this.delete(dcData.id);
-                    await this.create(dcData);
+                    const oldId = dcData.id;
+                    await this.delete(oldId);
+                    const newDc = await this.create(dcData);
 
-                    return dcData;
+                    // Retornar el nuevo DC con el ID actualizado
+                    return { ...newDc, _oldId: oldId };
                 } catch (error) {
                     console.error('Error updating DC (Re-create strategy):', error);
                     throw new Error('Error al actualizar en Firestore');
@@ -2863,8 +2865,12 @@
 
             const handleEditDC = async (dcData) => {
                 try {
-                    await dataService.update(dcData);
-                    setDcs(prev => prev.map(dc => dc.id === dcData.id ? dcData : dc));
+                    const updatedDc = await dataService.update(dcData);
+                    // updatedDc contains the new ID, and _oldId points to the old entry
+                    const oldId = updatedDc._oldId || dcData.id;
+                    // Remove _oldId helper field before storing
+                    delete updatedDc._oldId;
+                    setDcs(prev => prev.map(dc => dc.id === oldId ? updatedDc : dc));
                 } catch (error) {
                     showToast(error.message);
                     throw error;
