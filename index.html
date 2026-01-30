@@ -2532,6 +2532,7 @@
 
                     if (response.ok) {
                         const data = await response.json();
+                        console.log('✅ Jira response payload:', data);
 
                         const details = {};
                         // API returns `tickets` array based on logs, fallback to `issues` just in case
@@ -2539,15 +2540,27 @@
 
                         if (issues.length > 0) {
                             issues.forEach(issue => {
-                                if (issue && issue.key && issue.fields) {
+                                if (!issue || !issue.key) return;
+
+                                // Handle flattened structure (from our API) vs raw Jira structure
+                                if (issue.summary || issue.status) {
+                                    // Flattened format
+                                    details[issue.key] = {
+                                        summary: issue.summary,
+                                        status: issue.status,
+                                        statusCategory: issue.statusCategory
+                                    };
+                                } else if (issue.fields) {
+                                    // Raw Jira format fallback
                                     details[issue.key] = {
                                         summary: issue.fields.summary,
-                                        status: issue.fields.status.name,
-                                        statusCategory: issue.fields.status.statusCategory?.key
+                                        status: issue.fields.status?.name,
+                                        statusCategory: issue.fields.status?.statusCategory?.key
                                     };
                                 }
                             });
                         }
+                        console.log('Parsed details:', details);
                         setJiraDetails(details);
                     } else {
                         console.error('❌ Jira API Error:', response.status, response.statusText);

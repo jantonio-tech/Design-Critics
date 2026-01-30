@@ -102,7 +102,8 @@ module.exports = async function handler(req, res) {
         const tickets = (data.issues || []).map(issue => ({
             key: issue.key,
             summary: issue.fields?.summary || 'No summary',
-            status: issue.fields?.status?.name || 'Unknown'
+            status: issue.fields?.status?.name || 'Unknown',
+            statusCategory: issue.fields?.status?.statusCategory?.key || 'new'
         }));
 
         console.log('Returning', tickets.length, 'tickets');
