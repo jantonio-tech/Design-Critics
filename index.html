@@ -1477,7 +1477,8 @@
 
                 try {
                     // 1. Verificar si hay caché válido
-                    const cacheKey = `jira_tickets_${user.email}`;
+                    // Cache key versioned to force refresh with status info
+                    const cacheKey = `jira_tickets_v2_${user.email}`;
                     const cached = localStorage.getItem(cacheKey);
 
                     if (cached) {
@@ -1496,6 +1497,9 @@
                             return;
                         }
                     }
+
+                    // ... (fetch logic remains same) ...
+
 
                     // 2. Fetch directly (Centralized Auth)
                     // No need to check user settings anymore, backend handles auth
@@ -1826,9 +1830,17 @@
                                                     // Always show the currently selected ticket (for edit mode)
                                                     if (ticket.key === formData.ticket) return true;
 
-                                                    const statusCat = ticket.status?.statusCategory?.key;
-                                                    // If status unknown, keep it. If 'done', hide it.
-                                                    return !statusCat || statusCat !== 'done';
+                                                    // Check status category (can be at root or inside status object)
+                                                    const statusCat = ticket.statusCategory?.key || ticket.status?.statusCategory?.key;
+
+                                                    // Check explicit status name (case insensitive)
+                                                    const statusName = (ticket.status?.name || ticket.status || '').toString().toLowerCase();
+
+                                                    // Blocking logic
+                                                    if (statusCat === 'done') return false;
+                                                    if (statusName === 'listo' || statusName === 'finalizado' || statusName === 'done') return false;
+
+                                                    return true;
                                                 })
                                                 .map(ticket => (
                                                     <option key={ticket.key} value={ticket.key}>
