@@ -1909,26 +1909,21 @@
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 className="modal-title">{editingDC ? 'Editar DC' : 'Registrar sesión'}</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <h2 className="modal-title" style={{ margin: 0 }}>{editingDC ? 'Editar DC' : 'Registrar sesión'}</h2>
+                                <span style={{
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                    color: 'var(--gray-500)',
+                                    background: 'var(--gray-100)',
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    📅 {new Date(selectedDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                </span>
+                            </div>
                             <button className="close-btn" onClick={onClose}>×</button>
-                        </div>
-                        <div style={{
-                            padding: '12px 20px',
-                            background: 'var(--bg-hover)',
-                            borderBottom: '1px solid var(--border-color)',
-                            display: 'flex',
-                            gap: '24px',
-                            fontSize: '13px',
-                            color: 'var(--text-secondary)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>📅</span>
-                                <strong>{new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>👤</span>
-                                <strong>{user.name}</strong>
-                            </div>
                         </div>
 
                         <form onSubmit={handleSubmit}>
