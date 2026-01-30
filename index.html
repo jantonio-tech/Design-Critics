@@ -2565,7 +2565,10 @@
                         };
                     }
 
-                    ticketsMap[ticketKey].totalCritics++;
+                    // Solo contar si NO es un Reemplazo (los reemplazos no suman, solo sustituyen)
+                    if (dc.type !== 'Reemplazo') {
+                        ticketsMap[ticketKey].totalCritics++;
+                    }
                     ticketsMap[ticketKey].history.push(dc);
 
                     if (dc.status === 'activo') {
