@@ -2454,530 +2454,543 @@
                     />
                 </>
             );
-            // Dashboard Page
-            function DashboardPage({ dcs, user }) {
-                const [myTickets, setMyTickets] = useState([]);
-                const [jiraDetails, setJiraDetails] = useState({});
-                const [loadingJira, setLoadingJira] = useState(false);
+        }
 
-                useEffect(() => {
-                    if (!user || !dcs) return;
+        // Dashboard Page
+        function DashboardPage({ dcs, user }) {
+            const [myTickets, setMyTickets] = useState([]);
+            const [jiraDetails, setJiraDetails] = useState({});
+            const [loadingJira, setLoadingJira] = useState(false);
 
-                    // 1. Filtrar mis DCs
-                    const myDcs = dcs.filter(dc => dc.createdBy === user.email);
+            useEffect(() => {
+                if (!user || !dcs) return;
 
-                    // 2. Agrupar por Ticket
-                    const ticketsMap = {};
+                // 1. Filtrar mis DCs
+                const myDcs = dcs.filter(dc => dc.createdBy === user.email);
 
-                    myDcs.forEach(dc => {
-                        const ticketKey = dc.ticket;
-                        if (!ticketsMap[ticketKey]) {
-                            ticketsMap[ticketKey] = {
-                                ticket: ticketKey,
-                                product: dc.product,
-                                totalCritics: 0,
-                                active: false,
-                                lastDate: null,
-                                history: []
+                // 2. Agrupar por Ticket
+                const ticketsMap = {};
+
+                myDcs.forEach(dc => {
+                    const ticketKey = dc.ticket;
+                    if (!ticketsMap[ticketKey]) {
+                        ticketsMap[ticketKey] = {
+                            ticket: ticketKey,
+                            product: dc.product,
+                            totalCritics: 0,
+                            active: false,
+                            lastDate: null,
+                            history: []
+                        };
+                    }
+
+                    ticketsMap[ticketKey].totalCritics++;
+                    ticketsMap[ticketKey].history.push(dc);
+
+                    if (dc.status === 'activo') {
+                        ticketsMap[ticketKey].active = true;
+                        ticketsMap[ticketKey].currentData = dc;
+                    }
+
+                    // Calcular última fecha
+                    if (!ticketsMap[ticketKey].lastDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastDate)) {
+                        ticketsMap[ticketKey].lastDate = dc.date;
+                    }
+                });
+
+                // 3. Convertir a array y ordenar por fecha reciente
+                const ticketsArray = Object.values(ticketsMap).sort((a, b) =>
+                    new Date(b.lastDate) - new Date(a.lastDate)
+                );
+
+                setMyTickets(ticketsArray);
+
+                // 4. Obtener datos de Jira en tiempo real
+                const uniqueKeys = ticketsArray
+                    .map(t => t.ticket)
+                    .filter(k => k && k.startsWith('UX-')); // Solo tickets válidos
+
+                if (uniqueKeys.length > 0) {
+                    fetchJiraDetails(uniqueKeys);
+                }
+
+            }, [dcs, user]);
+
+            const fetchJiraDetails = async (keys) => {
+                if (keys.length === 0) return;
+                setLoadingJira(true);
+                try {
+                    // Usamos el endpoint de búsqueda para obtener múltiples tickets
+                    const response = await fetch('/api/search-jira', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ticketKeys: keys })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const details = {};
+                        if (data.issues) {
+                            data.issues.forEach(issue => {
+                                details[issue.key] = {
+                                    summary: issue.fields.summary,
+                                    status: issue.fields.status.name,
+                                    statusCategory: issue.fields.status.statusCategory?.key
+                                };
+                            });
+                        }
+                        setJiraDetails(details);
+                    }
+                } catch (error) {
+                    console.error('Error fetching Jira details:', error);
+                } finally {
+                    setLoadingJira(false);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="page-header">
+                        <h1>Dashboard Personal</h1>
+                        <p>Resumen de tus tickets y sesiones de crítica</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                        {myTickets.length === 0 ? (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--gray-500)', background: 'white', borderRadius: '12px' }}>
+                                Aún no tienes tickets registrados.
+                            </div>
+                        ) : (
+                            myTickets.map(item => {
+                                const jiraInfo = jiraDetails[item.ticket];
+                                return (
+                                    <div key={item.ticket} style={{
+                                        background: 'white',
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--gray-200)',
+                                        padding: '24px',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        {/* Status Line */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: '4px',
+                                            background: item.active ? 'var(--success)' : (jiraInfo?.statusCategory === 'done' ? '#10B981' : 'var(--gray-300)')
+                                        }}></div>
+
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                                <div style={{
+                                                    fontSize: '11px',
+                                                    fontWeight: 700,
+                                                    padding: '4px 8px',
+                                                    background: '#F0F9FF',
+                                                    color: '#0369A1',
+                                                    borderRadius: '6px',
+                                                    letterSpacing: '0.05em'
+                                                }}>
+                                                    {item.product.toUpperCase()}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: '10px',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'flex-end',
+                                                    gap: '2px'
+                                                }}>
+                                                    {/* Jira Status */}
+                                                    <div style={{
+                                                        color: jiraInfo ? '#4B5563' : 'var(--gray-400)',
+                                                        background: jiraInfo ? '#F3F4F6' : 'transparent',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        {jiraInfo ? `JIRA: ${jiraInfo.status.toUpperCase()}` : 'Cargando Jira...'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px', fontFamily: 'monospace', color: 'var(--primary)' }}>
+                                                {item.ticket}
+                                            </h3>
+
+                                            {/* Ticket Summary (Title) */}
+                                            <div style={{
+                                                fontSize: '14px',
+                                                fontWeight: 500,
+                                                color: 'var(--gray-800)',
+                                                marginBottom: '12px',
+                                                lineHeight: '1.4',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: '2',
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                height: '40px' // Fixed height for 2 lines
+                                            }}>
+                                                {jiraInfo ? jiraInfo.summary : <span className="skeleton-text" style={{ width: '80%', height: '14px', background: '#eee', display: 'block', borderRadius: '4px' }}></span>}
+                                            </div>
+
+                                            <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span>📅 Última sesión:</span>
+                                                <strong>{new Date(item.lastDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</strong>
+                                            </div>
+                                        </div>
+
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            paddingTop: '16px',
+                                            borderTop: '1px solid var(--gray-100)'
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                    Critics
+                                                </div>
+                                                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--gray-900)' }}>
+                                                    {item.totalCritics}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                {item.active && (
+                                                    <div title="Sesión de Crítica Activa" style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                        color: 'var(--success)',
+                                                        background: '#ECFDF5',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '20px'
+                                                    }}>
+                                                        <span style={{ fontSize: '8px' }}>🟢</span> EN CURSO
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [user, setUser] = useState(null);
+            const [currentTab, setCurrentTab] = useState('dashboard');
+            const [dcs, setDcs] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
+            const [dataService, setDataService] = useState(null);
+            const [toast, setToast] = useState(null);
+            const [loginError, setLoginError] = useState(null);
+
+            // Auto-login on mount using Firebase Auth state
+            useEffect(() => {
+                console.log('🔄 Setting up Firebase Auth listener...');
+
+                // Handle redirect result for mobile login
+                firebase.auth().getRedirectResult().then(async (result) => {
+                    if (result.user) {
+                        console.log('📱 Redirect result received:', result.user.email);
+                        // User will be handled by onAuthStateChanged
+                    }
+                }).catch((error) => {
+                    console.error('Redirect result error:', error);
+                    if (error.code !== 'auth/popup-closed-by-user') {
+                        setLoginError('Error en autenticación móvil. Intenta de nuevo.');
+                    }
+                });
+
+                const unsubscribe = firebase.auth().onAuthStateChanged(async (firebaseUser) => {
+                    // Skip anonymous users (they're handled by demo login flow)
+                    if (firebaseUser && firebaseUser.isAnonymous) {
+                        console.log('🔄 Anonymous user detected, skipping auth listener handling');
+                        return;
+                    }
+
+                    if (firebaseUser && firebaseUser.email && firebaseUser.email.endsWith('@prestamype.com')) {
+                        console.log('🔄 Firebase user detected:', firebaseUser.email);
+                        setIsLoading(true);
+
+                        try {
+                            const userData = {
+                                name: firebaseUser.displayName,
+                                email: firebaseUser.email,
+                                picture: firebaseUser.photoURL,
+                                initials: firebaseUser.displayName ? firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U',
+                                uid: firebaseUser.uid
                             };
+
+                            const service = new FirestoreDataService(userData.email);
+                            await service.init();
+                            // MODIFIED: readAll fetches everything including archived, filtering happens in views
+                            // Carga paralela segura (Activos + Mios)
+                            const [activeDCs, myDCs] = await Promise.all([
+                                service.readAll(),
+                                service.readUserHistory()
+                            ]);
+
+                            // Merge: activeDCs + unique from myDCs
+                            const loadedDCs = [...activeDCs];
+                            const activeIds = new Set(activeDCs.map(d => d.id));
+                            myDCs.forEach(d => {
+                                if (!activeIds.has(d.id)) {
+                                    loadedDCs.push(d);
+                                }
+                            });
+
+                            setDataService(service);
+                            setDcs(loadedDCs);
+                            setUser(userData);
+                            setIsLoggedIn(true);
+                            // Set dashboard as default once logged in
+                            setCurrentTab('dashboard');
+                            console.log('✅ Session restored from Firebase Auth');
+                        } catch (error) {
+                            console.error('Session restore failed:', error);
+                            setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
                         }
+                        setIsLoading(false);
+                    } else {
+                        console.log('📤 No Firebase user or invalid domain');
+                        setIsLoading(false);
+                        setIsLoggedIn(false);
+                        setUser(null);
+                    }
+                });
 
-                        ticketsMap[ticketKey].totalCritics++;
-                        ticketsMap[ticketKey].history.push(dc);
+                // Cleanup subscription on unmount
+                return () => unsubscribe();
+            }, []);
 
-                        if (dc.status === 'activo') {
-                            ticketsMap[ticketKey].active = true;
-                            ticketsMap[ticketKey].currentData = dc;
-                        }
+            const showToast = (message, type = 'error') => {
+                setToast({ message, type });
+            };
 
-                        // Calcular última fecha
-                        if (!ticketsMap[ticketKey].lastDate || new Date(dc.date) > new Date(ticketsMap[ticketKey].lastDate)) {
-                            ticketsMap[ticketKey].lastDate = dc.date;
+            const handleLogin = async (userData, error) => {
+                if (error) {
+                    setLoginError(error);
+                    return;
+                }
+
+                if (!userData) return;
+
+                setIsLoading(true);
+                try {
+                    const service = new FirestoreDataService(userData.email);
+                    await service.init();
+                    // Carga paralela segura (Activos + Mios)
+                    const [activeDCs, myDCs] = await Promise.all([
+                        service.readAll(),
+                        service.readUserHistory()
+                    ]);
+
+                    // Merge: activeDCs + unique from myDCs
+                    const loadedDCs = [...activeDCs];
+                    const activeIds = new Set(activeDCs.map(d => d.id));
+                    myDCs.forEach(d => {
+                        if (!activeIds.has(d.id)) {
+                            loadedDCs.push(d);
                         }
                     });
 
-                    // 3. Convertir a array y ordenar por fecha reciente
-                    const ticketsArray = Object.values(ticketsMap).sort((a, b) =>
-                        new Date(b.lastDate) - new Date(a.lastDate)
-                    );
+                    setDataService(service);
+                    setDcs(loadedDCs);
+                    setUser(userData);
+                    setIsLoggedIn(true);
+                    setLoginError(null);
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
+                }
+                setIsLoading(false);
+            };
 
-                    setMyTickets(ticketsArray);
+            const handleLogout = async () => {
+                // Sign out from Firebase Auth
+                try {
+                    await firebase.auth().signOut();
+                    console.log('✅ Firebase Signed Out');
+                } catch (error) {
+                    console.error('Error signing out:', error);
+                }
 
-                    // 4. Fetch Jira Real-time details
-                    const uniqueKeys = ticketsArray.map(t => t.ticket);
-                    if (uniqueKeys.length > 0) {
-                        fetchJiraDetails(uniqueKeys);
-                    }
+                if (user) {
+                    AuthStorage.clearSession();
+                }
 
-                }, [dcs, user]);
+                setIsLoggedIn(false);
+                setUser(null);
+                setDcs([]);
+                setDataService(null);
+            };
 
-                const fetchJiraDetails = async (keys) => {
-                    setLoadingJira(true);
-                    try {
-                        const response = await fetch('/api/search-jira', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ticketKeys: keys })
-                        });
+            const handleAddDC = async (dcData) => {
+                try {
+                    await dataService.create(dcData);
+                    setDcs(prev => [...prev, dcData]);
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
 
-                        const data = await response.json();
-                        if (data.success && data.tickets) {
-                            const details = {};
-                            data.tickets.forEach(t => {
-                                details[t.key] = {
-                                    summary: t.summary,
-                                    status: t.status
-                                };
-                            });
-                            setJiraDetails(details);
-                        }
-                    } catch (error) {
-                        console.error('Error fetching Jira:', error);
-                    }
-                    setLoadingJira(false);
-                };
+            const handleEditDC = async (dcData) => {
+                try {
+                    await dataService.update(dcData);
+                    setDcs(prev => prev.map(dc => dc.id === dcData.id ? dcData : dc));
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
 
+            const handleDeleteDC = async (dcId) => {
+                try {
+                    await dataService.delete(dcId);
+                    setDcs(prev => prev.filter(dc => dc.id !== dcId));
+                } catch (error) {
+                    showToast(error.message);
+                    throw error;
+                }
+            };
+
+            if (isLoading) {
                 return (
-                    <div className="container">
-                        <div className="page-header">
-                            <h1>Dashboard Personal</h1>
-                            <p>Resumen de tus tickets y sesiones de crítica</p>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                            {myTickets.length === 0 ? (
-                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--gray-500)', background: 'white', borderRadius: '12px' }}>
-                                    Aún no tienes tickets registrados.
-                                </div>
-                            ) : (
-                                myTickets.map(item => {
-                                    const jiraInfo = jiraDetails[item.ticket];
-                                    return (
-                                        <div key={item.ticket} style={{
-                                            background: 'white',
-                                            borderRadius: '12px',
-                                            border: '1px solid var(--gray-200)',
-                                            padding: '24px',
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'space-between'
-                                        }}>
-                                            {/* Status Line */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                height: '4px',
-                                                background: item.active ? 'var(--success)' : 'var(--gray-300)'
-                                            }}></div>
-
-                                            <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-                                                    <div style={{
-                                                        fontSize: '11px',
-                                                        fontWeight: 700,
-                                                        padding: '4px 8px',
-                                                        background: '#F0F9FF',
-                                                        color: '#0369A1',
-                                                        borderRadius: '6px',
-                                                        letterSpacing: '0.05em'
-                                                    }}>
-                                                        {item.product.toUpperCase()}
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: '11px',
-                                                        fontWeight: 600,
-                                                        color: 'var(--gray-500)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        background: '#F3F4F6',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '12px'
-                                                    }}>
-                                                        {jiraInfo ? (
-                                                            <span style={{ textTransform: 'uppercase' }}>
-                                                                {jiraInfo.status}
-                                                            </span>
-                                                        ) : (
-                                                            <span>...</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px', fontFamily: 'monospace', color: 'var(--primary)' }}>
-                                                    {item.ticket}
-                                                </h3>
-
-                                                <div style={{
-                                                    fontSize: '14px',
-                                                    fontWeight: 500,
-                                                    color: 'var(--gray-800)',
-                                                    marginBottom: '12px',
-                                                    lineHeight: '1.4',
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: '2',
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                    height: '40px'
-                                                }}>
-                                                    {jiraInfo ? jiraInfo.summary : <span className="skeleton-text" style={{ width: '80%', height: '14px', background: '#eee', display: 'block', borderRadius: '4px' }}></span>}
-                                                </div>
-
-                                                <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>📅 Última sesión:</span>
-                                                    <strong>{new Date(item.lastDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</strong>
-                                                </div>
-                                            </div>
-
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                paddingTop: '16px',
-                                                borderTop: '1px solid var(--gray-100)'
-                                            }}>
-                                                <div>
-                                                    <div style={{ fontSize: '11px', color: 'var(--gray-500)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                                        Critics
-                                                    </div>
-                                                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--gray-900)' }}>
-                                                        {item.totalCritics}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    {item.active && (
-                                                        <div title="Sesión de Crítica Activa" style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '6px',
-                                                            fontSize: '10px',
-                                                            fontWeight: 600,
-                                                            color: 'var(--success)',
-                                                            background: '#ECFDF5',
-                                                            padding: '4px 8px',
-                                                            borderRadius: '20px'
-                                                        }}>
-                                                            <span style={{ fontSize: '8px' }}>🟢</span> EN CURSO
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
+                    <div className="loading-overlay">
+                        <div className="spinner"></div>
+                        <div>Cargando datos...</div>
                     </div>
                 );
             }
 
-            // Main App
-            function App() {
-                const [isLoggedIn, setIsLoggedIn] = useState(false);
-                const [user, setUser] = useState(null);
-                const [currentTab, setCurrentTab] = useState('dashboard');
-                const [dcs, setDcs] = useState([]);
-                const [isLoading, setIsLoading] = useState(false);
-                const [dataService, setDataService] = useState(null);
-                const [toast, setToast] = useState(null);
-                const [loginError, setLoginError] = useState(null);
-
-                // Auto-login on mount using Firebase Auth state
-                useEffect(() => {
-                    console.log('🔄 Setting up Firebase Auth listener...');
-
-                    // Handle redirect result for mobile login
-                    firebase.auth().getRedirectResult().then(async (result) => {
-                        if (result.user) {
-                            console.log('📱 Redirect result received:', result.user.email);
-                            // User will be handled by onAuthStateChanged
-                        }
-                    }).catch((error) => {
-                        console.error('Redirect result error:', error);
-                        if (error.code !== 'auth/popup-closed-by-user') {
-                            setLoginError('Error en autenticación móvil. Intenta de nuevo.');
-                        }
-                    });
-
-                    const unsubscribe = firebase.auth().onAuthStateChanged(async (firebaseUser) => {
-                        // Skip anonymous users (they're handled by demo login flow)
-                        if (firebaseUser && firebaseUser.isAnonymous) {
-                            console.log('🔄 Anonymous user detected, skipping auth listener handling');
-                            return;
-                        }
-
-                        if (firebaseUser && firebaseUser.email && firebaseUser.email.endsWith('@prestamype.com')) {
-                            console.log('🔄 Firebase user detected:', firebaseUser.email);
-                            setIsLoading(true);
-
-                            try {
-                                const userData = {
-                                    name: firebaseUser.displayName,
-                                    email: firebaseUser.email,
-                                    picture: firebaseUser.photoURL,
-                                    initials: firebaseUser.displayName ? firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U',
-                                    uid: firebaseUser.uid
-                                };
-
-                                const service = new FirestoreDataService(userData.email);
-                                await service.init();
-                                // MODIFIED: readAll fetches everything including archived, filtering happens in views
-                                // Carga paralela segura (Activos + Mios)
-                                const [activeDCs, myDCs] = await Promise.all([
-                                    service.readAll(),
-                                    service.readUserHistory()
-                                ]);
-
-                                // Merge: activeDCs + unique from myDCs
-                                const loadedDCs = [...activeDCs];
-                                const activeIds = new Set(activeDCs.map(d => d.id));
-                                myDCs.forEach(d => {
-                                    if (!activeIds.has(d.id)) {
-                                        loadedDCs.push(d);
-                                    }
-                                });
-
-                                setDataService(service);
-                                setDcs(loadedDCs);
-                                setUser(userData);
-                                setIsLoggedIn(true);
-                                // Set dashboard as default once logged in
-                                setCurrentTab('dashboard');
-                                console.log('✅ Session restored from Firebase Auth');
-                            } catch (error) {
-                                console.error('Session restore failed:', error);
-                                setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
-                            }
-                            setIsLoading(false);
-                        } else {
-                            console.log('📤 No Firebase user or invalid domain');
-                            setIsLoading(false);
-                            setIsLoggedIn(false);
-                            setUser(null);
-                        }
-                    });
-
-                    // Cleanup subscription on unmount
-                    return () => unsubscribe();
-                }, []);
-
-                const showToast = (message, type = 'error') => {
-                    setToast({ message, type });
-                };
-
-                const handleLogin = async (userData, error) => {
-                    if (error) {
-                        setLoginError(error);
-                        return;
-                    }
-
-                    if (!userData) return;
-
-                    setIsLoading(true);
-                    try {
-                        const service = new FirestoreDataService(userData.email);
-                        await service.init();
-                        // Carga paralela segura (Activos + Mios)
-                        const [activeDCs, myDCs] = await Promise.all([
-                            service.readAll(),
-                            service.readUserHistory()
-                        ]);
-
-                        // Merge: activeDCs + unique from myDCs
-                        const loadedDCs = [...activeDCs];
-                        const activeIds = new Set(activeDCs.map(d => d.id));
-                        myDCs.forEach(d => {
-                            if (!activeIds.has(d.id)) {
-                                loadedDCs.push(d);
-                            }
-                        });
-
-                        setDataService(service);
-                        setDcs(loadedDCs);
-                        setUser(userData);
-                        setIsLoggedIn(true);
-                        setLoginError(null);
-                    } catch (error) {
-                        console.error('Error loading data:', error);
-                        setLoginError('Error al cargar datos. Por favor intenta nuevamente.');
-                    }
-                    setIsLoading(false);
-                };
-
-                const handleLogout = async () => {
-                    // Sign out from Firebase Auth
-                    try {
-                        await firebase.auth().signOut();
-                        console.log('✅ Firebase Signed Out');
-                    } catch (error) {
-                        console.error('Error signing out:', error);
-                    }
-
-                    if (user) {
-                        AuthStorage.clearSession();
-                    }
-
-                    setIsLoggedIn(false);
-                    setUser(null);
-                    setDcs([]);
-                    setDataService(null);
-                };
-
-                const handleAddDC = async (dcData) => {
-                    try {
-                        await dataService.create(dcData);
-                        setDcs(prev => [...prev, dcData]);
-                    } catch (error) {
-                        showToast(error.message);
-                        throw error;
-                    }
-                };
-
-                const handleEditDC = async (dcData) => {
-                    try {
-                        await dataService.update(dcData);
-                        setDcs(prev => prev.map(dc => dc.id === dcData.id ? dcData : dc));
-                    } catch (error) {
-                        showToast(error.message);
-                        throw error;
-                    }
-                };
-
-                const handleDeleteDC = async (dcId) => {
-                    try {
-                        await dataService.delete(dcId);
-                        setDcs(prev => prev.filter(dc => dc.id !== dcId));
-                    } catch (error) {
-                        showToast(error.message);
-                        throw error;
-                    }
-                };
-
-                if (isLoading) {
-                    return (
-                        <div className="loading-overlay">
-                            <div className="spinner"></div>
-                            <div>Cargando datos...</div>
-                        </div>
-                    );
-                }
-
-                if (!isLoggedIn) {
-                    return <LoginPage onLogin={handleLogin} error={loginError} />;
-                }
-
-                return (
-                    <>
-                        <nav className="navbar">
-                            <div className="navbar-content">
-                                <div className="logo">
-                                    <div className="logo-icon">🎯</div>
-                                    <div>
-                                        <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                                            Design Critics
-                                            <JiraStatusBadge user={user} />
-                                            {dataService && dataService.userEmail && (
-                                                <span style={{
-                                                    fontSize: '10px',
-                                                    padding: '2px 6px',
-                                                    background: '#10B981',
-                                                    color: 'white',
-                                                    borderRadius: '8px',
-                                                    fontWeight: 600
-                                                }}>
-                                                    🔴 EN VIVO
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>Prestamype</div>
-                                    </div>
-                                </div>
-                                <div className="user-info">
-                                    {user.picture ? (
-                                        <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
-                                    ) : (
-                                        <div className="avatar">{user.initials}</div>
-                                    )}
-                                    <div>
-                                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</div>
-                                        <button
-                                            onClick={handleLogout}
-                                            style={{
-                                                fontSize: '11px',
-                                                color: 'var(--gray-500)',
-                                                background: 'none',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                padding: 0
-                                            }}
-                                        >
-                                            Salir
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </nav>
-
-                        <div className="tabs container">
-                            <button className={`tab ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentTab('dashboard')}>
-                                📊 Dashboard
-                            </button>
-                            <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>
-                                📅 Calendario
-                            </button>
-                            <button className={`tab ${currentTab === 'history' ? 'active' : ''}`} onClick={() => setCurrentTab('history')}>
-                                📋 Historial
-                            </button>
-
-                        </div>
-
-                        {currentTab === 'dashboard' && (
-                            <DashboardPage dcs={dcs} user={user} />
-                        )}
-
-                        {currentTab === 'calendar' && (
-                            <CalendarPage
-                                dcs={dcs}
-                                user={user}
-                                onAddDC={handleAddDC}
-                                onEditDC={handleEditDC}
-                                onDeleteDC={handleDeleteDC}
-                                isLoading={isLoading}
-                                dataService={dataService}
-                            />
-                        )}
-
-                        {currentTab === 'history' && (
-                            <HistoryPage
-                                dcs={dcs}
-                                user={user}
-                                onEditDC={handleEditDC}
-                                onDeleteDC={handleDeleteDC}
-                                isLoading={isLoading}
-                                dataService={dataService}
-                            />
-                        )}
-
-
-
-                        {toast && (
-                            <Toast
-                                message={toast.message}
-                                type={toast.type}
-                                onClose={() => setToast(null)}
-                            />
-                        )}
-                    </>
-                );
+            if (!isLoggedIn) {
+                return <LoginPage onLogin={handleLogin} error={loginError} />;
             }
 
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<App />);
+            return (
+                <>
+                    <nav className="navbar">
+                        <div className="navbar-content">
+                            <div className="logo">
+                                <div className="logo-icon">🎯</div>
+                                <div>
+                                    <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                                        Design Critics
+                                        <JiraStatusBadge user={user} />
+                                        {dataService && dataService.userEmail && (
+                                            <span style={{
+                                                fontSize: '10px',
+                                                padding: '2px 6px',
+                                                background: '#10B981',
+                                                color: 'white',
+                                                borderRadius: '8px',
+                                                fontWeight: 600
+                                            }}>
+                                                🔴 EN VIVO
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--gray-500)' }}>Prestamype</div>
+                                </div>
+                            </div>
+                            <div className="user-info">
+                                {user.picture ? (
+                                    <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
+                                ) : (
+                                    <div className="avatar">{user.initials}</div>
+                                )}
+                                <div>
+                                    <div style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</div>
+                                    <button
+                                        onClick={handleLogout}
+                                        style={{
+                                            fontSize: '11px',
+                                            color: 'var(--gray-500)',
+                                            background: 'none',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: 0
+                                        }}
+                                    >
+                                        Salir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div className="tabs container">
+                        <button className={`tab ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentTab('dashboard')}>
+                            📊 Dashboard
+                        </button>
+                        <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>
+                            📅 Calendario
+                        </button>
+                        <button className={`tab ${currentTab === 'history' ? 'active' : ''}`} onClick={() => setCurrentTab('history')}>
+                            📋 Historial
+                        </button>
+
+                    </div>
+
+                    {currentTab === 'dashboard' && (
+                        <DashboardPage dcs={dcs} user={user} />
+                    )}
+
+                    {currentTab === 'calendar' && (
+                        <CalendarPage
+                            dcs={dcs}
+                            user={user}
+                            onAddDC={handleAddDC}
+                            onEditDC={handleEditDC}
+                            onDeleteDC={handleDeleteDC}
+                            isLoading={isLoading}
+                            dataService={dataService}
+                        />
+                    )}
+
+                    {currentTab === 'history' && (
+                        <HistoryPage
+                            dcs={dcs}
+                            user={user}
+                            onEditDC={handleEditDC}
+                            onDeleteDC={handleDeleteDC}
+                            isLoading={isLoading}
+                            dataService={dataService}
+                        />
+                    )}
+
+
+
+                    {toast && (
+                        <Toast
+                            message={toast.message}
+                            type={toast.type}
+                            onClose={() => setToast(null)}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 
