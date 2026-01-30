@@ -33,10 +33,14 @@ module.exports = async function handler(req, res) {
         }
 
         // Construct JQL: Filter by the requesting user if provided, otherwise generic
+        // If ticketKeys are provided, search for specific tickets (ignoring other filters)
         // If userEmail is provided, search for their assigned tickets
-        // We use the Central Token to search on behalf of the user
         let searchJql;
-        if (userEmail) {
+        if (req.body.ticketKeys && Array.isArray(req.body.ticketKeys) && req.body.ticketKeys.length > 0) {
+            // Batch fetch specific tickets
+            const keys = req.body.ticketKeys.map(k => `"${k}"`).join(',');
+            searchJql = `key in (${keys}) ORDER BY updated DESC`;
+        } else if (userEmail) {
             searchJql = `assignee = "${userEmail}" AND Sprint in openSprints() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
         } else {
             // Fallback or generic search (e.g. project UX)
