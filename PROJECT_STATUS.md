@@ -3,14 +3,34 @@
 ## 🚀 Descripción del Proyecto
 Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño) en Prestamype. Permite ver un calendario semanal, reservar slots (máx 3 por día) y mantener un historial.
 
+## � Estado Actual (Enero 2026)
+**Versión Actual:** 2.0.1 (Jira Integration + Serviceless)
+
+### ✅ Últimas Implementaciones (v2)
+1. **Integración con Jira Centralizada (Vercel Functions)**:
+   - **Backend Layer**: Se implementó una API Layer en `/api/search-jira.js` que actúa como proxy seguro.
+   - **Seguridad**: Las credenciales de Jira (`JIRA_EMAIL`, `JIRA_API_TOKEN`) ahora viven en las variables de entorno del servidor (Vercel), eliminando la necesidad de que cada usuario configure sus tokens localmente.
+   - **Filtrado Inteligente**: La API busca tickets asignados al usuario solicitante (`userEmail`) que estén en sprints activos y no estén cerrados/resueltos.
+   - **Performance**: Se implementó caché en `localStorage` (5 min) para evitar llamadas excesivas a la API de Jira.
+
+2. **Mejoras en UX/Formularios**:
+   - **Autocompletado de Producto**: Al seleccionar un ticket de Jira, el sistema detecta automáticamente el producto (e.g. "Gestora", "Cambio Seguro") basándose en palabras clave del resumen del ticket.
+   - **Validación Backend**: Se centralizó la lógica de validación de conexión con Jira.
+   - **Hard Delete**: Se implementó un flujo de "Eliminar y Crear" para actualizaciones complejas, esquivando problemas de permisos de edición granular en Firestore.
+
+3. **Infraestructura**:
+   - **Vercel Functions**: Se añadieron `api/search-jira.js` y `api/test-jira.js` para manejar la lógica de negocio sensible.
+   - **Vercel Rewrites**: Configuración en `vercel.json` para enrutar `/api/*` correctamente.
+
 ## 🛠️ Stack Tecnológico
-- **Frontend**: Single Page Application (SPA) contenida en `index.html`.
-- **Framework**: React 16 + ReactDOM (via CDN) + Babel Standalone.
-- **Estilos**: CSS Vanilla incrustado.
-- **Backend (BaaS)**: Google Firebase
-  - **Auth**: Google Sign-In (Restringido a dominio `@prestamype.com`).
-  - **Database**: Cloud Firestore.
-- **Deploy**: Vercel.
+- **Frontend**: Single Page Application (SPA) en `index.html` (2600+ líneas).
+  - **Framework**: React 18 + ReactDOM + Babel Standalone.
+  - **Estilos**: CSS Vanilla incrustado.
+- **Backend**:
+  - **Auth**: Firebase Auth (Google Sign-In restringido a `@prestamype.com`).
+  - **Database**: Firebase Firestore.
+  - **API**: Vercel Serverless Functions (`/api`, Node.js) para integraciones externas (Jira).
+- **Deploy**: Vercel (Frontend + Functions).
 
 ## 📂 Estructura de Datos (Firestore)
 **Colección:** `dc_registrations`
@@ -21,54 +41,28 @@ Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño
 | `fecha_dc` | string (YYYY-MM-DD) | Fecha de la presentación |
 | `presentador` | string | Nombre del usuario (Google Display Name) |
 | `presentador_email`| string | Email del creador (para permisos) |
-| `producto` | string | Producto asociado (e.g. Gestora, Transversal) |
+| `producto` | string | Producto asociado (e.g. Gestora, Transversal) - **Auto-detectado** |
 | `ticket` | string | ID del ticket (e.g. UX-1234) |
 | `flujo` | string | Descripción breve del flujo |
 | `tipo` | string | "Normal" o "Reemplazo" |
-| `estado` | string | "activo" (default) o "eliminado" (soft delete) |
+| `estado` | string | "activo" |
 | `created_at` | timestamp | Server timestamp |
 
 ## 🔑 Seguridad y Reglas
-1. **Autenticación**: Obligatoria con Google.
-2. **Dominio**: Solo emails `@prestamype.com` pueden acceder.
+1. **Autenticación**: Obligatoria con Google (@prestamype.com).
+2. **Jira**: El acceso a Jira está centralizado mediante Server-to-Server auth (API Token). El frontend solo envía el email del usuario para contexto de búsqueda.
 3. **Reglas Firestore**:
    - Lectura: Todo usuario autenticado del dominio.
    - Escritura (Create): Todo usuario autenticado del dominio.
    - Edición/Eliminación: **Solo el creador del registro** (`resource.data.presentador_email == request.auth.token.email`).
 
-## 🔄 Estado Actual y Fixes Recientes (Enero 2026)
+## ⚠️ Observaciones y Deuda Técnica
+- **Single File Complexity**: `index.html` ha crecido excesivamente (~2650 líneas). Se recomienda urgentemente refactorizar a módulos separados (Vite App) en fases posteriores.
+- **Legacy Jira Config UI**: Existen componentes obsoletos en el frontend (`SettingsPage`, `JiraStatusBadge`) que referencian la antigua configuración manual de tokens de Jira. Estos deben ser limpiados ya que ahora la autenticación es centralizada.
+- **Hard Delete Workaround**: La lógica de actualización actual realiza un borrado y recreación del registro para evitar problemas de permisos granulares. Esto es funcional pero subóptimo para la integridad referencial.
 
-### 1. Migración a Firebase
-Se migró exitosamente de Supabase a Firebase debido a problemas de estabilidad y limites.
-
-### 2. Autenticación Robusta
-- Se implementó `firebase.auth().onAuthStateChanged` para **persistencia de sesión**.
-- Se corrigió el flujo de **Logout** (`firebase.auth().signOut()`) para evitar reconexiones automáticas no deseadas.
-
-### 3. API Keys y Configuración
-- Se corrigieron las Credenciales de Google Cloud (Client ID & Secret).
-- Se corrigió el error `redirect_uri_mismatch` agregando los handlers de Firebase en Google Console.
-- Se regeneró el API Key de Firebase con los permisos correctos.
-
-### 4. Permisos de Edición (Bug Fix)
-- **Problema**: Al editar, se sobrescribía el `createdBy` con el usuario actual, bloqueando futuras ediciones si el usuario cambiaba.
-- **Solución**: Se modificó el `handleSubmit` en el Modal para preservar el `createdBy` original del objeto `editingDC`.
-
-### 5. UI/UX - Modal de Confirmación
-- **Problema**: El navegador bloqueaba `window.confirm()` asíncrono, impidiendo eliminar registros.
-- **Solución**: Se implementó un componente React `ConfirmModal` personalizado (Estilo Untitled UI).
-  - No bloquea el hilo principal.
-  - Diseño consistente con la app.
-  - Feedback visual de carga ("Eliminando...").
-
-## ⚠️ Notas para Futuros Desarrolladores
-- **Single File**: Todo el código vive en `index.html`. Al hacer cambios grandes, ten cuidado de no romper el bloque `<script type="text/babel">`.
-- **Babel**: Se usa Babel en el navegador. Para producción real se recomienda pre-compilar, pero para este uso interno funciona bien.
-- **Vercel**: El deploy es automático al pushear a `main`.
-- **Índices Firestore**: Si agregas filtros complejos (ej. order by date + filter by status), revisa la consola del navegador; Firebase te dará un link para crear el índice necesario automáticamente.
-
-## 🧪 Cómo Probar Localmente
-1. Instalar `serve` o similar: `npm install -g serve`
-2. Correr: `serve .`
-3. Abrir `http://localhost:3000` (o el puerto que asigne).
-*Nota: Asegúrate de que `localhost` esté autorizado en Firebase Auth Domains.*
+## 🧪 Cómo Correr Localmente
+1. Instalar `vercel cli`: `npm i -g vercel`
+2. Correr `vercel dev` para levantar frontend y funciones serverless.
+3. Abrir `http://localhost:3000`.
+*Nota: Para probar la integración con Jira, necesitas un archivo `.env` local con `JIRA_EMAIL` y `JIRA_API_TOKEN`.*
