@@ -2017,11 +2017,11 @@
                                                     const colonIndex = summaryUpper.indexOf(':');
                                                     const prefix = colonIndex > -1 ? summaryUpper.substring(0, colonIndex) : '';
 
-                                                    if (summaryUpper.includes('PGH')) detectedProduct = 'PGH';
+                                                    if (prefix && /\bPGH\b/.test(prefix)) detectedProduct = 'PGH';
                                                     else if (summaryUpper.includes('RECADIA')) detectedProduct = 'Recadia';
                                                     // "CS" must be a whole word in the prefix (e.g. "CS:", "PROYECTO CS:")
                                                     else if (summaryUpper.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) detectedProduct = 'Cambio Seguro';
-                                                    else if (summaryUpper.includes('FACTORING')) detectedProduct = 'Factoring';
+                                                    else if (prefix && /\bFACTORING\b/.test(prefix)) detectedProduct = 'Factoring';
                                                     else if (summaryUpper.includes('GESTORA')) detectedProduct = 'Gestora';
 
                                                     // Logic specific to Transversal (before colon)
@@ -3198,8 +3198,20 @@
                                 statusCategory: i.statusCategory || i.fields?.status?.statusCategory?.key,
                                 project: (() => {
                                     const summary = (i.summary || i.fields?.summary || '').toUpperCase();
-                                    if (/^TRANSVERSAL\s*:/.test(summary)) return 'TRANSVERSAL';
-                                    return (i.key.split('-')[0] === 'UX' ? 'Product' : i.key.split('-')[0]);
+
+                                    // Extract prefix (before first colon)
+                                    const colonIndex = summary.indexOf(':');
+                                    const prefix = colonIndex > -1 ? summary.substring(0, colonIndex) : '';
+
+                                    // Apply same detection logic as Modal
+                                    if (summary.includes('PGH') || (prefix && /\bPGH\b/.test(prefix))) return 'PGH';
+                                    if (summary.includes('RECADIA')) return 'RECADIA';
+                                    if (summary.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) return 'CD SEGURO'; // Display name
+                                    if (summary.includes('FACTORING') || (prefix && /\bFACTORING\b/.test(prefix))) return 'FACTORING';
+                                    if (summary.includes('GESTORA')) return 'GESTORA';
+                                    if (summary.startsWith('TRANSVERSAL')) return 'TRANSVERSAL';
+
+                                    return 'PRODUCT'; // Fallback badge label
                                 })()
                             }));
                             setActiveJiraTickets(active);
