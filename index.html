@@ -380,22 +380,55 @@
             opacity: 1;
         }
 
-        .dc-presenter {
+        .dc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .dc-flow {
+            font-size: 14px;
             font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 4px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .dc-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 8px;
+        }
+
+        .dc-presenter {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .dc-ticket {
             font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: var(--gray-600);
-            margin-bottom: 2px;
+            font-size: 11px;
+            color: var(--gray-500);
+            background: var(--bg-body);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .dc-product {
             font-size: 11px;
-            color: var(--gray-500);
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .dc-actions {
@@ -406,6 +439,10 @@
             gap: 4px;
             opacity: 0;
             transition: opacity 0.2s;
+            background: var(--bg-card);
+            padding: 2px;
+            border-radius: 6px;
+            box-shadow: var(--shadow-sm);
         }
 
         .icon-btn {
@@ -2772,19 +2809,27 @@
                                             ) : (
                                                 dayDCs.map(dc => (
                                                     <div key={dc.id} className="dc-card">
-                                                        <div className="dc-presenter">{dc.presenter}</div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                            <div>
-                                                                <div className="dc-ticket">{dc.ticket}</div>
-                                                                <div className="dc-product">📦 {dc.product}</div>
-                                                            </div>
+                                                        <div className="dc-header">
                                                             <span className={`table-badge ${dc.type === 'Critic' || dc.type === 'Normal' ? 'table-badge-blue' :
                                                                 dc.type === 'Iteración DS' ? 'table-badge-purple' :
                                                                     'table-badge-yellow'
                                                                 }`}>
                                                                 {dc.type}
                                                             </span>
+                                                            <div className="dc-ticket">{dc.ticket}</div>
                                                         </div>
+
+                                                        <div className="dc-flow" title={dc.flow}>
+                                                            {dc.flow}
+                                                        </div>
+
+                                                        <div className="dc-meta">
+                                                            <div className="dc-product">📦 {dc.product}</div>
+                                                            <div className="dc-presenter">
+                                                                👤 {dc.presenter.split(' ')[0]} {/* Show first name for space */}
+                                                            </div>
+                                                        </div>
+
                                                         {dc.createdBy === user.email && (
                                                             <div className="dc-actions">
                                                                 <button className="icon-btn" onClick={() => handleEditClick(dc)} title="Editar">✏️</button>
