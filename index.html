@@ -2687,23 +2687,7 @@
                                                 </div>
                                             </div>
                                             <div>
-                                                {item.active && (
-                                                    <div title="Sesión de Crítica Activa localmente" style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '6px',
-                                                        fontSize: '10px',
-                                                        fontWeight: 600,
-                                                        color: jiraInfo?.statusCategory === 'done' ? '#B45309' : 'var(--success)', // Yellow/Orange or Green
-                                                        background: jiraInfo?.statusCategory === 'done' ? '#FFFBEB' : '#ECFDF5',
-                                                        padding: '4px 8px',
-                                                        borderRadius: '20px',
-                                                        border: jiraInfo?.statusCategory === 'done' ? '1px solid #FEF3C7' : 'none'
-                                                    }}>
-                                                        <span style={{ fontSize: '8px' }}>{jiraInfo?.statusCategory === 'done' ? '⚠️' : '🟢'}</span>
-                                                        {jiraInfo?.statusCategory === 'done' ? 'SESIÓN ABIERTA' : 'EN CURSO'}
-                                                    </div>
-                                                )}
+                                                {/* Badge removed as requested */}
                                             </div>
                                         </div>
                                     </div>
