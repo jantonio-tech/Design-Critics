@@ -2558,7 +2558,7 @@
 
         // History Page
         function HistoryPage({ dcs, user, onEditDC, onDeleteDC, isLoading, dataService }) {
-            const [filter, setFilter] = useState('mine'); // Default to user's DCs
+            const [filter, setFilter] = useState('all'); // Default to user's DCs
             const [searchQuery, setSearchQuery] = useState('');
             const [editingDC, setEditingDC] = useState(null);
             const [modalOpen, setModalOpen] = useState(false);
