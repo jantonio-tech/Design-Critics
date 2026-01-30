@@ -2130,12 +2130,14 @@
             const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
             const getDCsForDate = (date) => {
-                const dateStr = date.toISOString().split('T')[0];
+                // Ensure local date string construction to avoid timezone shifts from toISOString()
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 return localDcs.filter(dc => dc.date === dateStr && dc.status === 'activo');
             };
 
             const handleAddClick = (date) => {
-                setSelectedDate(date.toISOString().split('T')[0]);
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                setSelectedDate(dateStr);
                 setEditingDC(null);
                 setModalOpen(true);
             };
@@ -2686,18 +2688,20 @@
                                             </div>
                                             <div>
                                                 {item.active && (
-                                                    <div title="Sesión de Crítica Activa" style={{
+                                                    <div title="Sesión de Crítica Activa localmente" style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         gap: '6px',
                                                         fontSize: '10px',
                                                         fontWeight: 600,
-                                                        color: 'var(--success)',
-                                                        background: '#ECFDF5',
+                                                        color: jiraInfo?.statusCategory === 'done' ? '#B45309' : 'var(--success)', // Yellow/Orange or Green
+                                                        background: jiraInfo?.statusCategory === 'done' ? '#FFFBEB' : '#ECFDF5',
                                                         padding: '4px 8px',
-                                                        borderRadius: '20px'
+                                                        borderRadius: '20px',
+                                                        border: jiraInfo?.statusCategory === 'done' ? '1px solid #FEF3C7' : 'none'
                                                     }}>
-                                                        <span style={{ fontSize: '8px' }}>🟢</span> EN CURSO
+                                                        <span style={{ fontSize: '8px' }}>{jiraInfo?.statusCategory === 'done' ? '⚠️' : '🟢'}</span>
+                                                        {jiraInfo?.statusCategory === 'done' ? 'SESIÓN ABIERTA' : 'EN CURSO'}
                                                     </div>
                                                 )}
                                             </div>
@@ -2865,8 +2869,8 @@
 
             const handleAddDC = async (dcData) => {
                 try {
-                    await dataService.create(dcData);
-                    setDcs(prev => [...prev, dcData]);
+                    const newDc = await dataService.create(dcData);
+                    setDcs(prev => [...prev, newDc]);
                 } catch (error) {
                     showToast(error.message);
                     throw error;
