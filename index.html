@@ -1503,20 +1503,23 @@
                 setIsAuthenticating(true);
 
                 try {
-                    // Firebase Auth - Google Sign-In with Popup
-                    const provider = new firebase.auth.GoogleAuthProvider();
-
-                    // Force account selection for better UX
-                    provider.setCustomParameters({
-                        prompt: 'select_account'
-                    });
-
-                    console.log('🔐 Starting Firebase Auth with Google...');
-
-                    // Detect device type
+                    // Detect device type first
                     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
                     const isAndroid = /Android/i.test(navigator.userAgent);
                     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                    const isMobile = isIOS || isAndroid;
+
+                    // Firebase Auth - Google Sign-In with Popup
+                    const provider = new firebase.auth.GoogleAuthProvider();
+
+                    // Force account selection ONLY for Desktop to avoid 400 errors on mobile
+                    if (!isMobile) {
+                        provider.setCustomParameters({
+                            prompt: 'select_account'
+                        });
+                    }
+
+                    console.log('🔐 Starting Firebase Auth with Google...');
 
                     let firebaseUser;
 
