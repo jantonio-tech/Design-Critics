@@ -430,7 +430,68 @@
             font-size: 13px;
         }
 
-        /* ... add btn ... */
+        .add-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+        }
+
+        .add-btn:active {
+            transform: scale(0.98);
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-secondary {
+            padding: 10px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-main);
+            border-color: var(--text-secondary);
+        }
 
         .modal-overlay {
             position: fixed;
@@ -542,6 +603,39 @@
 
         tbody tr:hover {
             background: var(--bg-hover);
+        }
+
+        /* Ensure transparent rows for dark mode */
+        tbody tr {
+            background: transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-glow);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .modal-body {
@@ -1944,30 +2038,9 @@
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFlow(index)}
-                                                    style={{
-                                                        width: '36px',
-                                                        height: '36px',
-                                                        border: '1px solid var(--gray-300)',
-                                                        borderRadius: '8px',
-                                                        background: 'white',
-                                                        color: 'var(--gray-500)',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: '16px',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.target.style.background = '#FEE2E2';
-                                                        e.target.style.borderColor = '#FCA5A5';
-                                                        e.target.style.color = '#DC2626';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.target.style.background = 'white';
-                                                        e.target.style.borderColor = 'var(--gray-300)';
-                                                        e.target.style.color = 'var(--gray-500)';
-                                                    }}
+                                                    className="icon-btn"
+                                                    style={{ width: '36px', height: '36px' }}
+                                                    title="Eliminar flujo"
                                                 >
                                                     ✕
                                                 </button>
@@ -2056,8 +2129,8 @@
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                    </div >
+                </div >
             );
         }
 
@@ -2549,21 +2622,7 @@
                         }}>
                             <button
                                 onClick={() => setWeekOffset(prev => prev - 1)}
-                                style={{
-                                    padding: '8px 16px',
-                                    border: '1px solid var(--gray-300)',
-                                    borderRadius: '8px',
-                                    background: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: 500,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.target.style.background = 'var(--gray-50)'}
-                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                                className="nav-btn"
                             >
                                 ← Anterior
                             </button>
@@ -2591,21 +2650,7 @@
 
                             <button
                                 onClick={() => setWeekOffset(prev => prev + 1)}
-                                style={{
-                                    padding: '8px 16px',
-                                    border: '1px solid var(--gray-300)',
-                                    borderRadius: '8px',
-                                    background: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: 500,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.target.style.background = 'var(--gray-50)'}
-                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                                className="nav-btn"
                             >
                                 Siguiente →
                             </button>
