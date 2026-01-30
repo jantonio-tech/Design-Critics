@@ -2705,7 +2705,7 @@
                         <div className="calendar-grid">
                             {weekDays.map((day, index) => {
                                 const dayDCs = getDCsForDate(day);
-                                const slotsUsed = dayDCs.filter(dc => dc.type !== 'Iteración DS').length;
+                                const slotsUsed = dayDCs.length;
                                 const slotsAvailable = 3 - slotsUsed;
                                 const canAdd = slotsAvailable > 0;
 
@@ -3114,6 +3114,9 @@
                     const lastReemplazo = ticket.lastReemplazoDate;
 
                     ticket.totalCritics = ticket.history.filter(dc => {
+                        // Only count "Normal" critics (Ignore "Iteración DS" and "Reemplazo" types themselves in the count)
+                        if (dc.type !== 'Normal') return false;
+
                         // Si hay un Reemplazo, solo contar DCs desde esa fecha en adelante
                         if (lastReemplazo) {
                             return new Date(dc.date) >= new Date(lastReemplazo);
