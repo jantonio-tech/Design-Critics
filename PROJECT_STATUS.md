@@ -3,37 +3,48 @@
 ## 🚀 Descripción del Proyecto
 Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño) en Prestamype. Permite ver un calendario semanal, reservar slots (máx 3 por día) y mantener un historial.
 
-## � Estado Actual (Enero 2026)
-**Versión Actual:** 2.0.1 (Jira Integration + Serviceless)
+## 📅 Estado Actual (Enero 2026)
+**Versión Actual:** 2.1.0 (Multi-Flow + UI Modernization)
 
-### ✅ Últimas Implementaciones (v2)
-1. **Integración con Jira Centralizada (Vercel Functions)**:
-   - **Backend Layer**: Se implementó una API Layer en `/api/search-jira.js` que actúa como proxy seguro.
-   - **Seguridad**: Las credenciales de Jira (`JIRA_EMAIL`, `JIRA_API_TOKEN`) ahora viven en las variables de entorno del servidor (Vercel), eliminando la necesidad de que cada usuario configure sus tokens localmente.
-   - **Filtrado Inteligente**: La API busca tickets asignados al usuario solicitante (`userEmail`) que estén en sprints activos y no estén cerrados/resueltos.
-   - **Performance**: Se implementó caché en `localStorage` (5 min) para evitar llamadas excesivas a la API de Jira.
+### ✅ Últimas Implementaciones (v2.1)
 
-2. **Mejoras en UX/Formularios**:
-   - **Autocompletado de Producto**: Al seleccionar un ticket de Jira, el sistema detecta automáticamente el producto (e.g. "Gestora", "Cambio Seguro") basándose en palabras clave del resumen del ticket.
-   - **Validación Backend**: Se centralizó la lógica de validación de conexión con Jira.
-   - **Hard Delete**: Se implementó un flujo de "Eliminar y Crear" para actualizaciones complejas, esquivando problemas de permisos de edición granular en Firestore.
+#### 🔄 Multi-Flow DC Registration (Nuevo)
+- **Registro múltiple**: Ahora puedes agregar varios flujos para un mismo ticket en una sola acción.
+- **UI dinámica**: Botón "+ Añadir flujo" para agregar inputs adicionales, botón ✕ para eliminar.
+- **Un DC por flujo**: Cada flujo crea un registro separado en el calendario.
+- **Contador inteligente**: El contador de critics refleja el total de flujos registrados.
 
-3. **Infraestructura**:
-   - **Vercel Functions**: Se añadieron `api/search-jira.js` y `api/test-jira.js` para manejar la lógica de negocio sensible.
-   - **Vercel Rewrites**: Configuración en `vercel.json` para enrutar `/api/*` correctamente.
+#### 🎯 Lógica de Reemplazo Corregida
+- **Reset de contador**: Los DCs de tipo "Reemplazo" ahora reinician el contador. Solo se cuentan DCs desde el último Reemplazo.
+- **Exclusión correcta**: Al crear un Reemplazo, los DCs anteriores se archivan pero el nuevo permanece activo.
 
-4. **Lógica de Reemplazo Inteligente**:
-   - **Auto-Archivado**: Al registrar un DC de tipo "Reemplazo", el sistema busca y archiva automáticamente *todos* los registros previos activos asociados al mismo ticket.
-   - **UX Mejorada**: Se eliminó la selección manual de fecha de descarte. En su lugar, el usuario recibe una alerta informativa sobre cuántas sesiones anteriores serán archivadas.
+#### 🎨 UI Modernization
+- **Gradientes y glassmorphism**: Navbar con efecto glass, cards con hover effects.
+- **Fondo animado**: Gradiente dinámico en el background.
+- **Cards mejoradas**: Sombras, acentos de color, micro-animaciones.
+- **Modales refinados**: Backdrop blur, animaciones de scale.
+- **Eliminado**: Componente "Producto Detectado" (producto se detecta internamente).
+- **Placeholder actualizado**: "Pega aquí el nombre de tu happy path".
+
+#### 🔗 Jira Integration Enhancements
+- **Dashboard en tiempo real**: Datos de Jira (status, título) mostrados en el Dashboard Personal.
+- **Status badge**: Categorías de estado (En Progreso, Finalizado, etc.) con colores.
+- **Response parsing**: Estructura de datos aplanada para mejor performance.
+
+### ✅ Implementaciones Previas (v2.0)
+1. **Integración con Jira Centralizada** via Vercel Functions (`/api/search-jira.js`).
+2. **Autocompletado de Producto** basado en palabras clave del ticket.
+3. **Hard Delete Workaround** para actualizaciones complejas.
+4. **Auto-Archivado** de DCs anteriores al registrar un Reemplazo.
 
 ## 🛠️ Stack Tecnológico
-- **Frontend**: Single Page Application (SPA) en `index.html` (2600+ líneas).
+- **Frontend**: Single Page Application (SPA) en `index.html` (~3100 líneas).
   - **Framework**: React 18 + ReactDOM + Babel Standalone.
-  - **Estilos**: CSS Vanilla incrustado.
+  - **Estilos**: CSS Vanilla con variables CSS modernas.
 - **Backend**:
   - **Auth**: Firebase Auth (Google Sign-In restringido a `@prestamype.com`).
   - **Database**: Firebase Firestore.
-  - **API**: Vercel Serverless Functions (`/api`, Node.js) para integraciones externas (Jira).
+  - **API**: Vercel Serverless Functions (`/api`, Node.js).
 - **Deploy**: Vercel (Frontend + Functions).
 
 ## 📂 Estructura de Datos (Firestore)
@@ -43,30 +54,31 @@ Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño
 |-------|------|-------------|
 | `id` | string | Auto-generado por Firestore |
 | `fecha_dc` | string (YYYY-MM-DD) | Fecha de la presentación |
-| `presentador` | string | Nombre del usuario (Google Display Name) |
+| `presentador` | string | Nombre del usuario |
 | `presentador_email`| string | Email del creador (para permisos) |
-| `producto` | string | Producto asociado (e.g. Gestora, Transversal) - **Auto-detectado** |
+| `producto` | string | Producto (Auto-detectado) |
 | `ticket` | string | ID del ticket (e.g. UX-1234) |
-| `flujo` | string | Descripción breve del flujo |
+| `flujo` | string | Nombre del happy path |
 | `tipo` | string | "Normal" o "Reemplazo" |
-| `estado` | string | "activo" |
+| `estado` | string | "activo" o "descartado" |
 | `created_at` | timestamp | Server timestamp |
 
 ## 🔑 Seguridad y Reglas
 1. **Autenticación**: Obligatoria con Google (@prestamype.com).
-2. **Jira**: El acceso a Jira está centralizado mediante Server-to-Server auth (API Token). El frontend solo envía el email del usuario para contexto de búsqueda.
+2. **Jira**: Server-to-Server auth via API Token en Vercel env vars.
 3. **Reglas Firestore**:
-   - Lectura: Todo usuario autenticado del dominio.
-   - Escritura (Create): Todo usuario autenticado del dominio.
-   - Edición/Eliminación: **Solo el creador del registro** (`resource.data.presentador_email == request.auth.token.email`).
+   - Lectura: Usuario autenticado (activos + propios históricos).
+   - Escritura: Usuario del dominio, solo sus propios registros.
 
 ## ⚠️ Observaciones y Deuda Técnica
-- **Single File Complexity**: `index.html` ha crecido excesivamente (~2650 líneas). Se recomienda urgentemente refactorizar a módulos separados (Vite App) en fases posteriores.
-- **Legacy Jira Config UI**: Existen componentes obsoletos en el frontend (`SettingsPage`, `JiraStatusBadge`) que referencian la antigua configuración manual de tokens de Jira. Estos deben ser limpiados ya que ahora la autenticación es centralizada.
-- **Hard Delete Workaround**: La lógica de actualización actual realiza un borrado y recreación del registro para evitar problemas de permisos granulares. Esto es funcional pero subóptimo para la integridad referencial.
+- **Single File Complexity**: `index.html` (~3100 líneas). Considerar refactorización a módulos.
+- **Legacy Jira Config UI**: Componentes `SettingsPage`, `JiraStatusBadge` pueden limpiarse.
+- **Hard Delete Workaround**: Update via delete+create por permisos de Firestore.
 
 ## 🧪 Cómo Correr Localmente
-1. Instalar `vercel cli`: `npm i -g vercel`
-2. Correr `vercel dev` para levantar frontend y funciones serverless.
-3. Abrir `http://localhost:3000`.
-*Nota: Para probar la integración con Jira, necesitas un archivo `.env` local con `JIRA_EMAIL` y `JIRA_API_TOKEN`.*
+```bash
+npm i -g vercel
+vercel dev
+```
+Abrir `http://localhost:3000`.
+*Nota: Requiere `.env` con `JIRA_EMAIL` y `JIRA_API_TOKEN`.*
