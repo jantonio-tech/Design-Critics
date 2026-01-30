@@ -613,12 +613,23 @@
             color: inherit;
         }
 
+        tbody tr:nth-child(n) {
+            background-color: transparent !important;
+        }
+
         tbody tr:hover {
             background-color: var(--bg-hover) !important;
         }
 
         tbody tr {
             background-color: transparent !important;
+        }
+
+        /* Generic Button Reset */
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         .btn-primary {
@@ -647,6 +658,27 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: transparent !important;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover) !important;
+            color: var(--text-main);
+            border-color: var(--text-secondary);
         }
 
         .modal-body {
@@ -2625,11 +2657,12 @@
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '16px',
-                            marginBottom: '20px',
-                            padding: '12px',
-                            background: 'white',
+                            marginBottom: '24px',
+                            background: 'var(--bg-card)',
+                            padding: '16px',
                             borderRadius: '12px',
-                            boxShadow: 'var(--shadow-sm)'
+                            boxShadow: 'var(--shadow-sm)',
+                            border: '1px solid var(--border-color)'
                         }}>
                             <button
                                 onClick={() => setWeekOffset(prev => prev - 1)}
