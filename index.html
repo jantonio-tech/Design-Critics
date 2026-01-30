@@ -1427,7 +1427,7 @@
                     setFormData({
                         product: editingDC.product,
                         ticket: editingDC.ticket,
-                        flow: editingDC.flow,
+                        flows: [editingDC.flow], // Convert single flow to array for edit mode
                         type: editingDC.type,
                         descartaDate: editingDC.descartaDate || '',
                         notes: editingDC.notes || ''
@@ -1436,7 +1436,7 @@
                     setFormData({
                         product: '',
                         ticket: '',
-                        flow: '',
+                        flows: [''], // Array of flows
                         type: 'Normal',
                         notes: ''
                     });
@@ -1555,6 +1555,32 @@
                 }
             };
 
+            // Flow array management functions
+            const updateFlow = (index, value) => {
+                setFormData(prev => {
+                    const newFlows = [...prev.flows];
+                    newFlows[index] = value;
+                    return { ...prev, flows: newFlows };
+                });
+                if (errors.flows) {
+                    setErrors(prev => ({ ...prev, flows: '' }));
+                }
+            };
+
+            const addFlow = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    flows: [...prev.flows, '']
+                }));
+            };
+
+            const removeFlow = (index) => {
+                setFormData(prev => ({
+                    ...prev,
+                    flows: prev.flows.filter((_, i) => i !== index)
+                }));
+            };
+
             const validate = () => {
                 const newErrors = {};
                 if (!formData.product) newErrors.product = 'El producto es obligatorio';
@@ -1562,27 +1588,50 @@
                 if (formData.ticket && !formData.ticket.startsWith('UX-')) {
                     newErrors.ticket = 'El ticket debe comenzar con UX-';
                 }
-                if (!formData.flow) newErrors.flow = 'El flujo es obligatorio';
+                // Validate at least one non-empty flow
+                const validFlows = formData.flows.filter(f => f.trim() !== '');
+                if (validFlows.length === 0) {
+                    newErrors.flows = 'Ingresa al menos un flujo';
+                }
                 setErrors(newErrors);
                 return Object.keys(newErrors).length === 0;
             };
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (validate()) {
+                if (!validate()) return;
+
+                // Filter out empty flows
+                const validFlows = formData.flows.filter(f => f.trim() !== '');
+
+                // If editing, just update with the first flow (preserve single-DC behavior)
+                if (editingDC) {
                     const dcData = {
                         ...formData,
+                        flow: validFlows[0], // Use first flow for edit
                         date: selectedDate,
                         presenter: user.name,
-                        createdBy: editingDC ? editingDC.createdBy : user.email
+                        createdBy: editingDC.createdBy,
+                        id: editingDC.id
                     };
-
-                    // Solo agregar ID si estamos editando un DC existente
-                    if (editingDC) {
-                        dcData.id = editingDC.id;
-                    }
-
+                    delete dcData.flows; // Remove flows array, use flow string
                     onSubmit(dcData);
+                    return;
+                }
+
+                // For new DCs, create one per flow
+                for (const flow of validFlows) {
+                    const dcData = {
+                        product: formData.product,
+                        ticket: formData.ticket,
+                        flow: flow,
+                        type: formData.type,
+                        notes: formData.notes,
+                        date: selectedDate,
+                        presenter: user.name,
+                        createdBy: user.email
+                    };
+                    await onSubmit(dcData);
                 }
             };
 
@@ -1733,42 +1782,84 @@
                                     )}
 
                                     {errors.ticket && <div className="form-error">{errors.ticket}</div>}
-
-                                    {formData.product && (
-                                        <div style={{
-                                            marginTop: '12px',
-                                            padding: '10px',
-                                            background: '#F0F9FF',
-                                            border: '1px solid #BAE6FD',
-                                            borderRadius: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '10px',
-                                            animation: 'slideUp 0.3s ease-out'
-                                        }}>
-                                            <div style={{
-                                                background: '#0EA5E9',
-                                                color: 'white',
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '12px'
-                                            }}>✓</div>
-                                            <div>
-                                                <div style={{ fontSize: '11px', color: '#0369A1', fontWeight: 600 }}>PRODUCTO DETECTADO</div>
-                                                <div style={{ fontSize: '13px', color: '#0C4A6E', fontWeight: 500 }}>{formData.product}</div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label required">🔀 Flujo</label>
-                                    <input type="text" className="form-input" placeholder="Ej: Flujo 1 - Onboarding inversiones" value={formData.flow} onChange={(e) => handleChange('flow', e.target.value)} />
-                                    {errors.flow && <div className="form-error">{errors.flow}</div>}
+                                    <label className="form-label required">🔀 Flujos</label>
+                                    {formData.flows && formData.flows.map((flow, index) => (
+                                        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Pega aquí el nombre de tu happy path"
+                                                value={flow}
+                                                onChange={(e) => updateFlow(index, e.target.value)}
+                                                style={{ flex: 1 }}
+                                            />
+                                            {index > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFlow(index)}
+                                                    style={{
+                                                        width: '36px',
+                                                        height: '36px',
+                                                        border: '1px solid var(--gray-300)',
+                                                        borderRadius: '8px',
+                                                        background: 'white',
+                                                        color: 'var(--gray-500)',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '16px',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.background = '#FEE2E2';
+                                                        e.target.style.borderColor = '#FCA5A5';
+                                                        e.target.style.color = '#DC2626';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.background = 'white';
+                                                        e.target.style.borderColor = 'var(--gray-300)';
+                                                        e.target.style.color = 'var(--gray-500)';
+                                                    }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {!editingDC && (
+                                        <button
+                                            type="button"
+                                            onClick={addFlow}
+                                            style={{
+                                                padding: '8px 16px',
+                                                border: '1px dashed var(--primary)',
+                                                borderRadius: '8px',
+                                                background: 'transparent',
+                                                color: 'var(--primary)',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                fontWeight: 500,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                transition: 'all 0.2s ease',
+                                                marginTop: '4px'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.target.style.background = 'rgba(16, 185, 129, 0.1)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.target.style.background = 'transparent';
+                                            }}
+                                        >
+                                            + Añadir flujo
+                                        </button>
+                                    )}
+                                    {errors.flows && <div className="form-error">{errors.flows}</div>}
                                 </div>
 
                                 <div className="form-group">
