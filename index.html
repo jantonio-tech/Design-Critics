@@ -1766,6 +1766,14 @@
                                     }
                                     return t;
                                 });
+
+                                // Apply Strict Filter: Only In Progress (indeterminate) AND NOT "En espera"
+                                tickets = tickets.filter(t => {
+                                    const cat = t.statusCategory || (t.status && t.status.statusCategory && t.status.statusCategory.key);
+                                    const statusName = (t.status && t.status.name ? t.status.name : (typeof t.status === 'string' ? t.status : '')).toUpperCase();
+
+                                    return cat === 'indeterminate' && !statusName.includes('ESPERA');
+                                });
                             }
                         } catch (e) {
                             console.warn('⚠️ Failed to enrich tickets details:', e);
