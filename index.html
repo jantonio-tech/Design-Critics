@@ -2143,7 +2143,7 @@
                                                 type="text"
                                                 className="form-input"
                                                 placeholder="UX-"
-                                                value={formData.ticket}
+                                                value={prefillData?.ticket ? `${prefillData.ticket}${prefillData.summary ? `: ${prefillData.summary}` : ''}` : formData.ticket}
                                                 onChange={(e) => handleChange('ticket', e.target.value)}
                                                 disabled={!!prefillData?.ticket}
                                             />
@@ -2169,7 +2169,7 @@
                                                 type="text"
                                                 className="form-input"
                                                 placeholder="UX-"
-                                                value={formData.ticket}
+                                                value={prefillData?.ticket ? `${prefillData.ticket}${prefillData.summary ? `: ${prefillData.summary}` : ''}` : formData.ticket}
                                                 onChange={(e) => handleChange('ticket', e.target.value)}
                                                 disabled={!!prefillData?.ticket}
                                             />
@@ -2177,7 +2177,7 @@
                                     ) : (
                                         <select
                                             className="form-select"
-                                            value={formData.ticket}
+                                            value={prefillData?.ticket || formData.ticket}
                                             disabled={!!prefillData?.ticket}
                                             onChange={(e) => {
                                                 const selectedKey = e.target.value;
@@ -3670,7 +3670,7 @@
                                                 <div>
                                                     {onQuickAdd && (
                                                         <button
-                                                            onClick={() => onQuickAdd({ ticket: item.ticket, product: item.product })}
+                                                            onClick={() => onQuickAdd({ ticket: item.ticket, product: item.product, summary: item.summary })}
                                                             style={{
                                                                 padding: '8px 14px',
                                                                 background: 'var(--primary-gradient)',
