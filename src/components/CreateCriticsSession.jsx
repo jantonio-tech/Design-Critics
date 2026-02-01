@@ -123,35 +123,27 @@ export function CreateCriticsSession({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Producto y Ticket */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="form-group">
-                    <label className="form-label">Producto</label>
-                    <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {formData.product}
-                    </div>
-                </div>
-
-                <div className="form-group">
-                    <label className="form-label required">Ticket Jira</label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            list="tickets-list"
-                            name="ticket"
-                            className="form-input"
-                            value={formData.ticket}
-                            onChange={handleTicketChange}
-                            placeholder="Buscar ticket (ej: UX-123)..."
-                            required
-                            autoComplete="off"
-                        />
-                        <datalist id="tickets-list">
-                            {filteredTickets.map(t => (
-                                <option key={t.key} value={t.key}>
-                                    {t.key} - {t.summary}
-                                </option>
-                            ))}
-                        </datalist>
-                    </div>
+            {/* Ticket Jira */}
+            <div className="form-group">
+                <label className="form-label required">Ticket Jira</label>
+                <div style={{ position: 'relative' }}>
+                    <input
+                        list="tickets-list"
+                        name="ticket"
+                        className="form-input"
+                        value={formData.ticket}
+                        onChange={handleTicketChange}
+                        placeholder="Buscar ticket (ej: UX-123)..."
+                        required
+                        autoComplete="off"
+                    />
+                    <datalist id="tickets-list">
+                        {filteredTickets.map(t => (
+                            <option key={t.key} value={t.key}>
+                                {t.key} - {t.summary}
+                            </option>
+                        ))}
+                    </datalist>
                 </div>
             </div>
 
