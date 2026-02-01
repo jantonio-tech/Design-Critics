@@ -202,7 +202,9 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                         console.log('   📝 Título detectado:', titleText);
 
                         // 4. Determinar ID y nombre
-                        const id = parentSection?.id || node.id;
+                        // IMPORTANT: Use node.id to allow multiple Happy Paths in the same section/frame.
+                        // Using parentSection.id caused duplicates to be filtered out (2 out of 8).
+                        const id = node.id;
                         let name = titleText || parentSection?.name || 'Happy Path Sin Nombre';
 
                         // Limpiar el nombre
@@ -311,7 +313,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v7';
+    const CACHE_SCHEMA_VERSION = 'v8';
 
     if (!forceRefresh) {
         try {
