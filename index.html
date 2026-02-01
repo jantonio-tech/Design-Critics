@@ -9,7 +9,50 @@
 </head>
 
 <body>
-    <div id="root"></div>
+    <style>
+        body {
+            background: #F3F4F6;
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        #initial-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 16px;
+            transition: opacity 0.3s;
+        }
+
+        .initial-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #E5E7EB;
+            border-top-color: #0EA5E9;
+            border-radius: 50%;
+            animation: initial-spin 1s linear infinite;
+        }
+
+        @keyframes initial-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <div id="root">
+        <div id="initial-loader">
+            <div class="initial-spinner"></div>
+            <div style="color: #6B7280; font-size: 14px; font-weight: 500;">Cargando Design Critics...</div>
+        </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
 </body>
 

@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función helper: usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función helper: es usuario de Prestamype
+    function isPrestamypeUser() {
+      return isAuthenticated() && 
+             request.auth.token.email != null &&
+             request.auth.token.email.matches('.*@prestamype.com$');
+    }
+    
+    // Función helper: es usuario anónimo (para demo/pruebas)
+    function isAnonymousUser() {
+      return isAuthenticated() && 
+             request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    
+    // Función helper: usuario autorizado (Prestamype O anónimo)
+    function isAuthorizedUser() {
+      return isPrestamypeUser() || isAnonymousUser();
+    }
+    
+    // Función helper: es el creador del documento
+    function isOwner(resource) {
+      return isPrestamypeUser() && 
+             resource.data.presentador_email == request.auth.token.email;
+    }
+    
+    // Reglas para critics_sessions (adaptado de dc_registrations)
+    match /critics_sessions/{docId} {
+      // Usuarios autorizados pueden leer:
+      // 1. DC activos (para todos)
+      // 2. Sus propios DC (para historial personal)
+      allow read: if isAuthorizedUser() && 
+                     (resource.data.estado == 'activo' || isOwner(resource));
+      
+      // Solo usuarios Prestamype pueden crear DC
+      allow create: if isPrestamypeUser() &&
+                       request.resource.data.presentador_email == request.auth.token.email;
+      
+      // Solo el creador puede actualizar su DC
+      allow update: if isOwner(resource);
+      
+      // Solo el creador puede eliminar (cambiar estado)
+      allow delete: if isOwner(resource);
+    }
+    
+    // Reglas para user_settings
+    match /user_settings/{email} {
+      // Usuarios Prestamype pueden leer/escribir su propia config
+      // Usuarios anónimos pueden leer cualquier config (para demo)
+      allow read: if isPrestamypeUser() && email == request.auth.token.email ||
+                     isAnonymousUser();
+      allow write: if isPrestamypeUser() && email == request.auth.token.email;
+    }
+  }
+}

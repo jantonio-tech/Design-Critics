@@ -1,0 +1,19 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "critics_sessions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "presentador_email",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "fecha_dc",
+                    "order": "DESCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}
