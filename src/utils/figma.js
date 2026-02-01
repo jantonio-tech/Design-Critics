@@ -237,7 +237,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v2';
+    const CACHE_SCHEMA_VERSION = 'v3';
 
     if (!forceRefresh) {
         try {
