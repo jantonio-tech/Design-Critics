@@ -213,8 +213,17 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                 }
             }
         }
-        // Intentar no lanzar error, sino retornar vacío para que la UI decida
-        console.warn('No se encontraron Happy Paths en el archivo.');
+
+        // 2. Recursividad para recorrer hijos
+        if (node.children && Array.isArray(node.children)) {
+            let nextParent = parentSection;
+            // Actualizar el contexto si estamos en un contenedor relevante
+            if (['SECTION', 'FRAME', 'CANVAS'].includes(node.type)) {
+                nextParent = node;
+            }
+
+            node.children.forEach(child => traverse(child, nextParent));
+        }
     }
 
     // Determine ROOT for traversal
