@@ -41,17 +41,8 @@ export function extractFileKey(figmaUrl) {
  * @throws {Error} Si la API de Figma falla
  */
 async function fetchFigmaMetadata(fileKey) {
-    const token = import.meta.env.VITE_FIGMA_TOKEN;
-    if (!token) throw new Error("Figma Token not found in env");
-
-    const response = await fetch(
-        `https://api.figma.com/v1/files/${fileKey}?depth=0`,
-        {
-            headers: {
-                'X-Figma-Token': token
-            }
-        }
-    );
+    // Usar el proxy local para evitar exponer el token y errores de env var en cliente
+    const response = await fetch(`/api/figma-proxy?endpoint=files/${fileKey}?depth=0`);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -76,17 +67,8 @@ async function fetchFigmaMetadata(fileKey) {
  * @throws {Error} Si no se encuentran Happy Paths o falla la API
  */
 async function fetchHappyPathsFromFigma(fileKey) {
-    const token = import.meta.env.VITE_FIGMA_TOKEN;
-    if (!token) throw new Error("Figma Token not found in env");
-
-    const response = await fetch(
-        `https://api.figma.com/v1/files/${fileKey}`,
-        {
-            headers: {
-                'X-Figma-Token': token
-            }
-        }
-    );
+    // Usar el proxy local
+    const response = await fetch(`/api/figma-proxy?endpoint=files/${fileKey}`);
 
     if (!response.ok) {
         const errorText = await response.text();

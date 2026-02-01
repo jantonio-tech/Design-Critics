@@ -403,7 +403,12 @@ export default function App() {
         setDcs(prev => prev.filter(d => d.id !== id));
     };
 
-    if (isLoading) return <div className="loading-overlay">Cargando...</div>;
+    if (isLoading) return (
+        <div id="initial-loader">
+            <div className="initial-spinner"></div>
+            <div style={{ color: '#6B7280', fontSize: '14px', fontWeight: 500 }}>Cargando Design Critics...</div>
+        </div>
+    );
     if (!user) return <LoginPage onLogin={() => { }} error={loginError} />;
 
     return (
