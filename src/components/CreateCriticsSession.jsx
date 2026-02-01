@@ -137,7 +137,7 @@ export function CreateCriticsSession({
                         <option value="">-- Seleccionar ticket --</option>
                         {filteredTickets.map(t => (
                             <option key={t.key} value={t.key}>
-                                {t.key} - {t.summary}
+                                {t.summary}
                             </option>
                         ))}
                     </select>
