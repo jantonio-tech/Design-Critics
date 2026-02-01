@@ -70,7 +70,9 @@ async function fetchFigmaMetadata(fileKey) {
  */
 async function fetchHappyPathsFromFigma(fileKey) {
     // Usar el proxy local
-    const endpoint = encodeURIComponent(`files/${fileKey}`);
+    // OPTIMIZATION: Use depth=3 to prevent timeout on large files. 
+    // This allows fetching Pages > Frames > Sections/Groups > Instances without getting the whole infinite tree.
+    const endpoint = encodeURIComponent(`files/${fileKey}?depth=3`);
     const response = await fetch(`/api/figma-proxy?endpoint=${endpoint}`);
 
     if (!response.ok) {
