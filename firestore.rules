@@ -58,5 +58,12 @@ service cloud.firestore {
                      isAnonymousUser();
       allow write: if isPrestamypeUser() && email == request.auth.token.email;
     }
+
+    // Reglas para figma_cache
+    // Cache de Happy Paths para evitar llamadas excesivas a Figma API
+    match /figma_cache/{fileKey} {
+      // Todos los usuarios autorizados pueden leer y crear/actualizar el caché
+      allow read, write: if isAuthorizedUser();
+    }
   }
 }
