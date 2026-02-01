@@ -159,18 +159,25 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                     console.log('   📋 Propiedades encontradas:', Object.keys(node.componentProperties));
 
                     // 2. Verificar si Tipo = "Happy Path" y buscar texto
-                    let isHappyPath = false;
+                    // ESTRATEGIA PERMISIVA: Si el nombre coincide, asumimos que es Happy Path.
+                    // Esto arregla casos donde la propiedad "Tipo" no está definida o tiene otro nombre.
+                    let isHappyPath = true;
                     let propertyText = null;
 
                     for (const [key, prop] of Object.entries(node.componentProperties)) {
                         const keyLower = key.toLowerCase();
-                        const valueLower = String(prop.value).toLowerCase();
+                        // const valueLower = String(prop.value).toLowerCase();
 
-                        // Buscar la propiedad que contiene "tipo" en su nombre
-                        // Check fuzzy match on value too
-                        if (keyLower.includes('tipo') && valueLower.includes('happy path')) {
-                            isHappyPath = true;
-                        }
+                        // Debug detailed properties
+                        console.log(`      🔹 [${prop.type}] ${key} = ${prop.value}`);
+
+                        /* 
+                           Si quisiéramos filtrar estricto:
+                           if (keyLower.includes('tipo') && !valueLower.includes('happy path')) {
+                               isHappyPath = false;
+                           }
+                           Pero por ahora, confiamos en el nombre del componente.
+                        */
 
                         // Buscar propiedades de TEXTO para usar como título
                         if (prop.type === 'TEXT') {
@@ -304,7 +311,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v6';
+    const CACHE_SCHEMA_VERSION = 'v7';
 
     if (!forceRefresh) {
         try {
