@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useHappyPaths } from '../hooks/useHappyPaths';
 
 const PRODUCTS = ['PGH', 'Recadia', 'Cambio Seguro', 'Factoring', 'Gestora', 'Transversal', 'Web Pública'];
-const TYPES = ['Critic', 'Iteración DS', 'Nuevo scope'];
+const TYPES = ['Design Critic', 'Iteración DS', 'Nuevo scope'];
 
 export function CreateCriticsSession({
     onSubmit,
@@ -15,7 +15,7 @@ export function CreateCriticsSession({
         product: 'PGH',
         ticket: '',
         flow: '',
-        type: 'Critic',
+        type: 'Design Critic',
         notes: '',
         figmaLink: ''
     });
@@ -30,7 +30,7 @@ export function CreateCriticsSession({
                 product: initialData.product || 'PGH',
                 ticket: initialData.ticket || '',
                 flow: initialData.flow || '',
-                type: initialData.type || 'Critic',
+                type: initialData.type || 'Design Critic',
                 notes: initialData.notes || '',
                 figmaLink: initialData.figmaLink || ''
             });
@@ -162,16 +162,7 @@ export function CreateCriticsSession({
 
             {/* AUTOMATIC HAPPY PATHS SECTION */}
             <div className="form-group p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <label className="form-label text-primary mb-2">
-                    🎨 Happy Paths del Ticket
-                </label>
-
-                {/* Status: No ticket selected */}
-                {!formData.ticket && (
-                    <div className="text-sm text-gray-400 italic">
-                        Selecciona un ticket arriba para buscar automáticamente el link de Figma.
-                    </div>
-                )}
+                {/* Status: No ticket selected - Instructions removed as requested */}
 
                 {/* Status: Detecting Link */}
                 {detectingLink && (
