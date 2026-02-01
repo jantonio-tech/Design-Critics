@@ -118,25 +118,39 @@ async function fetchHappyPathsFromFigma(fileKey) {
                     node.name.includes('Encabezados casuistica'));
 
             if (isEncabezado && node.componentProperties) {
-                // 2. Verificar si Tipo = "Happy Path"
+                // 2. Verificar si Tipo = "Happy Path" y buscar texto
                 let isHappyPath = false;
+                let propertyText = null;
 
                 for (const [key, prop] of Object.entries(node.componentProperties)) {
+                    const keyLower = key.toLowerCase();
+
                     // Buscar la propiedad que contiene "tipo" en su nombre
-                    if (key.toLowerCase().includes('tipo') &&
-                        prop.value === 'Happy Path') {
+                    if (keyLower.includes('tipo') && prop.value === 'Happy Path') {
                         isHappyPath = true;
-                        break;
+                    }
+
+                    // Buscar propiedades de TEXTO para usar como título
+                    // Priorizar propiedades con nombres comunes de títulos
+                    if (prop.type === 'TEXT') {
+                        if (keyLower.includes('título') || keyLower.includes('titulo') ||
+                            keyLower.includes('title') || keyLower.includes('name') ||
+                            keyLower.includes('casuística') || keyLower.includes('nombre')) {
+                            propertyText = prop.value;
+                        } else if (!propertyText) {
+                            // Si no tenemos otro texto, usamos este por defecto
+                            propertyText = prop.value;
+                        }
                     }
                 }
 
                 if (isHappyPath) {
-                    // 3. Extraer el nombre del texto dentro del componente
-                    const titleText = extractTextFromNode(node);
+                    // 3. Extraer el nombre: Propiedad > Contenido > Padre
+                    const titleText = propertyText || extractTextFromNode(node);
 
                     // 4. Determinar ID y nombre
                     const id = parentSection?.id || node.id;
-                    let name = titleText || parentSection?.name || 'Sin nombre';
+                    let name = titleText || parentSection?.name || 'Happy Path Sin Nombre';
 
                     // Limpiar el nombre (remover "Encabezados casuística" si aparece)
                     name = name.replace(/Encabezados casuística/gi, '').trim();
@@ -148,29 +162,30 @@ async function fetchHappyPathsFromFigma(fileKey) {
                 }
             }
         }
-
-        // Actualizar contexto de section padre
-        let currentSection = parentSection;
-        if (node.type === 'SECTION') {
-            currentSection = node;
-        }
-
-        // Recorrer hijos recursivamente
-        if (node.children && Array.isArray(node.children)) {
-            node.children.forEach(child => traverse(child, currentSection));
-        }
     }
 
-    // Iniciar traversal desde el documento raíz
-    traverse(data.document);
-
-    // Validar que se encontraron happy paths
-    if (happyPaths.length === 0) {
-        // Intentar no lanzar error, sino retornar vacío para que la UI decida
-        console.warn('No se encontraron Happy Paths en el archivo.');
+    // Actualizar contexto de section padre
+    let currentSection = parentSection;
+    if (node.type === 'SECTION') {
+        currentSection = node;
     }
 
-    return happyPaths;
+    // Recorrer hijos recursivamente
+    if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(child => traverse(child, currentSection));
+    }
+}
+
+// Iniciar traversal desde el documento raíz
+traverse(data.document);
+
+// Validar que se encontraron happy paths
+if (happyPaths.length === 0) {
+    // Intentar no lanzar error, sino retornar vacío para que la UI decida
+    console.warn('No se encontraron Happy Paths en el archivo.');
+}
+
+return happyPaths;
 }
 
 /**
