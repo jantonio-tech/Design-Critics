@@ -125,25 +125,22 @@ export function CreateCriticsSession({
             {/* Producto y Ticket */}
             {/* Ticket Jira */}
             <div className="form-group">
-                <label className="form-label required">Ticket Jira</label>
+                <label className="form-label required">Ticket de Jira</label>
                 <div style={{ position: 'relative' }}>
-                    <input
-                        list="tickets-list"
+                    <select
                         name="ticket"
-                        className="form-input"
+                        className="form-select"
                         value={formData.ticket}
                         onChange={handleTicketChange}
-                        placeholder="Buscar ticket (ej: UX-123)..."
                         required
-                        autoComplete="off"
-                    />
-                    <datalist id="tickets-list">
+                    >
+                        <option value="">-- Seleccionar ticket --</option>
                         {filteredTickets.map(t => (
                             <option key={t.key} value={t.key}>
                                 {t.key} - {t.summary}
                             </option>
                         ))}
-                    </datalist>
+                    </select>
                 </div>
             </div>
 
