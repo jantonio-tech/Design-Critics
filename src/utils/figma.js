@@ -42,7 +42,9 @@ export function extractFileKey(figmaUrl) {
  */
 async function fetchFigmaMetadata(fileKey) {
     // Usar el proxy local para evitar exponer el token y errores de env var en cliente
-    const response = await fetch(`/api/figma-proxy?endpoint=files/${fileKey}?depth=0`);
+    // encodeURIComponent is crucial so the query params (like depth) are treated as part of the endpoint string
+    const endpoint = encodeURIComponent(`files/${fileKey}?depth=1`);
+    const response = await fetch(`/api/figma-proxy?endpoint=${endpoint}`);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -68,7 +70,8 @@ async function fetchFigmaMetadata(fileKey) {
  */
 async function fetchHappyPathsFromFigma(fileKey) {
     // Usar el proxy local
-    const response = await fetch(`/api/figma-proxy?endpoint=files/${fileKey}`);
+    const endpoint = encodeURIComponent(`files/${fileKey}`);
+    const response = await fetch(`/api/figma-proxy?endpoint=${endpoint}`);
 
     if (!response.ok) {
         const errorText = await response.text();
