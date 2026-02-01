@@ -211,35 +211,20 @@ export function CreateCriticsSession({
                 )}
             </div>
 
-            {/* Flujo y Tipo */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="form-group">
-                    <label className="form-label required">Flujo / Nombre</label>
-                    <input
-                        type="text"
-                        name="flow"
-                        className="form-input"
-                        value={formData.flow}
-                        onChange={handleChange}
-                        placeholder="Se autocompleta con el Happy Path"
-                        required
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label className="form-label required">Tipo</label>
-                    <select
-                        name="type"
-                        className="form-select"
-                        value={formData.type}
-                        onChange={handleChange}
-                        required
-                    >
-                        {TYPES.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
-                </div>
+            {/* Tipo */}
+            <div className="form-group">
+                <label className="form-label required">Tipo</label>
+                <select
+                    name="type"
+                    className="form-select"
+                    value={formData.type}
+                    onChange={handleChange}
+                    required
+                >
+                    {TYPES.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
             </div>
 
             <div className="form-group">
