@@ -217,6 +217,28 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
         console.warn('No se encontraron Happy Paths en el archivo.');
     }
 
+    // Determine ROOT for traversal
+    let rootNode;
+    if (nodeId && data.nodes) {
+        // Figma API might return keys with colons (123:456) even if we requested hyphens
+        // So we just take the first node returned.
+        const returnedIds = Object.keys(data.nodes);
+        if (returnedIds.length > 0) {
+            const firstId = returnedIds[0];
+            console.log(`🔗 ID Mapping: Requested ${nodeId} -> Received ${firstId}`);
+            rootNode = data.nodes[firstId].document;
+        }
+    } else {
+        rootNode = data.document;
+    }
+
+    if (rootNode) {
+        console.log('🏁 Starting Traversal on Root Node:', rootNode.name);
+        traverse(rootNode);
+    } else {
+        console.error('❌ Root Node not found in response data', data);
+    }
+
     return happyPaths;
 }
 
@@ -273,7 +295,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v5';
+    const CACHE_SCHEMA_VERSION = 'v6';
 
     if (!forceRefresh) {
         try {
