@@ -236,6 +236,9 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
     }
 
     // 2. Si no es refresh forzado, verificar caché
+    // Cache Version to force invalidation on logic changes
+    const CACHE_SCHEMA_VERSION = 'v2';
+
     if (!forceRefresh) {
         try {
             // Obtener metadata de Figma (rápido, ~200ms)
@@ -244,13 +247,15 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
             // Consultar caché en Firestore
             const cached = await getCachedData(fileKey);
 
-            // Si el caché existe y está actualizado según Figma
-            if (cached && cached.lastModified >= metadata.lastModified) {
+            // Si el caché existe, está actualizado según Figma, Y usa la versión de esquema correcta
+            if (cached &&
+                cached.lastModified >= metadata.lastModified &&
+                cached.schemaVersion === CACHE_SCHEMA_VERSION) {
                 console.log('✅ Usando caché (archivo sin cambios en Figma)');
                 return cached.happyPaths;
             }
 
-            console.log('🔄 Archivo modificado en Figma, actualizando caché...');
+            console.log('🔄 Archivo modificado o esquema antiguo, actualizando caché...');
 
         } catch (metadataError) {
             console.warn('Error al verificar metadata, consultando Figma directamente:', metadataError);
@@ -268,7 +273,8 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
         happyPaths,
         lastModified: metadata.lastModified,
         lastChecked: Date.now(),
-        version: metadata.version
+        version: metadata.version,
+        schemaVersion: CACHE_SCHEMA_VERSION
     });
 
     console.log(`✅ Detectados ${happyPaths.length} Happy Path(s), caché actualizado`);
