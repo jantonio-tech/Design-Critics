@@ -42,16 +42,9 @@ export function extractNodeId(figmaUrl) {
     return match ? decodeURIComponent(match[1]) : null;
 }
 
-/**
- * Extrae el node-id de un link de Figma
- * @param {string} figmaUrl
- * @returns {string|null}
- */
-export function extractNodeId(figmaUrl) {
-    if (!figmaUrl || typeof figmaUrl !== 'string') return null;
-    const match = figmaUrl.match(/node-id=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-}
+
+
+
 
 /**
  * Obtiene metadata básica del archivo de Figma
