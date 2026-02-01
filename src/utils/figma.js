@@ -70,9 +70,9 @@ async function fetchFigmaMetadata(fileKey) {
  */
 async function fetchHappyPathsFromFigma(fileKey) {
     // Usar el proxy local
-    // OPTIMIZATION: Use depth=3 to prevent timeout on large files. 
-    // This allows fetching Pages > Frames > Sections/Groups > Instances without getting the whole infinite tree.
-    const endpoint = encodeURIComponent(`files/${fileKey}?depth=3`);
+    // OPTIMIZATION: Use depth=4 to ensure we get children of Instances (Text nodes)
+    // Depth: Document(0?) > Page(1) > Section(2) > Instance(3) > Text(4)
+    const endpoint = encodeURIComponent(`files/${fileKey}?depth=4`);
     const response = await fetch(`/api/figma-proxy?endpoint=${endpoint}`);
 
     if (!response.ok) {
@@ -134,7 +134,10 @@ async function fetchHappyPathsFromFigma(fileKey) {
                     if (prop.type === 'TEXT') {
                         if (keyLower.includes('título') || keyLower.includes('titulo') ||
                             keyLower.includes('title') || keyLower.includes('name') ||
-                            keyLower.includes('casuística') || keyLower.includes('nombre')) {
+                            keyLower.includes('casuística') || keyLower.includes('nombre') ||
+                            keyLower.includes('text') || keyLower.includes('texto') ||
+                            keyLower.includes('label') || keyLower.includes('contenido') ||
+                            keyLower.includes('content')) {
                             propertyText = prop.value;
                         } else if (!propertyText) {
                             propertyText = prop.value;
