@@ -110,7 +110,18 @@ async function fetchHappyPathsFromFigma(fileKey) {
      * @param {Object} node - Nodo actual
      * @param {Object|null} parentSection - Section padre (contexto)
      */
+    let nodesVisited = 0;
+
     function traverse(node, parentSection = null) {
+        nodesVisited++;
+
+        // Log structure for the first 100 nodes of interest (Sections, Frames, Instances)
+        if (nodesVisited < 200) {
+            if (['SECTION', 'FRAME', 'INSTANCE', 'CANVAS'].includes(node.type)) {
+                console.log(`📂 [${node.type}] ${node.name} (ID: ${node.id})`);
+            }
+        }
+
         // 1. Detectar instancias del componente "Encabezados casuística"
         if (node.type === 'INSTANCE') {
             const isEncabezado = node.name &&
@@ -237,7 +248,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v3';
+    const CACHE_SCHEMA_VERSION = 'v4';
 
     if (!forceRefresh) {
         try {
