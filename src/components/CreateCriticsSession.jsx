@@ -167,10 +167,10 @@ export function CreateCriticsSession({
 
                 {/* Status: Error finding link */}
                 {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
-                    <div className="text-sm text-orange-600">
-                        ⚠️ {linkError}
-                        <div className="mt-1 text-xs text-gray-500">
-                            Asegúrate que el ticket tenga el link en el campo "Solución".
+                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
+                        ⚠️ <strong>No se detectó link de Figma.</strong>
+                        <div className="mt-1">
+                            Por favor, ingresa el link de Figma en el campo "Solución" o "Descripción" de tu ticket en Jira y vuelve a seleccionarlo.
                         </div>
                     </div>
                 )}
@@ -178,9 +178,7 @@ export function CreateCriticsSession({
                 {/* Status: Link Found & Loading Paths */}
                 {formData.figmaLink && (
                     <>
-                        <div className="text-xs text-gray-400 mb-2 truncate">
-                            🔗 Link detectado: {formData.figmaLink}
-                        </div>
+                        {/* Hidden URL display as requested */}
 
                         {loadingHappyPaths ? (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
