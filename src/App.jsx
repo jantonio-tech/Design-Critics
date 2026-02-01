@@ -1,0 +1,433 @@
+import React, { useState, useEffect } from 'react';
+import firebase from './utils/firebase';
+import { AuthStorage, FirestoreDataService } from './services/data';
+import CreateCriticsSession from './components/CreateCriticsSession';
+import './index.css';
+
+// --- Sub-components (Toast, Navbar, etc.) ---
+
+function Toast({ message, type = 'error', onClose }) {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 3000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className={`toast ${type === 'success' ? 'toast-success' : 'toast-error'}`}>
+            <span>{type === 'success' ? '✅' : '⚠️'}</span>
+            <p>{message}</p>
+        </div>
+    );
+}
+
+function ConfirmModal({ isOpen, onClose, onConfirm, title, description, isSubmitting }) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal" style={{ maxWidth: '400px' }}>
+                <div className="modal-body" style={{ textAlign: 'center', padding: '32px 24px' }}>
+                    <div className="confirm-modal-icon" style={{ margin: '0 auto 20px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 className="confirm-modal-title">{title}</h3>
+                    <p className="confirm-modal-desc">{description}</p>
+                    <div className="confirm-modal-actions">
+                        <button className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                        <button className="btn btn-danger" onClick={onConfirm} disabled={isSubmitting}>
+                            {isSubmitting ? 'Eliminando...' : 'Eliminar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function Navbar({ user, onLogout, darkMode, toggleDarkMode }) {
+    return (
+        <nav className="navbar">
+            <div className="navbar-content">
+                <div className="logo">
+                    <div className="logo-icon">✨</div>
+                    Design Critics
+                </div>
+                <div className="user-info">
+                    <button onClick={toggleDarkMode} className="btn btn-secondary" style={{ fontSize: '18px', padding: '6px 10px', marginRight: '12px' }}>
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
+                    {user.picture ? (
+                        <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
+                    ) : (
+                        <div className="avatar">{user.initials}</div>
+                    )}
+                    <div>
+                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</div>
+                        <button onClick={onLogout} style={{ fontSize: '11px', color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            Salir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+function LoginPage({ onLogin, error }) {
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+    const handleGoogleLogin = async () => {
+        setIsAuthenticating(true);
+        try {
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            const isMobile = isIOS || isAndroid;
+
+            const provider = new firebase.auth.GoogleAuthProvider();
+            if (!isMobile) provider.setCustomParameters({ prompt: 'select_account' });
+
+            let firebaseUser;
+            if (isAndroid && !isSafari) {
+                await firebase.auth().signInWithRedirect(provider);
+                return;
+            } else {
+                const result = await firebase.auth().signInWithPopup(provider);
+                firebaseUser = result.user;
+            }
+
+            if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                await firebase.auth().signOut();
+                onLogin(null, 'Debes usar un correo @prestamype.com');
+                setIsAuthenticating(false);
+                return;
+            }
+
+            const user = {
+                name: firebaseUser.displayName,
+                email: firebaseUser.email,
+                picture: firebaseUser.photoURL,
+                initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+                uid: firebaseUser.uid
+            };
+
+            AuthStorage.setUserConsent(firebaseUser.email);
+            AuthStorage.setLastUserEmail(firebaseUser.email);
+            AuthStorage.saveSession(user);
+            onLogin(user, null);
+        } catch (error) {
+            console.error('Auth error:', error);
+            setIsAuthenticating(false);
+            onLogin(null, 'Error de autenticación');
+        }
+    };
+
+    return (
+        <div className="login-container">
+            <div className="login-card">
+                <div className="login-icon">✨</div>
+                <h1 className="login-title">Design Critics</h1>
+                <p className="login-subtitle">Gestión de sesiones de crítica de diseño</p>
+                {error && <div className="login-error">{error}</div>}
+                <button
+                    className="btn btn-primary"
+                    style={{ width: '100%', fontSize: '16px', padding: '14px', borderRadius: '12px' }}
+                    onClick={handleGoogleLogin}
+                    disabled={isAuthenticating}
+                >
+                    {isAuthenticating ? 'Iniciando sesión...' : 'Continuar con Google'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// --- Page Components ---
+
+function DashboardPage({ dcs, user, onQuickAdd }) {
+    // Logic from index.html customized for React
+    const [myTickets, setMyTickets] = useState([]);
+
+    // Process DCs to show stats
+    useEffect(() => {
+        if (!user || !dcs) return;
+
+        // Simplified Logic for Dashboard Display
+        const myDcs = dcs.filter(dc => dc.createdBy === user.email);
+        const ticketsMap = {};
+
+        myDcs.forEach(dc => {
+            if (!ticketsMap[dc.ticket]) {
+                ticketsMap[dc.ticket] = {
+                    ticket: dc.ticket,
+                    product: dc.product,
+                    totalCritics: 0,
+                    lastDate: null
+                };
+            }
+            if (!ticketsMap[dc.ticket].lastDate || new Date(dc.date) > new Date(ticketsMap[dc.ticket].lastDate)) {
+                ticketsMap[dc.ticket].lastDate = dc.date;
+            }
+            ticketsMap[dc.ticket].totalCritics++;
+        });
+
+        setMyTickets(Object.values(ticketsMap).sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate)));
+    }, [dcs, user]);
+
+    return (
+        <div className="container">
+            <div className="page-header">
+                <h1>Dashboard Personal</h1>
+                <p>Resumen de tus tickets y sesiones</p>
+            </div>
+            {/* Simple Dashboard Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {myTickets.length === 0 ? <p>No hay actividad reciente.</p> : myTickets.map(t => (
+                    <div key={t.ticket} className="day-card" style={{ minHeight: 'auto' }}>
+                        <h3>{t.ticket}</h3>
+                        <p>{t.product}</p>
+                        <p>Critics: {t.totalCritics}</p>
+                        <button className="btn btn-primary" onClick={() => onQuickAdd(t)}>+ Registrar hoy</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, onClearPrefill, prefillData }) {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [weekOffset, setWeekOffset] = useState(0);
+    const [activeTickets, setActiveTickets] = useState([]); // Need to fetch these for dropdown
+    const [editingDC, setEditingDC] = useState(null);
+
+    // Fetch tickets for Modal
+    useEffect(() => {
+        if (modalOpen) {
+            // Fetch tickets using search-jira API
+            fetch('/api/search-jira', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userEmail: user.email })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setActiveTickets(data.tickets || data.issues || []);
+                    }
+                })
+                .catch(err => console.error("Error loading tickets", err));
+        }
+    }, [modalOpen, user.email]);
+
+    useEffect(() => {
+        if (prefillData) {
+            setEditingDC(prefillData); // Assuming prefill structure matches
+            setModalOpen(true);
+            onClearPrefill && onClearPrefill();
+        }
+    }, [prefillData, onClearPrefill]);
+
+    const getWeekDays = () => {
+        const days = [];
+        const today = new Date();
+        const currentDay = today.getDay();
+        const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7));
+            days.push(date);
+        }
+        return days;
+    };
+
+    const weekDays = getWeekDays();
+
+    const handleCellClick = (date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        setEditingDC({ date: dateStr }); // Set date
+        setSelectedDate(dateStr);
+        setModalOpen(true);
+    };
+
+    return (
+        <div className="container">
+            <div className="page-header">
+                <h1>Calendario Semanal</h1>
+                <div className="week-nav">
+                    <button onClick={() => setWeekOffset(w => w - 1)} className="week-nav-btn">←</button>
+                    <span className="week-nav-range">Semana {weekOffset === 0 ? 'Actual' : weekOffset}</span>
+                    <button onClick={() => setWeekOffset(w => w + 1)} className="week-nav-btn">→</button>
+                </div>
+            </div>
+
+            <div className="calendar-grid">
+                {weekDays.map((date, i) => {
+                    const dateStr = date.toISOString().split('T')[0];
+                    const dayDCs = dcs.filter(d => d.date === dateStr);
+                    return (
+                        <div key={i} className="day-card">
+                            <div className="day-header">
+                                <div>{date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}</div>
+                                <button className="add-btn" style={{ width: 'auto', padding: '4px 8px' }} onClick={() => handleCellClick(date)}>+</button>
+                            </div>
+                            <div className="dc-list">
+                                {dayDCs.map(dc => (
+                                    <div key={dc.id} className="dc-card">
+                                        <div className="dc-header">
+                                            <span className="table-badge table-badge-blue">{dc.type}</span>
+                                            <span className="dc-ticket">{dc.ticket}</span>
+                                        </div>
+                                        <div className="dc-flow">{dc.flow}</div>
+                                        {dc.createdBy === user.email && (
+                                            <div className="dc-actions" style={{ opacity: 1, position: 'relative', top: 0, right: 0, marginTop: '8px' }}>
+                                                <button className="icon-btn" onClick={() => { setEditingDC(dc); setModalOpen(true); }}>✏️</button>
+                                                <button className="icon-btn icon-btn-delete" onClick={() => onDeleteDC(dc.id)}>🗑️</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* INTEGRATED MODAL WITH CREATE CRITICS SESSION */}
+            {modalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h3 className="modal-title">{editingDC?.id ? 'Editar Sesión' : 'Nueva Sesión'}</h3>
+                            <button onClick={() => setModalOpen(false)} className="close-btn">×</button>
+                        </div>
+                        <div className="modal-body">
+                            <CreateCriticsSession
+                                user={user}
+                                initialData={editingDC}
+                                activeTickets={activeTickets}
+                                onClose={() => setModalOpen(false)}
+                                onSubmit={async (data) => {
+                                    // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
+                                    // Actually original Modal selects date separately or assumes today?
+                                    // The original Modal passed selectedDate to onSubmit logic.
+                                    // My CreateCriticsSession does NOT have a Date picker.
+                                    // I should inject the selectedDate into the data if missing.
+
+                                    const finalData = {
+                                        ...data,
+                                        date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
+                                        presenter: user.name, // Ensure presenter is set
+                                        createdBy: user.email
+                                    };
+
+                                    if (editingDC?.id) {
+                                        await onEditDC({ ...finalData, id: editingDC.id });
+                                    } else {
+                                        await onAddDC(finalData);
+                                    }
+                                    setModalOpen(false);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// --- Main App ---
+
+export default function App() {
+    const [user, setUser] = useState(null);
+    const [loginError, setLoginError] = useState(null);
+    const [dataService, setDataService] = useState(null);
+    const [dcs, setDcs] = useState([]);
+    const [currentTab, setCurrentTab] = useState('dashboard');
+    const [isLoading, setIsLoading] = useState(true);
+    const [prefillData, setPrefillData] = useState(null);
+
+    // Dark Mode
+    const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') !== 'false');
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+        localStorage.setItem('darkMode', darkMode);
+    }, [darkMode]);
+
+    // Auth & Data Load
+    useEffect(() => {
+        firebase.auth().onAuthStateChanged(async (u) => {
+            if (u && u.email?.endsWith('@prestamype.com')) {
+                const userData = {
+                    name: u.displayName,
+                    email: u.email,
+                    picture: u.photoURL,
+                    initials: (u.displayName || 'U').substring(0, 2),
+                    uid: u.uid
+                };
+                // Init Service
+                const service = new FirestoreDataService(u.email);
+                const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
+
+                // Merge Logic
+                const merged = [...all];
+                const allIds = new Set(all.map(d => d.id));
+                history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
+
+                setUser(userData);
+                setDataService(service);
+                setDcs(merged);
+            } else {
+                setUser(null);
+            }
+            setIsLoading(false);
+        });
+    }, []);
+
+    const handleAddDC = async (data) => {
+        const newDc = await dataService.create(data);
+        setDcs(prev => [...prev, newDc]);
+    };
+
+    const handleEditDC = async (data) => {
+        const updated = await dataService.update(data);
+        setDcs(prev => prev.map(d => d.id === data.id ? updated : d));
+    };
+
+    const handleDeleteDC = async (id) => {
+        await dataService.delete(id);
+        setDcs(prev => prev.filter(d => d.id !== id));
+    };
+
+    if (isLoading) return <div className="loading-overlay">Cargando...</div>;
+    if (!user) return <LoginPage onLogin={() => { }} error={loginError} />;
+
+    return (
+        <>
+            <Navbar user={user} onLogout={() => firebase.auth().signOut()} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} />
+
+            <div className="container tabs">
+                <button className={`tab ${currentTab === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentTab('dashboard')}>Dashboard</button>
+                <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>Calendario</button>
+            </div>
+
+            {currentTab === 'dashboard' && <DashboardPage dcs={dcs} user={user} onQuickAdd={(data) => { setPrefillData(data); setCurrentTab('calendar'); }} />}
+
+            {currentTab === 'calendar' && (
+                <CalendarPage
+                    dcs={dcs}
+                    user={user}
+                    onAddDC={handleAddDC}
+                    onEditDC={handleEditDC}
+                    onDeleteDC={handleDeleteDC}
+                    prefillData={prefillData}
+                    onClearPrefill={() => setPrefillData(null)}
+                />
+            )}
+        </>
+    );
+}
