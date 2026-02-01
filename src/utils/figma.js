@@ -32,6 +32,28 @@ export function extractFileKey(figmaUrl) {
 }
 
 /**
+ * Extrae el node-id de un link de Figma
+ * @param {string} figmaUrl
+ * @returns {string|null}
+ */
+export function extractNodeId(figmaUrl) {
+    if (!figmaUrl || typeof figmaUrl !== 'string') return null;
+    const match = figmaUrl.match(/node-id=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Extrae el node-id de un link de Figma
+ * @param {string} figmaUrl
+ * @returns {string|null}
+ */
+export function extractNodeId(figmaUrl) {
+    if (!figmaUrl || typeof figmaUrl !== 'string') return null;
+    const match = figmaUrl.match(/node-id=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
  * Obtiene metadata básica del archivo de Figma
  * Esta llamada es rápida porque no obtiene el contenido completo
  * Solo metadata: nombre, última modificación, versión
@@ -68,11 +90,20 @@ async function fetchFigmaMetadata(fileKey) {
  * @returns {Promise<Array>} - Array de Happy Paths [{id, name}]
  * @throws {Error} Si no se encuentran Happy Paths o falla la API
  */
-async function fetchHappyPathsFromFigma(fileKey) {
+async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
     // Usar el proxy local
-    // OPTIMIZATION: Use depth=4 to ensure we get children of Instances (Text nodes)
-    // Depth: Document(0?) > Page(1) > Section(2) > Instance(3) > Text(4)
-    const endpoint = encodeURIComponent(`files/${fileKey}?depth=4`);
+    let endpoint;
+
+    if (nodeId) {
+        // OPTIMIZATION: Fetch SPECIFIC NODE + depth
+        console.log(`🎯 Fetching specific Node ID: ${nodeId}`);
+        endpoint = encodeURIComponent(`files/${fileKey}/nodes?ids=${nodeId}&depth=4`);
+    } else {
+        // Fallback: Whole file
+        console.log(`📂 Fetching whole file (Depth 4)`);
+        endpoint = encodeURIComponent(`files/${fileKey}?depth=4`);
+    }
+
     const response = await fetch(`/api/figma-proxy?endpoint=${endpoint}`);
 
     if (!response.ok) {
@@ -238,6 +269,7 @@ async function saveCachedData(fileKey, data) {
  */
 export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
     const fileKey = extractFileKey(figmaLink);
+    const nodeId = extractNodeId(figmaLink);
 
     if (!fileKey) {
         throw new Error(
@@ -248,7 +280,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v4';
+    const CACHE_SCHEMA_VERSION = 'v5';
 
     if (!forceRefresh) {
         try {
@@ -275,7 +307,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 3. Archivo modificado o refresh forzado: obtener contenido completo
     const metadata = await fetchFigmaMetadata(fileKey);
-    const happyPaths = await fetchHappyPathsFromFigma(fileKey);
+    const happyPaths = await fetchHappyPathsFromFigma(fileKey, nodeId);
 
     // 4. Guardar en caché
     await saveCachedData(fileKey, {
