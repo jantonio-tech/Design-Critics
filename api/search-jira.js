@@ -1,7 +1,8 @@
 // Vercel Serverless Function - Jira Search v4
 // Updated to use new Jira API endpoint (CHANGE-2846)
 
-module.exports = async function handler(req, res) {
+// Updated to use ES Module syntax for "type": "module" comaptibility
+export default async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -21,10 +22,10 @@ module.exports = async function handler(req, res) {
 
         const { userEmail } = req.body; // Solo necesitamos saber QUIÉN pide los tickets para filtrar
 
-        // Use server-side environment variables
-        const email = process.env.JIRA_EMAIL;
-        const token = process.env.JIRA_API_TOKEN;
-        const domain = process.env.JIRA_DOMAIN || 'prestamype.atlassian.net';
+        // Use server-side environment variables (with VITE_ fallback)
+        const email = process.env.JIRA_EMAIL || process.env.VITE_JIRA_EMAIL;
+        const token = process.env.JIRA_API_TOKEN || process.env.VITE_JIRA_API_TOKEN;
+        const domain = process.env.JIRA_DOMAIN || process.env.VITE_JIRA_DOMAIN || 'prestamype.atlassian.net';
 
         // Validate server config
         if (!email || !token) {
