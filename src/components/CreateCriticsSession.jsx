@@ -220,16 +220,7 @@ export function CreateCriticsSession({
 
 
 
-            <div className="form-group">
-                <label className="form-label">Notas adicionales</label>
-                <textarea
-                    name="notes"
-                    className="form-textarea"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    placeholder="Observaciones..."
-                />
-            </div>
+
 
             <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={onClose}>
