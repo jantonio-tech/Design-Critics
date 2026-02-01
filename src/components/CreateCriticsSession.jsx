@@ -125,18 +125,10 @@ export function CreateCriticsSession({
             {/* Producto y Ticket */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="form-group">
-                    <label className="form-label required">Producto</label>
-                    <select
-                        name="product"
-                        className="form-select"
-                        value={formData.product}
-                        onChange={handleChange}
-                        required
-                    >
-                        {PRODUCTS.map(p => (
-                            <option key={p} value={p}>{p}</option>
-                        ))}
-                    </select>
+                    <label className="form-label">Producto</label>
+                    <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {formData.product}
+                    </div>
                 </div>
 
                 <div className="form-group">
