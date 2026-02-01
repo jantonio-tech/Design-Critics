@@ -123,6 +123,22 @@ export function CreateCriticsSession({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Producto y Ticket */}
+            {/* Tipo */}
+            <div className="form-group">
+                <label className="form-label required">Tipo</label>
+                <select
+                    name="type"
+                    className="form-select"
+                    value={formData.type}
+                    onChange={handleChange}
+                    required
+                >
+                    {TYPES.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
+            </div>
+
             {/* Ticket Jira */}
             <div className="form-group">
                 <label className="form-label required">Ticket de Jira</label>
@@ -211,21 +227,7 @@ export function CreateCriticsSession({
                 )}
             </div>
 
-            {/* Tipo */}
-            <div className="form-group">
-                <label className="form-label required">Tipo</label>
-                <select
-                    name="type"
-                    className="form-select"
-                    value={formData.type}
-                    onChange={handleChange}
-                    required
-                >
-                    {TYPES.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
-            </div>
+
 
             <div className="form-group">
                 <label className="form-label">Notas adicionales</label>
