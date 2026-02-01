@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useHappyPaths } from '../hooks/useHappyPaths';
 
 const PRODUCTS = ['PGH', 'Recadia', 'Cambio Seguro', 'Factoring', 'Gestora', 'Transversal', 'Web Pública'];
-const TYPES = ['Critic', 'Iteración DS', 'Normal', 'Nuevo scope', 'Cambio de alcance'];
+const TYPES = ['Critic', 'Iteración DS', 'Nuevo scope'];
 
 export function CreateCriticsSession({
     onSubmit,
