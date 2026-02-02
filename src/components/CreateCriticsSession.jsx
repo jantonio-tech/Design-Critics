@@ -314,6 +314,32 @@ function CreateCriticsSession({
                 .radio-card.disabled .radio-desc {
                      color: #9CA3AF;
                 }
+
+                /* Dark Mode Support */
+                html[data-theme="dark"] .radio-card {
+                    border-color: #374151;
+                    background: #1F2937;
+                }
+                html[data-theme="dark"] .radio-card:hover:not(.disabled) {
+                    background: #374151;
+                    border-color: #4B5563;
+                }
+                html[data-theme="dark"] .radio-card.selected {
+                    background: rgba(37, 99, 235, 0.2);
+                    border-color: #3B82F6;
+                }
+                html[data-theme="dark"] .radio-card.disabled {
+                    background: #0F172A; /* Darker than card */
+                    border-color: #1E293B;
+                    opacity: 0.6;
+                }
+                html[data-theme="dark"] .radio-title { color: #F3F4F6; }
+                html[data-theme="dark"] .radio-desc { color: #9CA3AF; }
+                
+                html[data-theme="dark"] .radio-card.disabled .radio-title,
+                html[data-theme="dark"] .radio-card.disabled .radio-desc {
+                    color: #4B5563;
+                }
             `}</style>
 
             {/* Product Label Removed as requested */}
