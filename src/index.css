@@ -1426,21 +1426,39 @@ tr:hover td {
 }
 
 /* Grid Layout */
+/* Grid Layout */
 .gcal-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    border-left: 1px solid var(--border-color);
-    border-top: 1px solid var(--border-color);
+    /* 5 Days Fixed */
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
     background: var(--bg-card);
     min-height: 600px;
+    width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .gcal-grid {
+        overflow-x: auto;
+        min-width: 800px;
+        /* Scroll on tablet if cramped */
+    }
 }
 
 @media (max-width: 768px) {
     .gcal-grid {
-        grid-template-columns: 1fr;
+        display: flex;
         /* Stack on mobile */
+        flex-direction: column;
+        border: none;
+        background: transparent;
+        min-width: auto;
+        gap: 16px;
     }
 }
+
+/* Stack on mobile */
 
 .day-column {
     border-right: 1px solid var(--border-color);
