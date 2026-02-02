@@ -26,8 +26,8 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, description, isSubmit
     return (
         <div className="modal-overlay">
             <div className="modal" style={{ maxWidth: '400px' }}>
-                <div className="modal-body" style={{ textAlign: 'center', padding: '32px 24px' }}>
-                    <div className="confirm-modal-icon" style={{ margin: '0 auto 20px' }}>
+                <div className="modal-body confirm-modal-body">
+                    <div className="confirm-modal-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                         </svg>
@@ -55,17 +55,17 @@ function Navbar({ user, onLogout, darkMode, toggleDarkMode }) {
                     Design Critics
                 </div>
                 <div className="user-info">
-                    <button onClick={toggleDarkMode} className="btn btn-secondary" style={{ fontSize: '18px', padding: '6px 10px', marginRight: '12px' }}>
+                    <button onClick={toggleDarkMode} className="btn btn-secondary theme-toggle-btn">
                         {darkMode ? '☀️' : '🌙'}
                     </button>
                     {user.picture ? (
-                        <img src={user.picture} alt={user.name} className="avatar" style={{ backgroundImage: `url(${user.picture})`, backgroundSize: 'cover' }} />
+                        <img src={user.picture} alt={user.name} className="avatar" />
                     ) : (
                         <div className="avatar">{user.initials}</div>
                     )}
-                    <div>
-                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{user.name}</div>
-                        <button onClick={onLogout} style={{ fontSize: '11px', color: 'var(--gray-500)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <div className="user-text">
+                        <div className="user-name">{user.name}</div>
+                        <button onClick={onLogout} className="logout-btn">
                             Salir
                         </button>
                     </div>
