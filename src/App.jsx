@@ -470,7 +470,7 @@ export default function App() {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>{editingDC ? 'Editar Sesión' : 'Nueva Sesión'}</h2>
+                            <h2>{editingDC ? 'Editar Sesión' : 'Agendar nueva sesión'}</h2>
                             <button className="close-btn" onClick={() => setModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
