@@ -4,7 +4,8 @@ import { useHappyPaths } from '../hooks/useHappyPaths';
 const PRODUCTS = ['PGH', 'Recadia', 'Cambio Seguro', 'Factoring', 'Gestora', 'Transversal', 'Web Pública'];
 const TYPES = ['Design Critic', 'Iteración DS', 'Nuevo scope'];
 
-onSubmit,
+function CreateCriticsSession({
+    onSubmit,
     onClose,
     initialData,
     user,
