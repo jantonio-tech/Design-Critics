@@ -159,7 +159,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd }) => {
                     <div key={ticket.key} className="day-card" style={{ minHeight: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{ticket.key}</span>
-                            <span className="table-badge table-badge-blue">{ticket.fields?.status?.name || ticket.status?.name || 'Active'}</span>
+                            <span className="table-badge table-badge-blue">{ticket.fields?.status?.name || ticket.status || 'Active'}</span>
                         </div>
                         <h3 style={{ fontSize: '16px', margin: 0 }}>{ticket.fields?.summary || ticket.summary}</h3>
 
