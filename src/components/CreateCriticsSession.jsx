@@ -215,16 +215,7 @@ function CreateCriticsSession({
                 </select>
             </div>
 
-            {/* Product Label (Simplified Mode) */}
-            {isReadOnly('product') && formData.product && (
-                <div className="form-group">
-                    <label className="form-label text-xs uppercase text-gray-500 font-bold tracking-wider">Producto</label>
-                    <div className="text-gray-900 font-medium bg-gray-100 px-3 py-2 rounded-md border border-gray-200">
-                        {formData.product}
-                    </div>
-                </div>
-            )}
-
+            {/* Product Label Removed as requested */}
 
             {/* Ticket Jira */}
             <div className="form-group">
@@ -275,9 +266,9 @@ function CreateCriticsSession({
                 {/* Status: Error finding link */}
                 {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
                     <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
-                        ⚠️ <strong>No se detectó link de Figma.</strong>
+                        ⚠️ <strong>Falta el link de Figma.</strong>
                         <div className="mt-1">
-                            Por favor, ingresa el link de Figma en el campo "Solución" o "Descripción" de tu ticket en Jira y vuelve a seleccionarlo.
+                            Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
                         </div>
                     </div>
                 )}
