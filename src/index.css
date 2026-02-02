@@ -807,6 +807,7 @@ tbody tr {
 .form-select,
 .form-textarea {
     width: 100%;
+    max-width: 100%; /* Ensure it doesn't overflow parent */
     padding: 10px 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -815,6 +816,13 @@ tbody tr {
     background: var(--input-bg);
     transition: all 0.2s ease;
     box-shadow: var(--shadow-xs);
+}
+
+/* Try to constrain native options (browser support varies) */
+.form-select option {
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .form-input::placeholder,
