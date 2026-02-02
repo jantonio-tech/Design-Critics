@@ -286,8 +286,8 @@ export function CreateCriticsSession({
                 <button type="button" className="btn btn-secondary" onClick={onClose}>
                     Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'Guardando...' : (initialData?.id ? 'Guardar Cambios' : 'Agendar')}
+                <button type="submit" className="btn btn-primary" disabled={detectingLink || !formData.ticket || !formData.flow || !formData.type}>
+                    {initialData?.id ? 'Guardar Cambios' : 'Agendar'}
                 </button>
             </div>
         </form>
