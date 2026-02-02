@@ -23,19 +23,79 @@ export function CreateCriticsSession({
     const [detectingLink, setDetectingLink] = useState(false);
     const [linkError, setLinkError] = useState(null);
 
-    // Initial Data Load
+    // Initial Data Load & Auto-Detect Logic
     useEffect(() => {
         if (initialData) {
+            const ticketKey = initialData.ticket || '';
+            let product = initialData.product || 'PGH';
+
+            // Auto-detect product if ticket is provided but product is default/empty
+            // Re-using logic from handleTicketChange for consistency
+            if (ticketKey && activeTickets.length > 0) {
+                const selectedTicket = activeTickets.find(t => t.key === ticketKey);
+                if (selectedTicket) {
+                    const summaryUpper = (selectedTicket.summary || '').toUpperCase();
+                    const colonIndex = summaryUpper.indexOf(':');
+                    const prefix = colonIndex > -1 ? summaryUpper.substring(0, colonIndex) : '';
+
+                    if (prefix && /\bPGH\b/.test(prefix)) product = 'PGH';
+                    else if (summaryUpper.includes('RECADIA')) product = 'Recadia';
+                    else if (summaryUpper.includes('CAMBIO SEGURO') || (prefix && /\bCS\b/.test(prefix))) product = 'Cambio Seguro';
+                    else if (prefix && /\bFACTORING\b/.test(prefix)) product = 'Factoring';
+                    else if (summaryUpper.includes('GESTORA')) product = 'Gestora';
+                    if (/^TRANSVERSAL\s*:/i.test(selectedTicket.summary || '') || summaryUpper.includes('TRANSVERSAL')) {
+                        product = 'Transversal';
+                    }
+                }
+            }
+
             setFormData({
-                product: initialData.product || 'PGH',
-                ticket: initialData.ticket || '',
+                product: product,
+                ticket: ticketKey,
                 flow: initialData.flow || '',
                 type: initialData.type || 'Design Critic',
                 notes: initialData.notes || '',
                 figmaLink: initialData.figmaLink || ''
             });
+
+            // Trigger link fetch if needed (simulating selection)
+            if (ticketKey && ticketKey.includes('-') && !initialData.figmaLink) {
+                // We need to fetch the link. 
+                // Since this runs on mount/change, we can trigger the async fetch here.
+                fetchFigmaLink(ticketKey);
+            }
         }
-    }, [initialData]);
+    }, [initialData, activeTickets]);
+
+    // Helper to fetch link (extracted from handleTicketChange)
+    const fetchFigmaLink = async (key) => {
+        setDetectingLink(true);
+        setLinkError(null);
+        try {
+            const res = await fetch('/api/get-jira-field', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticketKey: key })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.figmaLink) {
+                    setFormData(prev => ({ ...prev, figmaLink: data.figmaLink }));
+                } else {
+                    setLinkError('No se encontró link de Figma en el ticket (campo Solución o Descripción).');
+                }
+            } else {
+                setLinkError('Error consultando Jira.');
+            }
+        } catch (err) {
+            console.error(err);
+            setLinkError('Error de conexión.');
+        } finally {
+            setDetectingLink(false);
+        }
+    };
+
 
     // Happy Paths Hook
     const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths } = useHappyPaths(formData.figmaLink);

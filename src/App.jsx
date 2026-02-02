@@ -310,7 +310,33 @@ export default function App() {
     const [activeTickets, setActiveTickets] = useState([]);
     const [currentTab, setCurrentTab] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(true);
-    const [prefillData, setPrefillData] = useState(null);
+
+    // Modal State lifted from Calendar
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingDC, setEditingDC] = useState(null);
+
+    const handleOpenModal = (data) => {
+        setEditingDC(data);
+        setModalOpen(true);
+    };
+
+    // Generic Save Handler for Global Modal
+    const handleSaveDC = (formData) => {
+        const newDC = {
+            ...formData,
+            createdBy: user.email,
+            id: editingDC?.id || Date.now().toString(),
+            date: formData.date || editingDC?.date || new Date().toISOString().split('T')[0]
+        };
+
+        if (editingDC && editingDC.id) {
+            handleEditDC(newDC);
+        } else {
+            handleAddDC(newDC);
+        }
+        setModalOpen(false);
+        setEditingDC(null);
+    };
 
     // Dark Mode
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') !== 'false');
@@ -392,19 +418,35 @@ export default function App() {
                 <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>Calendario</button>
             </div>
 
-            {currentTab === 'dashboard' && <DashboardPage activeTickets={activeTickets} onQuickAdd={(data) => { setPrefillData(data); setCurrentTab('calendar'); }} />}
+            {currentTab === 'dashboard' && <DashboardPage activeTickets={activeTickets} onQuickAdd={(data) => handleOpenModal(data)} />}
 
             {currentTab === 'calendar' && (
                 <CalendarPage
                     dcs={dcs}
                     user={user}
                     activeTickets={activeTickets}
-                    onAddDC={handleAddDC}
-                    onEditDC={handleEditDC}
-                    onDeleteDC={handleDeleteDC}
-                    prefillData={prefillData}
-                    onClearPrefill={() => setPrefillData(null)}
+                    onOpenModal={handleOpenModal}
                 />
+            )}
+
+            {modalOpen && (
+                <div className="modal-backdrop">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h2>{editingDC ? 'Editar Sesión' : 'Nueva Sesión'}</h2>
+                            <button className="close-btn" onClick={() => setModalOpen(false)}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <CreateCriticsSession
+                                onSubmit={handleSaveDC}
+                                onClose={() => setModalOpen(false)}
+                                initialData={editingDC}
+                                user={user}
+                                activeTickets={activeTickets}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
