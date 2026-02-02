@@ -41,11 +41,8 @@ export default async function handler(req, res) {
             // Batch fetch specific tickets
             const keys = req.body.ticketKeys.map(k => `"${k}"`).join(',');
             searchJql = `key in (${keys}) ORDER BY updated DESC`;
-        } else if (userEmail) {
-            searchJql = `assignee = "${userEmail}" AND Sprint in openSprints() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
-        } else {
-            // Fallback or generic search (e.g. project UX)
-            searchJql = `project = UX AND Sprint in openSprints() AND status NOT IN (Done, Closed, Resolved) AND issuetype in standardIssueTypes() ORDER BY updated DESC`;
+            // User custom JQL
+            searchJql = `project = UX AND status = "EN CURSO" AND type IN (Requerimiento, Task) ORDER BY status ASC, created DESC`;
         }
 
         // Create Basic Auth header
