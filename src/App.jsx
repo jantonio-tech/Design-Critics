@@ -82,22 +82,16 @@ function LoginPage({ onLogin, error }) {
     const handleGoogleLogin = async () => {
         setIsAuthenticating(true);
         try {
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            const isAndroid = /Android/i.test(navigator.userAgent);
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-            const isMobile = isIOS || isAndroid;
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
             const provider = new firebase.auth.GoogleAuthProvider();
+            // On desktop, force account selection. On mobile, let Google handle it to avoid UX friction.
             if (!isMobile) provider.setCustomParameters({ prompt: 'select_account' });
 
             let firebaseUser;
-            if (isAndroid && !isSafari) {
-                await firebase.auth().signInWithRedirect(provider);
-                return;
-            } else {
-                const result = await firebase.auth().signInWithPopup(provider);
-                firebaseUser = result.user;
-            }
+            // Unify to Popup for all devices to avoid 404 Redirect errors
+            const result = await firebase.auth().signInWithPopup(provider);
+            firebaseUser = result.user;
 
             if (!firebaseUser.email.endsWith('@prestamype.com')) {
                 await firebase.auth().signOut();
