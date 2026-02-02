@@ -110,33 +110,8 @@ export function TicketAccordion({
         const count = validFlowCounts[hpName] || 0;
 
         if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: 'Agendar Hoy' };
-        if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics`, action: null }; // Limit reached, maybe no action? User said "2 es lo máximo". Usually implies stop? But usually you can still schedule. Let's keep action null if "Completo" was null before?
-        // Actually user said "2 es lo máximo", potentially meaning "don't add more".
-        // But if I want to allow "Nuevo alcance", I should probably allow action?
-        // Wait, "Nuevo alcance" resets the count.
-        // So if I have 2, and I want to do "Nuevo alcance", I need the button.
-        // But the previous code had `action: null` for >=2 ("Completo").
-        // If I hide the button, they can't do "Nuevo alcance".
-        // BUT "Agendar Hoy" (Quick Add) opens the modal.
-        // If I hide "Agendar Hoy" inside the HP row, they can't schedule for that specific HP easily?
-        // Actually, the previous code hid the button for "Completo".
-        // But "Nuevo alcance" is a valid next step.
-        // So I should probably ALWAYS allow "Agendar Hoy" or similar?
-        // Let's stick to the color request first.
-
-        // Revised Logic:
-        // >= 3: Danger
-        // 2: Warning
-        // 0-1: Good
-
-        // Action availability:
-        // Before: >=2 was "Completo", action=null.
-        // Now: If 2 is limit, maybe allow creating "Nuevo alcance"?
-        // Let's enable action for all for now, to enable "Nuevo alcance".
-
-        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (⚠️)`, action: 'Agendar' };
-        if (count === 2) return { status: 'warning', count, label: '2/2 Critics', action: 'Agendar' };
-        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar' };
+        if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics (Límite)`, action: 'Agendar Hoy' };
+        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
     };
 
     return (
