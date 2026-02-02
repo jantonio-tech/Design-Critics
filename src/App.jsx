@@ -173,7 +173,9 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                                 ...data,
                                 date: dateStr,
                                 // Trigger Simplified Mode in Modal
-                                simplifiedMode: true
+                                simplifiedMode: true,
+                                // Exclude 'Iteración DS' when adding from Dashboard (requested)
+                                excludeTypes: ['Iteración DS']
                             });
                         }}
                     />
@@ -547,6 +549,8 @@ export default function App() {
                                 activeTickets={activeTickets}
                                 // If editingDC has simplifiedMode flag (passed from onQuickAdd), lock fields
                                 readOnlyFields={editingDC?.simplifiedMode ? ['ticket', 'product'] : []}
+                                // Pass down excludeTypes (e.g., from Dashboard)
+                                excludeTypes={editingDC?.excludeTypes || []}
                             />
                         </div>
                     </div>

@@ -10,7 +10,8 @@ function CreateCriticsSession({
     initialData,
     user,
     activeTickets = [],
-    readOnlyFields = [] // Prop for Simplified Mode
+    readOnlyFields = [], // Prop for Simplified Mode
+    excludeTypes = []    // Prop to filter specific types
 }) {
     const props = { readOnlyFields }; // Access wrapper for helper function
     const [formData, setFormData] = useState({
@@ -206,8 +207,9 @@ function CreateCriticsSession({
                     value={formData.type}
                     onChange={handleChange}
                     required
+                    style={{ width: '100%', maxWidth: '100%' }} // Ensure select stays within container
                 >
-                    {TYPES.map(t => (
+                    {TYPES.filter(t => !excludeTypes.includes(t)).map(t => (
                         <option key={t} value={t}>{t}</option>
                     ))}
                 </select>
