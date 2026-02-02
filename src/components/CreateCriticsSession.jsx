@@ -276,6 +276,22 @@ function CreateCriticsSession({
                         </div>
                     </label>
 
+                    {!excludeTypes.includes('Iteración DS') && (
+                        <label className={`radio-card ${formData.type === 'Iteración DS' ? 'selected' : ''}`}>
+                            <input
+                                type="radio"
+                                name="type"
+                                value="Iteración DS"
+                                checked={formData.type === 'Iteración DS'}
+                                onChange={handleChange}
+                            />
+                            <div className="radio-content">
+                                <span className="radio-title">Iteración DS</span>
+                                <span className="radio-desc">Revisión de cambios</span>
+                            </div>
+                        </label>
+                    )}
+
                     <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''} ${!canDoNewScope ? 'disabled' : ''}`}>
                         <input
                             type="radio"
