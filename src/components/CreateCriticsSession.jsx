@@ -10,6 +10,7 @@ function CreateCriticsSession({
     initialData,
     user,
     activeTickets = [],
+    sessions = [],       // New prop for history check
     readOnlyFields = [], // Prop for Simplified Mode
     excludeTypes = []    // Prop to filter specific types
 }) {
@@ -116,6 +117,25 @@ function CreateCriticsSession({
     const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths } = useHappyPaths(formData.figmaLink);
 
     // Filter tickets logic
+    // Logic to Enable "Nuevo alcance"
+    const canDoNewScope = React.useMemo(() => {
+        if (!formData.ticket || !formData.flow) return false;
+        // Check if there is at least one 'Design Critic' session for this ticket + flow
+        // Note: sessions prop must be passed from parent
+        return sessions.some(s =>
+            s.ticket === formData.ticket &&
+            s.flow === formData.flow &&
+            s.type === 'Design Critic'
+        );
+    }, [sessions, formData.ticket, formData.flow]);
+
+    // Effect to reset type if "Nuevo alcance" becomes invalid
+    useEffect(() => {
+        if (formData.type === 'Nuevo alcance' && !canDoNewScope) {
+            setFormData(prev => ({ ...prev, type: 'Design Critic' }));
+        }
+    }, [canDoNewScope, formData.type]);
+
     const filteredTickets = activeTickets.filter(ticket => {
         if (ticket.key === formData.ticket) return true;
         const statusCat = ticket.statusCategory?.key || ticket.status?.statusCategory?.key;
@@ -198,22 +218,103 @@ function CreateCriticsSession({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Producto y Ticket */}
-            {/* Tipo */}
+            {/* Tipo - Replaced with Radio Buttons */}
             <div className="form-group">
-                <label className="form-label required">Tipo</label>
-                <select
-                    name="type"
-                    className="form-select"
-                    value={formData.type}
-                    onChange={handleChange}
-                    required
-                    style={{ width: '100%', maxWidth: '100%' }} // Ensure select stays within container
-                >
-                    {TYPES.filter(t => !excludeTypes.includes(t)).map(t => (
-                        <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
+                <label className="form-label required">Tipo de sesión</label>
+                <div className="radio-group-container">
+                    <label className={`radio-card ${formData.type === 'Design Critic' ? 'selected' : ''}`}>
+                        <input
+                            type="radio"
+                            name="type"
+                            value="Design Critic"
+                            checked={formData.type === 'Design Critic'}
+                            onChange={handleChange}
+                        />
+                        <div className="radio-content">
+                            <span className="radio-title">Design Critic</span>
+                            <span className="radio-desc">Primera revisión del flujo</span>
+                        </div>
+                    </label>
+
+                    <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''} ${!canDoNewScope ? 'disabled' : ''}`}>
+                        <input
+                            type="radio"
+                            name="type"
+                            value="Nuevo alcance"
+                            checked={formData.type === 'Nuevo alcance'}
+                            onChange={handleChange}
+                            disabled={!canDoNewScope}
+                        />
+                        <div className="radio-content">
+                            <span className="radio-title">Nuevo alcance</span>
+                            <span className="radio-desc">Reemplaza a "Nuevo scope"</span>
+                        </div>
+                    </label>
+                </div>
+                {!canDoNewScope && formData.flow && (
+                    <div className="text-xs text-gray-500 mt-1">
+                        * Requiere un Design Critic previo en este flujo.
+                    </div>
+                )}
             </div>
+
+            <style jsx>{`
+                .radio-group-container {
+                    display: flex;
+                    gap: 12px;
+                }
+                .radio-card {
+                    flex: 1;
+                    display: flex;
+                    align-items: center; /* Vertical center alignment */
+                    gap: 10px;          /* Match design spacing */
+                    padding: 12px;
+                    border: 1px solid #E5E7EB;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    position: relative;
+                }
+                .radio-card:hover:not(.disabled) {
+                    background: #F9FAFB;
+                    border-color: #D1D5DB;
+                }
+                .radio-card.selected {
+                    border-color: #2563EB;
+                    background: #EFF6FF;
+                    box-shadow: 0 0 0 1px #2563EB;
+                }
+                .radio-card.disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    background: #F3F4F6;
+                }
+                /* Hide default radio but keep accessible? Or style it? */
+                /* Let's keep specific style for radio input if needed, or simple */
+                .radio-card input {
+                    margin: 0;
+                    width: 16px;
+                    height: 16px;
+                    accent-color: #2563EB;
+                }
+                .radio-content {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .radio-title {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #111827;
+                }
+                .radio-desc {
+                    font-size: 12px;
+                    color: #6B7280;
+                }
+                .radio-card.disabled .radio-title,
+                .radio-card.disabled .radio-desc {
+                     color: #9CA3AF;
+                }
+            `}</style>
 
             {/* Product Label Removed as requested */}
 

@@ -538,11 +538,12 @@ export default function App() {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h2>{editingDC?.id ? 'Editar Sesión' : 'Agendar nueva sesión'}</h2>
+                            <h2>{editingDC?.id ? 'Editar Sesión' : 'Agendar design critics'}</h2>
                             <button className="close-btn" onClick={() => setModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
                             <CreateCriticsSession
+                                sessions={dcs}
                                 onSubmit={handleSaveDC}
                                 onClose={() => setModalOpen(false)}
                                 initialData={editingDC}
