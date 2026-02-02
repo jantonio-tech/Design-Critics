@@ -147,6 +147,22 @@ function LoginPage({ onLogin, error }) {
 // --- Page Components ---
 
 const DashboardPage = ({ activeTickets, onQuickAdd }) => {
+    // Weekend logic
+    const today = new Date();
+    const day = today.getDay(); // 0 = Sun, 6 = Sat
+    let targetDate = new Date(today);
+    let buttonLabel = 'Agendar para Hoy';
+
+    if (day === 6) { // Saturday -> Monday (+2)
+        targetDate.setDate(today.getDate() + 2);
+        buttonLabel = 'Agendar para el Lunes';
+    } else if (day === 0) { // Sunday -> Monday (+1)
+        targetDate.setDate(today.getDate() + 1);
+        buttonLabel = 'Agendar para el Lunes';
+    }
+
+    const dateStr = targetDate.toISOString().split('T')[0];
+
     return (
         <div className="container">
             <div className="page-header">
@@ -166,9 +182,9 @@ const DashboardPage = ({ activeTickets, onQuickAdd }) => {
                         <button
                             className="btn btn-primary"
                             style={{ marginTop: 'auto', width: '100%' }}
-                            onClick={() => onQuickAdd({ ticket: ticket.key, product: '', type: 'Design Critic' })}
+                            onClick={() => onQuickAdd({ ticket: ticket.key, product: '', type: 'Design Critic', date: dateStr })}
                         >
-                            Agendar para Hoy
+                            {buttonLabel}
                         </button>
                     </div>
                 ))}
