@@ -430,7 +430,7 @@ export default function App() {
             )}
 
             {modalOpen && (
-                <div className="modal-backdrop">
+                <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
                             <h2>{editingDC ? 'Editar Sesión' : 'Nueva Sesión'}</h2>
