@@ -1507,3 +1507,110 @@ tr:hover td {
     background: var(--bg-hover);
     color: var(--primary);
 }
+
+/* Mobile UX Improvements */
+@media (max-width: 768px) {
+
+    /* Navigation */
+    .calendar-header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .calendar-header-bar h1 {
+        display: none;
+        /* Hide title to save space */
+    }
+
+    .calendar-nav-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .current-month-label {
+        font-size: 16px;
+        margin-left: 0;
+    }
+
+    .nav-arrow {
+        width: 40px;
+        /* Larger touch target */
+        height: 40px;
+    }
+
+    /* Grid */
+    .gcal-grid {
+        grid-template-columns: 1fr;
+        border: none;
+        background: transparent;
+        gap: 16px;
+        /* Spacing between days */
+    }
+
+    .day-column {
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-card);
+        margin-bottom: 0;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .day-header-gcal {
+        display: flex;
+        /* Horizontal header on mobile */
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--gray-100);
+        background: var(--gray-50);
+        border-radius: 12px 12px 0 0;
+    }
+
+    .day-name {
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+
+    .day-number {
+        font-size: 16px;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        margin: 0;
+    }
+
+    /* Modals - Full Screen */
+    .modal {
+        max-width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        /* More breathing room */
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Hide floating actions, show always or reliable tap */
+    .dc-gcal-actions {
+        display: flex;
+        /* Always show on mobile because hover doesn't exist */
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        padding: 2px;
+    }
+}
