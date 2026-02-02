@@ -10,6 +10,9 @@ export function TicketAccordion({
     // happyPaths, loadingHPs, errorHPs come from the hook now
     const [figmaLink, setFigmaLink] = useState(null);
 
+    // Use the robust hook for Happy Paths
+    const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
+
     // Calculate initial progress (Total critics for this ticket)
     const ticketSessions = sessions.filter(s => s.ticket === ticket.key);
     const totalCriticsDone = ticketSessions.filter(s => s.type === 'Design Critic').length;
@@ -63,8 +66,7 @@ export function TicketAccordion({
         fetchFigmaLink();
     }, [ticket.key]); // Only run on mount/ticket change
 
-    // Use the robust hook for Happy Paths
-    const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
+
 
     // Helper to get critics count for a specific HP
     const getHpStatus = (hpName) => {
