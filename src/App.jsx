@@ -346,6 +346,7 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                                     user={user}
                                     initialData={editingDC}
                                     activeTickets={activeTickets}
+                                    sessions={dcs} // Pass sessions for history check "Nuevo alcance"
                                     onClose={() => setModalOpen(false)}
                                     onSubmit={async (data) => {
                                         // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
