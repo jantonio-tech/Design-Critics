@@ -81,62 +81,60 @@ function LoginPage({ onLogin, error }) {
 
     const handleGoogleLogin = async () => {
         setIsAuthenticating(true);
-        try {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        // Removed custom parameters to avoid issues on mobile and desktop loops
+        // provider.setCustomParameters({ prompt: 'select_account' });
 
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // On desktop, force account selection. On mobile, let Google handle it to avoid UX friction.
-            if (!isMobile) provider.setCustomParameters({ prompt: 'select_account' });
+        let firebaseUser;
+        // Unify to Popup for all devices to avoid 404 Redirect errors
+        const result = await firebase.auth().signInWithPopup(provider);
+        firebaseUser = result.user;
 
-            let firebaseUser;
-            // Unify to Popup for all devices to avoid 404 Redirect errors
-            const result = await firebase.auth().signInWithPopup(provider);
-            firebaseUser = result.user;
-
-            if (!firebaseUser.email.endsWith('@prestamype.com')) {
-                await firebase.auth().signOut();
-                onLogin(null, 'Debes usar un correo @prestamype.com');
-                setIsAuthenticating(false);
-                return;
-            }
-
-            const user = {
-                name: firebaseUser.displayName,
-                email: firebaseUser.email,
-                picture: firebaseUser.photoURL,
-                initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
-                uid: firebaseUser.uid
-            };
-
-            AuthStorage.setUserConsent(firebaseUser.email);
-            AuthStorage.setLastUserEmail(firebaseUser.email);
-            AuthStorage.saveSession(user);
-            onLogin(user, null);
-        } catch (error) {
-            console.error('Auth error:', error);
+        if (!firebaseUser.email.endsWith('@prestamype.com')) {
+            await firebase.auth().signOut();
+            onLogin(null, 'Debes usar un correo @prestamype.com');
             setIsAuthenticating(false);
-            onLogin(null, 'Error de autenticación');
+            return;
         }
-    };
 
-    return (
-        <div className="login-container">
-            <div className="login-card">
-                <div className="login-icon">✨</div>
-                <h1 className="login-title">Design Critics</h1>
-                <p className="login-subtitle">Gestión de sesiones de crítica de diseño</p>
-                {error && <div className="login-error">{error}</div>}
-                <button
-                    className="btn btn-primary"
-                    style={{ width: '100%', fontSize: '16px', padding: '14px', borderRadius: '12px' }}
-                    onClick={handleGoogleLogin}
-                    disabled={isAuthenticating}
-                >
-                    {isAuthenticating ? 'Iniciando sesión...' : 'Continuar con Google'}
-                </button>
-            </div>
+        const user = {
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+            picture: firebaseUser.photoURL,
+            initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+            uid: firebaseUser.uid
+        };
+
+        AuthStorage.setUserConsent(firebaseUser.email);
+        AuthStorage.setLastUserEmail(firebaseUser.email);
+        AuthStorage.saveSession(user);
+        onLogin(user, null);
+    } catch (error) {
+        console.error('Auth error:', error);
+        setIsAuthenticating(false);
+        onLogin(null, 'Error de autenticación');
+    }
+};
+
+return (
+    <div className="login-container">
+        <div className="login-card">
+            <div className="login-icon">✨</div>
+            <h1 className="login-title">Design Critics</h1>
+            <p className="login-subtitle">Gestión de sesiones de crítica de diseño</p>
+            {error && <div className="login-error">{error}</div>}
+            <button
+                className="btn btn-primary"
+                style={{ width: '100%', fontSize: '16px', padding: '14px', borderRadius: '12px' }}
+                onClick={handleGoogleLogin}
+                disabled={isAuthenticating}
+            >
+                {isAuthenticating ? 'Iniciando sesión...' : 'Continuar con Google'}
+            </button>
         </div>
-    );
+    </div>
+);
 }
 
 // --- Page Components ---
