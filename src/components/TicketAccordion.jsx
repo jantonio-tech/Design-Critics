@@ -82,53 +82,61 @@ export function TicketAccordion({
         <div className={`ticket-accordion ${expanded ? 'expanded' : ''}`}>
             {/* Header / Summary Card */}
             <div className="accordion-header" onClick={() => setExpanded(!expanded)}>
-                <div className="accordion-top-row">
-                    <span className="ticket-key">{ticket.key}</span>
-                    <span className="ticket-product-badge">{product}</span>
-                </div>
 
-                <h3 className="ticket-summary">{ticket.fields?.summary || ticket.summary}</h3>
+                <div className="header-content-wrapper">
+                    {/* LEFT COLUMN: Metadata + Title */}
+                    <div className="header-col-left">
+                        <div className="accordion-top-row">
+                            <span className="ticket-key">{ticket.key}</span>
+                            <span className="ticket-product-badge">{product}</span>
+                        </div>
+                        <h3 className="ticket-summary">{ticket.fields?.summary || ticket.summary}</h3>
+                    </div>
 
-                {/* Progress Bar Section */}
-                <div className="progress-section">
-                    <div className="progress-flex">
-                        <span className="progress-label">
-                            {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
-                        </span>
-                        {activeHPsCount(happyPaths) > 0 && (
-                            <span className="hp-count-label">({happyPaths.length} Happy Paths detectados)</span>
+                    {/* RIGHT COLUMN: Progress + Action */}
+                    <div className="header-col-right">
+                        {/* Progress Bar Section */}
+                        <div className="progress-section">
+                            <div className="progress-flex">
+                                <span className="progress-label">
+                                    {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
+                                </span>
+                                {activeHPsCount(happyPaths) > 0 && (
+                                    <span className="hp-count-label">({happyPaths.length} HPs)</span>
+                                )}
+                            </div>
+                            {maxCritics > 0 && (
+                                <div className="progress-track">
+                                    <div
+                                        className="progress-fill"
+                                        style={{
+                                            width: `${progressPercent}%`,
+                                            backgroundColor: progressPercent >= 100 ? '#10B981' : '#3B82F6'
+                                        }}
+                                    ></div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Main CTA (Collapsed) - Only show if not expanded to avoid clutter when open */}
+                        {!expanded && (
+                            <button
+                                className="btn-quick-schedule"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSchedule({
+                                        ticket: ticket.key,
+                                        product: product,
+                                        type: 'Design Critic',
+                                        figmaLink: figmaLink // Pass link if we found it to save time
+                                    });
+                                }}
+                            >
+                                Agendar Hoy
+                            </button>
                         )}
                     </div>
-                    {maxCritics > 0 && (
-                        <div className="progress-track">
-                            <div
-                                className="progress-fill"
-                                style={{
-                                    width: `${progressPercent}%`,
-                                    backgroundColor: progressPercent >= 100 ? '#10B981' : '#3B82F6'
-                                }}
-                            ></div>
-                        </div>
-                    )}
                 </div>
-
-                {/* Main CTA (Collapsed) */}
-                {!expanded && (
-                    <button
-                        className="btn-quick-schedule"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSchedule({
-                                ticket: ticket.key,
-                                product: product,
-                                type: 'Design Critic',
-                                figmaLink: figmaLink // Pass link if we found it to save time
-                            });
-                        }}
-                    >
-                        Agendar Hoy
-                    </button>
-                )}
 
                 <div className="accordion-chevron">
                     {expanded ? (
@@ -215,6 +223,23 @@ export function TicketAccordion({
                     cursor: pointer;
                     position: relative;
                 }
+                
+                /* Layout Wrapper for Mobile (Default) */
+                .header-content-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    padding-right: 20px; /* Space for chevron */
+                }
+
+                .header-col-left {
+                    order: 1;
+                }
+                
+                .header-col-right {
+                    order: 2;
+                    margin-top: 8px;
+                }
+
                 .accordion-top-row {
                     display: flex;
                     align-items: center;
@@ -230,14 +255,13 @@ export function TicketAccordion({
                 .ticket-summary {
                     font-size: 15px;
                     font-weight: 600;
-                    margin: 0 0 12px 0;
+                    margin: 0 0 8px 0;
                     color: #111827;
                     line-height: 1.4;
-                    padding-right: 24px; /* Space for chevron */
                 }
 
                 .progress-section {
-                    margin-bottom: 16px;
+                    margin-bottom: 12px;
                 }
                 .progress-flex {
                     display: flex;
@@ -245,7 +269,7 @@ export function TicketAccordion({
                     font-size: 12px;
                     color: #6B7280;
                     margin-bottom: 4px;
-                    font-weight: 500; /* Medium weight requested */
+                    font-weight: 500;
                 }
                 .progress-track {
                     height: 6px;
@@ -262,13 +286,13 @@ export function TicketAccordion({
 
                 .btn-quick-schedule {
                     width: 100%;
-                    padding: 10px;
+                    padding: 8px 16px; /* Reduced vertical padding slightly */
                     background: #EFF6FF;
                     color: #2563EB;
                     border: 1px solid #BFDBFE;
                     border-radius: 8px;
                     font-weight: 600;
-                    font-size: 14px;
+                    font-size: 13px;
                     cursor: pointer;
                     transition: background 0.2s;
                 }
@@ -278,9 +302,9 @@ export function TicketAccordion({
                     position: absolute;
                     top: 16px;
                     right: 16px;
-                    font-size: 18px; /* Larger chevron */
+                    font-size: 18px;
                     color: #9CA3AF;
-                    display: block; /* Visible now */
+                    display: block;
                 }
 
                 .accordion-body {
@@ -334,6 +358,42 @@ export function TicketAccordion({
                     font-size: 12px;
                     text-decoration: underline;
                     cursor: pointer;
+                }
+
+                /* RESPONSIVE DESKTOP LAYOUT (Tablet Landscape + Desktop) */
+                @media (min-width: 768px) {
+                    .header-content-wrapper {
+                        flex-direction: row;
+                        align-items: flex-start;
+                        gap: 24px;
+                    }
+
+                    .header-col-left {
+                        flex: 1; /* Take remaining space */
+                        min-width: 0; /* Enable ellipsis if needed */
+                    }
+
+                    .header-col-right {
+                        margin-top: 0;
+                        width: 250px; /* Fixed width for stability */
+                        order: 2;
+                        flex-shrink: 0;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: flex-start;
+                    }
+
+                    .ticket-summary {
+                        font-size: 16px;
+                        margin-bottom: 0px;
+                    }
+                    
+                    /* Align Action Button nicely */
+                    .btn-quick-schedule {
+                        margin-top: 8px;
+                        align-self: flex-end; /* Right align the button */
+                        width: auto; /* Shrink to content */
+                    }
                 }
                 
                 /* Dark Mode Support */
