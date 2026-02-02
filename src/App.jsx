@@ -426,6 +426,9 @@ export default function App() {
                     user={user}
                     activeTickets={activeTickets}
                     onOpenModal={handleOpenModal}
+                    onAddDC={handleAddDC}
+                    onEditDC={handleEditDC}
+                    onDeleteDC={handleDeleteDC}
                 />
             )}
 
