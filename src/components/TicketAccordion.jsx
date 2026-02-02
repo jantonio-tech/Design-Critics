@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useHappyPaths } from '../hooks/useHappyPaths';
 
 export function TicketAccordion({
     ticket,
@@ -6,9 +7,7 @@ export function TicketAccordion({
     onSchedule
 }) {
     const [expanded, setExpanded] = useState(false);
-    const [happyPaths, setHappyPaths] = useState([]);
-    const [loadingHPs, setLoadingHPs] = useState(false);
-    const [errorHPs, setErrorHPs] = useState(null);
+    // happyPaths, loadingHPs, errorHPs come from the hook now
     const [figmaLink, setFigmaLink] = useState(null);
 
     // Calculate initial progress (Total critics for this ticket)
@@ -36,11 +35,14 @@ export function TicketAccordion({
     // To show progress bar in collapsed state, we ideally want to fetch this broadly.
     // NOTE: For performance on many tickets, we might want to trigger this only on view or spread out.
     // For now, we'll fetch on mount to satisfy the "Progress Bar" requirement.
+    // Lazy load Happy Paths when component mounts
+    // NOTE: We first need the link.
     useEffect(() => {
-        const fetchFigmaData = async () => {
-            setLoadingHPs(true);
+        const fetchFigmaLink = async () => {
             try {
-                // 1. Get Figma Link based on Ticket
+                // 1. Get Figma Link based on Ticket if not already present
+                if (figmaLink) return;
+
                 const resLink = await fetch('/api/get-jira-field', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -52,52 +54,17 @@ export function TicketAccordion({
 
                 if (dataLink.figmaLink) {
                     setFigmaLink(dataLink.figmaLink);
-
-                    // 2. Get Happy Paths
-                    // Using proxy endpoint logic similar to useHappyPaths hook but ad-hoc here
-                    // or we could reuse logic if we had a shared utility.
-                    // Let's assume we call figma-proxy directly if we knew the file ID.
-                    // For now, we rely on the same logic likely used in CreateCriticsSession or duplicate minimal fetch.
-
-                    // Actually, let's look at how useHappyPaths does it.
-                    // It parses the link to get fileKey, then calls /api/figma-proxy?endpoint=files/:key
-
-                    const match = dataLink.figmaLink.match(/file\/([a-zA-Z0-9]+)/);
-                    if (match && match[1]) {
-                        const fileKey = match[1];
-                        const resFigma = await fetch(`/api/figma-proxy?endpoint=files/${fileKey}`);
-                        if (resFigma.ok) {
-                            const dataFigma = await resFigma.json();
-                            // Parse Generic frames starting with HP-
-                            const pages = dataFigma.document?.children || [];
-                            const allFrames = [];
-                            pages.forEach(page => {
-                                if (page.children) {
-                                    page.children.forEach(frame => {
-                                        if (frame.name && frame.name.startsWith('HP-')) {
-                                            allFrames.push({
-                                                id: frame.id,
-                                                name: frame.name,
-                                                pageId: page.id
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                            setHappyPaths(allFrames);
-                        }
-                    }
                 }
             } catch (err) {
-                console.error("Error loading HP data for ticket", ticket.key, err);
-                setErrorHPs(err.message);
-            } finally {
-                setLoadingHPs(false);
+                console.error("Error loading Figma Link for ticket", ticket.key, err);
             }
         };
 
-        fetchFigmaData();
-    }, [ticket.key]);
+        fetchFigmaLink();
+    }, [ticket.key]); // Only run on mount/ticket change
+
+    // Use the robust hook for Happy Paths
+    const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
 
     // Helper to get critics count for a specific HP
     const getHpStatus = (hpName) => {
