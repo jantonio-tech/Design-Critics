@@ -13,9 +13,44 @@ export function TicketAccordion({
     // Use the robust hook for Happy Paths
     const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
 
-    // Calculate initial progress (Total critics for this ticket)
-    const ticketSessions = sessions.filter(s => s.ticket === ticket.key);
-    const totalCriticsDone = ticketSessions.filter(s => s.type === 'Design Critic').length;
+    // Calculate progress with "Nuevo alcance" reset logic
+    const { validFlowCounts, totalCriticsDone } = React.useMemo(() => {
+        const ticketSessions = sessions.filter(s => s.ticket === ticket.key);
+        const flowMap = {};
+
+        // Group by flow
+        ticketSessions.forEach(s => {
+            if (!s.flow) return;
+            if (!flowMap[s.flow]) flowMap[s.flow] = [];
+            flowMap[s.flow].push(s);
+        });
+
+        const counts = {};
+        let total = 0;
+
+        Object.keys(flowMap).forEach(flow => {
+            const sList = flowMap[flow].sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+            // Find last reset (Nuevo alcance)
+            // Polyfill-friendly "findLastIndex": reverse find
+            let sliceIndex = 0;
+            for (let i = sList.length - 1; i >= 0; i--) {
+                if (sList[i].type === 'Nuevo alcance') {
+                    sliceIndex = i;
+                    break;
+                }
+            }
+
+            // Slice from the reset point (inclusive)
+            const validSessions = sList.slice(sliceIndex);
+
+            // Count "Design Critic" and "Nuevo alcance" as progress points
+            const count = validSessions.filter(s => s.type === 'Design Critic' || s.type === 'Nuevo alcance').length;
+            counts[flow] = count;
+            total += count;
+        });
+
+        return { validFlowCounts: counts, totalCriticsDone: total };
+    }, [sessions, ticket.key]);
 
     // Derived state for Max Critics (Total HPs * 2)
     const maxCritics = happyPaths.length > 0 ? happyPaths.length * 2 : 0;
@@ -70,8 +105,7 @@ export function TicketAccordion({
 
     // Helper to get critics count for a specific HP
     const getHpStatus = (hpName) => {
-        const hpSessions = ticketSessions.filter(s => s.flow === hpName && s.type === 'Design Critic');
-        const count = hpSessions.length;
+        const count = validFlowCounts[hpName] || 0;
 
         if (count >= 2) return { status: 'complete', count, label: 'Completo ✅', action: null };
         if (count === 1) return { status: 'inprogress', count, label: '1/2 Critics', action: 'Agendar Hoy' };
