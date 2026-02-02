@@ -277,13 +277,6 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                         <button onClick={handlePrevWeek} className="icon-btn nav-arrow">‹</button>
                         <button onClick={handleNextWeek} className="icon-btn nav-arrow">›</button>
                     </div>
-                    <button
-                        className="btn btn-secondary"
-                        style={{ marginLeft: '16px', fontWeight: 600 }}
-                        onClick={() => { setSelectedDate(new Date().toISOString().split('T')[0]); setModalOpen(true); }}
-                    >
-                        Agendar sesión
-                    </button>
                 </div>
                 <span className="current-month-label">{capitalizedMonthYear}</span>
             </div>
@@ -301,6 +294,12 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                                 <div className={`day-number ${today ? 'today-circle' : ''}`}>
                                     {date.getDate()}
                                 </div>
+                                <button
+                                    className="btn-add-gcal"
+                                    onClick={(e) => { e.stopPropagation(); handleCellClick(date); }}
+                                >
+                                    + Agendar
+                                </button>
                             </div>
                             <div className="day-body" onClick={() => handleCellClick(date)}>
                                 {/* Invisible fill to make empty space clickable */}
