@@ -325,6 +325,7 @@ export default function App() {
         const newDC = {
             ...formData,
             createdBy: user.email,
+            presenter: user.name,
             id: editingDC?.id || Date.now().toString(),
             date: formData.date || editingDC?.date || new Date().toISOString().split('T')[0]
         };
