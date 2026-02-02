@@ -146,82 +146,42 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
-function DashboardPage({ dcs, user, onQuickAdd }) {
-    // Logic from index.html customized for React
-    const [myTickets, setMyTickets] = useState([]);
-
-    // Process DCs to show stats
-    useEffect(() => {
-        if (!user || !dcs) return;
-
-        // Simplified Logic for Dashboard Display
-        const myDcs = dcs.filter(dc => dc.createdBy === user.email);
-        const ticketsMap = {};
-
-        myDcs.forEach(dc => {
-            if (!ticketsMap[dc.ticket]) {
-                ticketsMap[dc.ticket] = {
-                    ticket: dc.ticket,
-                    product: dc.product,
-                    totalCritics: 0,
-                    lastDate: null
-                };
-            }
-            if (!ticketsMap[dc.ticket].lastDate || new Date(dc.date) > new Date(ticketsMap[dc.ticket].lastDate)) {
-                ticketsMap[dc.ticket].lastDate = dc.date;
-            }
-            ticketsMap[dc.ticket].totalCritics++;
-        });
-
-        setMyTickets(Object.values(ticketsMap).sort((a, b) => new Date(b.lastDate) - new Date(a.lastDate)));
-    }, [dcs, user]);
-
+const DashboardPage = ({ activeTickets, onQuickAdd }) => {
     return (
         <div className="container">
             <div className="page-header">
                 <h1>Dashboard Personal</h1>
-                <p>Resumen de tus tickets y sesiones</p>
+                <p>Tus tickets activos en Jira</p>
             </div>
-            {/* Simple Dashboard Layout */}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {myTickets.length === 0 ? <p>No hay actividad reciente.</p> : myTickets.map(t => (
-                    <div key={t.ticket} className="day-card" style={{ minHeight: 'auto' }}>
-                        <h3>{t.ticket}</h3>
-                        <p>{t.product}</p>
-                        <p>Critics: {t.totalCritics}</p>
-                        <button className="btn btn-primary" onClick={() => onQuickAdd(t)}>+ Registrar hoy</button>
+                {activeTickets.length === 0 ? <p>No tienes tickets activos asignados.</p> : activeTickets.map(ticket => (
+                    <div key={ticket.key} className="day-card" style={{ minHeight: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{ticket.key}</span>
+                            <span className="table-badge table-badge-blue">{ticket.fields?.status?.name || ticket.status?.name || 'Active'}</span>
+                        </div>
+                        <h3 style={{ fontSize: '16px', margin: 0 }}>{ticket.fields?.summary || ticket.summary}</h3>
+
+                        <button
+                            className="btn btn-primary"
+                            style={{ marginTop: 'auto', width: '100%' }}
+                            onClick={() => onQuickAdd({ ticket: ticket.key, product: '', type: 'Design Critic' })}
+                        >
+                            Agendar para Hoy
+                        </button>
                     </div>
                 ))}
             </div>
         </div>
     );
-}
+};
 
-function CalendarPage({ dcs, user, onAddDC, onEditDC, onDeleteDC, onClearPrefill, prefillData }) {
+function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC, onClearPrefill, prefillData }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
     const [weekOffset, setWeekOffset] = useState(0);
-    const [activeTickets, setActiveTickets] = useState([]); // Need to fetch these for dropdown
     const [editingDC, setEditingDC] = useState(null);
-
-    // Fetch tickets for Modal
-    useEffect(() => {
-        if (modalOpen) {
-            // Fetch tickets using search-jira API
-            fetch('/api/search-jira', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userEmail: user.email })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        setActiveTickets(data.tickets || data.issues || []);
-                    }
-                })
-                .catch(err => console.error("Error loading tickets", err));
-        }
-    }, [modalOpen, user.email]);
 
     useEffect(() => {
         if (prefillData) {
@@ -347,6 +307,7 @@ export default function App() {
     const [loginError, setLoginError] = useState(null);
     const [dataService, setDataService] = useState(null);
     const [dcs, setDcs] = useState([]);
+    const [activeTickets, setActiveTickets] = useState([]);
     const [currentTab, setCurrentTab] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [prefillData, setPrefillData] = useState(null);
@@ -381,6 +342,17 @@ export default function App() {
                 setUser(userData);
                 setDataService(service);
                 setDcs(merged);
+
+                fetch('/api/search-jira', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userEmail: u.email })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) setActiveTickets(data.tickets || []);
+                    })
+                    .catch(console.error);
             } else {
                 setUser(null);
             }
@@ -420,12 +392,13 @@ export default function App() {
                 <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>Calendario</button>
             </div>
 
-            {currentTab === 'dashboard' && <DashboardPage dcs={dcs} user={user} onQuickAdd={(data) => { setPrefillData(data); setCurrentTab('calendar'); }} />}
+            {currentTab === 'dashboard' && <DashboardPage activeTickets={activeTickets} onQuickAdd={(data) => { setPrefillData(data); setCurrentTab('calendar'); }} />}
 
             {currentTab === 'calendar' && (
                 <CalendarPage
                     dcs={dcs}
                     user={user}
+                    activeTickets={activeTickets}
                     onAddDC={handleAddDC}
                     onEditDC={handleEditDC}
                     onDeleteDC={handleDeleteDC}
