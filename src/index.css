@@ -1621,15 +1621,16 @@ tr:hover td {
     border: 1px dashed var(--border-color);
     color: var(--text-secondary);
     font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-top: 8px;
-    width: 80%;
-    margin-left: auto;
-    margin-right: auto;
+    padding: 8px;
+    /* Larger area */
+    border-radius: 6px;
+    margin-top: 4px;
+    width: 100%;
+    /* margin-left: auto; margin-right: auto; removed */
     display: block;
     cursor: pointer;
     transition: all 0.2s;
+    text-align: center;
 }
 
 .btn-add-gcal:hover {

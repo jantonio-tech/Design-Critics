@@ -294,12 +294,6 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                                 <div className={`day-number ${today ? 'today-circle' : ''}`}>
                                     {date.getDate()}
                                 </div>
-                                <button
-                                    className="btn-add-gcal"
-                                    onClick={(e) => { e.stopPropagation(); handleCellClick(date); }}
-                                >
-                                    + Agendar
-                                </button>
                             </div>
                             <div className="day-body" onClick={() => handleCellClick(date)}>
                                 {/* Invisible fill to make empty space clickable */}
@@ -318,6 +312,12 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                                         </div>
                                     </div>
                                 ))}
+                                <button
+                                    className="btn-add-gcal"
+                                    onClick={(e) => { e.stopPropagation(); handleCellClick(date); }}
+                                >
+                                    + Agendar
+                                </button>
                             </div>
                         </div>
                     );
