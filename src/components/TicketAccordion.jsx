@@ -85,9 +85,6 @@ export function TicketAccordion({
                 <div className="accordion-top-row">
                     <span className="ticket-key">{ticket.key}</span>
                     <span className="ticket-product-badge">{product}</span>
-                    <span className={`status-badge ${ticket.fields?.status?.statusCategory?.key === 'done' ? 'status-done' : 'status-active'}`}>
-                        {ticket.fields?.status?.name || ticket.status}
-                    </span>
                 </div>
 
                 <h3 className="ticket-summary">{ticket.fields?.summary || ticket.summary}</h3>
@@ -134,7 +131,11 @@ export function TicketAccordion({
                 )}
 
                 <div className="accordion-chevron">
-                    {expanded ? '▲' : '▼'}
+                    {expanded ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    )}
                 </div>
             </div>
 
@@ -225,8 +226,6 @@ export function TicketAccordion({
                 .ticket-product-badge { 
                     background: #F3F4F6; color: #4B5563; padding: 2px 6px; border-radius: 4px; 
                 }
-                .status-badge { margin-left: auto; text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
-                .status-active { color: #2563EB; background: #DBEAFE; padding: 2px 6px; border-radius: 99px; }
                 
                 .ticket-summary {
                     font-size: 15px;
@@ -234,6 +233,7 @@ export function TicketAccordion({
                     margin: 0 0 12px 0;
                     color: #111827;
                     line-height: 1.4;
+                    padding-right: 24px; /* Space for chevron */
                 }
 
                 .progress-section {
@@ -245,6 +245,7 @@ export function TicketAccordion({
                     font-size: 12px;
                     color: #6B7280;
                     margin-bottom: 4px;
+                    font-weight: 500; /* Medium weight requested */
                 }
                 .progress-track {
                     height: 6px;
@@ -277,9 +278,9 @@ export function TicketAccordion({
                     position: absolute;
                     top: 16px;
                     right: 16px;
-                    font-size: 10px;
+                    font-size: 18px; /* Larger chevron */
                     color: #9CA3AF;
-                    display: none; /* Hidden by default, useful for desktop */
+                    display: block; /* Visible now */
                 }
 
                 .accordion-body {
