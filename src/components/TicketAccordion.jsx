@@ -74,8 +74,8 @@ export function TicketAccordion({
         const count = hpSessions.length;
 
         if (count >= 2) return { status: 'complete', count, label: 'Completo ✅', action: null };
-        if (count === 1) return { status: 'inprogress', count, label: '1/2 Critics', action: 'Agendar 2da' };
-        return { status: 'new', count: 0, label: '0/2 Critics', action: 'Agendar' };
+        if (count === 1) return { status: 'inprogress', count, label: '1/2 Critics', action: 'Agendar Hoy' };
+        return { status: 'new', count: 0, label: '0/2 Critics', action: 'Agendar Hoy' };
     };
 
     return (
@@ -186,14 +186,7 @@ export function TicketAccordion({
                         );
                     })}
 
-                    <div className="manual-add-section">
-                        <button
-                            className="btn-text-only"
-                            onClick={() => onSchedule({ ticket: ticket.key, product })}
-                        >
-                            + Agendar otro flujo (no listado)
-                        </button>
-                    </div>
+
                 </div>
             )}
 
