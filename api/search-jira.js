@@ -41,8 +41,9 @@ export default async function handler(req, res) {
             // Batch fetch specific tickets
             const keys = req.body.ticketKeys.map(k => `"${k}"`).join(',');
             searchJql = `key in (${keys}) ORDER BY updated DESC`;
+        } else {
             // User custom JQL
-            searchJql = `project = UX AND status = "EN CURSO" AND type IN (Requerimiento, Task) ORDER BY status ASC, created DESC`;
+            searchJql = `project = UX AND status = "EN CURSO" AND issuetype IN (Requerimiento, Task) ORDER BY status ASC, created DESC`;
         }
 
         // Create Basic Auth header
