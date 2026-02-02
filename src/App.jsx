@@ -196,7 +196,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd }) => {
 function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC, onClearPrefill, prefillData }) {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState(null);
-    const [weekOffset, setWeekOffset] = useState(0);
+    const [baseDate, setBaseDate] = useState(new Date());
     const [editingDC, setEditingDC] = useState(null);
 
     useEffect(() => {
@@ -209,15 +209,34 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
 
     const getWeekDays = () => {
         const days = [];
-        const today = new Date();
-        const currentDay = today.getDay();
+        const current = new Date(baseDate);
+        const currentDay = current.getDay();
         const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(current);
+        monday.setDate(current.getDate() + mondayOffset);
+
         for (let i = 0; i < 5; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + mondayOffset + i + (weekOffset * 7));
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
             days.push(date);
         }
         return days;
+    };
+
+    const handlePrevWeek = () => {
+        const newDate = new Date(baseDate);
+        newDate.setDate(newDate.getDate() - 7);
+        setBaseDate(newDate);
+    };
+
+    const handleNextWeek = () => {
+        const newDate = new Date(baseDate);
+        newDate.setDate(newDate.getDate() + 7);
+        setBaseDate(newDate);
+    };
+
+    const handleToday = () => {
+        setBaseDate(new Date());
     };
 
     const weekDays = getWeekDays();
@@ -244,11 +263,12 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
             <div className="calendar-header-bar">
                 <div className="calendar-nav-group">
                     <h1 style={{ fontSize: '22px', fontWeight: 600, marginRight: '24px' }}>Calendario</h1>
-                    <button className="btn btn-secondary nav-today-btn" onClick={() => setWeekOffset(0)}>Hoy</button>
+                    <button className="btn btn-secondary nav-today-btn" onClick={handleToday}>Hoy</button>
                     <div className="nav-arrows">
-                        <button onClick={() => setWeekOffset(w => w - 1)} className="icon-btn nav-arrow">‹</button>
-                        <button onClick={() => setWeekOffset(w => w + 1)} className="icon-btn nav-arrow">›</button>
+                        <button onClick={handlePrevWeek} className="icon-btn nav-arrow">‹</button>
+                        <button onClick={handleNextWeek} className="icon-btn nav-arrow">›</button>
                     </div>
+                </div>
                     <span className="current-month-label">{capitalizedMonthYear}</span>
                 </div>
             </div>
@@ -290,47 +310,49 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                 })}
             </div>
 
-            {/* INTEGRATED MODAL WITH CREATE CRITICS SESSION */}
-            {modalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <div className="modal-header">
-                            <h3 className="modal-title">{editingDC?.id ? 'Editar Sesión' : 'Nueva Sesión'}</h3>
-                            <button onClick={() => setModalOpen(false)} className="close-btn">×</button>
-                        </div>
-                        <div className="modal-body">
-                            <CreateCriticsSession
-                                user={user}
-                                initialData={editingDC}
-                                activeTickets={activeTickets}
-                                onClose={() => setModalOpen(false)}
-                                onSubmit={async (data) => {
-                                    // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
-                                    // Actually original Modal selects date separately or assumes today?
-                                    // The original Modal passed selectedDate to onSubmit logic.
-                                    // My CreateCriticsSession does NOT have a Date picker.
-                                    // I should inject the selectedDate into the data if missing.
+            {/* INTEGRATED MODAL WITH CREATE CRITICS SESSION */ }
+    {
+        modalOpen && (
+            <div className="modal-overlay">
+                <div className="modal">
+                    <div className="modal-header">
+                        <h3 className="modal-title">{editingDC?.id ? 'Editar Sesión' : 'Nueva Sesión'}</h3>
+                        <button onClick={() => setModalOpen(false)} className="close-btn">×</button>
+                    </div>
+                    <div className="modal-body">
+                        <CreateCriticsSession
+                            user={user}
+                            initialData={editingDC}
+                            activeTickets={activeTickets}
+                            onClose={() => setModalOpen(false)}
+                            onSubmit={async (data) => {
+                                // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
+                                // Actually original Modal selects date separately or assumes today?
+                                // The original Modal passed selectedDate to onSubmit logic.
+                                // My CreateCriticsSession does NOT have a Date picker.
+                                // I should inject the selectedDate into the data if missing.
 
-                                    const finalData = {
-                                        ...data,
-                                        date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
-                                        presenter: user.name, // Ensure presenter is set
-                                        createdBy: user.email
-                                    };
+                                const finalData = {
+                                    ...data,
+                                    date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
+                                    presenter: user.name, // Ensure presenter is set
+                                    createdBy: user.email
+                                };
 
-                                    if (editingDC?.id) {
-                                        await onEditDC({ ...finalData, id: editingDC.id });
-                                    } else {
-                                        await onAddDC(finalData);
-                                    }
-                                    setModalOpen(false);
-                                }}
-                            />
-                        </div>
+                                if (editingDC?.id) {
+                                    await onEditDC({ ...finalData, id: editingDC.id });
+                                } else {
+                                    await onAddDC(finalData);
+                                }
+                                setModalOpen(false);
+                            }}
+                        />
                     </div>
                 </div>
-            )}
-        </div>
+            </div>
+        )
+    }
+        </div >
     );
 }
 
