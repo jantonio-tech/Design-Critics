@@ -317,11 +317,11 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     if (!forceRefresh) {
         try {
-            // Obtener metadata de Figma (rápido, ~200ms)
-            const metadata = await fetchFigmaMetadata(fileKey);
-
-            // Consultar caché en Firestore
-            const cached = await getCachedData(fileKey);
+            // Obtener metadata y caché en paralelo para optimizar tiempo
+            const [metadata, cached] = await Promise.all([
+                fetchFigmaMetadata(fileKey),
+                getCachedData(fileKey)
+            ]);
 
             // Si el caché existe, está actualizado según Figma, Y usa la versión de esquema correcta
             if (cached &&
