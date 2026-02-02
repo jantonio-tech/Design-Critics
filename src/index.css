@@ -118,15 +118,7 @@
     --bg-gradient: linear-gradient(135deg, var(--gray-950) 0%, #0f172a 100%);
 }
 
-[data-theme="dark"] .btn-secondary {
-    background: var(--bg-card);
-    color: var(--text-main);
-    border-color: var(--border-color);
-}
 
-[data-theme="dark"] .btn-secondary:hover {
-    background: var(--bg-hover);
-}
 
 * {
     margin: 0;
@@ -754,7 +746,7 @@ tbody tr {
 
 .btn-secondary {
     padding: 10px 20px;
-    background: transparent !important;
+    background: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
     border-radius: 8px;
@@ -771,6 +763,19 @@ tbody tr {
     background: var(--bg-hover);
     color: var(--text-main);
     border-color: var(--text-secondary);
+}
+
+/* Dark Mode Overrides for Secondary Button */
+[data-theme="dark"] .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+    border-color: var(--gray-400);
 }
 
 .modal-body {
