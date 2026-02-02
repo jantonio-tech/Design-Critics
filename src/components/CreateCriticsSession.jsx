@@ -4,21 +4,28 @@ import { useHappyPaths } from '../hooks/useHappyPaths';
 const PRODUCTS = ['PGH', 'Recadia', 'Cambio Seguro', 'Factoring', 'Gestora', 'Transversal', 'Web Pública'];
 const TYPES = ['Design Critic', 'Iteración DS', 'Nuevo scope'];
 
-export function CreateCriticsSession({
-    onSubmit,
+onSubmit,
     onClose,
     initialData,
     user,
-    activeTickets = []
+    activeTickets = [],
+    readOnlyFields = [] // Prop for Simplified Mode
 }) {
+    const props = { readOnlyFields }; // Access wrapper for helper function
     const [formData, setFormData] = useState({
-        product: 'PGH',
+        product: '',
         ticket: '',
         flow: '',
         type: 'Design Critic',
         notes: '',
         figmaLink: ''
     });
+
+    const isReadOnly = (field) => {
+        // Check if we are in "Simplified Mode" via props (readOnlyFields)
+        // usage: <CreateCriticsSession readOnlyFields={['ticket', 'product']} ... />
+        return props.readOnlyFields && props.readOnlyFields.includes(field);
+    };
 
     const [detectingLink, setDetectingLink] = useState(false);
     const [linkError, setLinkError] = useState(null);
@@ -27,11 +34,10 @@ export function CreateCriticsSession({
     useEffect(() => {
         if (initialData) {
             const ticketKey = initialData.ticket || '';
-            let product = initialData.product || 'PGH';
+            let product = initialData.product || ''; // Allow empty default if simplified mode passing it
 
-            // Auto-detect product if ticket is provided but product is default/empty
-            // Re-using logic from handleTicketChange for consistency
-            if (ticketKey && activeTickets.length > 0) {
+            // If product is missing but ticket exists, try to detect
+            if (!product && ticketKey && activeTickets.length > 0) {
                 const selectedTicket = activeTickets.find(t => t.key === ticketKey);
                 if (selectedTicket) {
                     const summaryUpper = (selectedTicket.summary || '').toUpperCase();
@@ -49,6 +55,9 @@ export function CreateCriticsSession({
                 }
             }
 
+            // Fallback for standalone usage
+            if (!product) product = 'PGH';
+
             setFormData({
                 product: product,
                 ticket: ticketKey,
@@ -58,10 +67,14 @@ export function CreateCriticsSession({
                 figmaLink: initialData.figmaLink || ''
             });
 
+            // If link is provided directly (e.g. from Accordion), use it!
+            if (initialData.figmaLink) {
+                // No need to fetch, just use it. 
+                // We might want to trigger happy path loading immediately though.
+            }
             // Trigger link fetch if needed (simulating selection)
-            if (ticketKey && ticketKey.includes('-') && !initialData.figmaLink) {
+            else if (ticketKey && ticketKey.includes('-')) {
                 // We need to fetch the link. 
-                // Since this runs on mount/change, we can trigger the async fetch here.
                 fetchFigmaLink(ticketKey);
             }
         }
@@ -199,25 +212,49 @@ export function CreateCriticsSession({
                 </select>
             </div>
 
+            {/* Product Label (Simplified Mode) */}
+            {isReadOnly('product') && formData.product && (
+                <div className="form-group">
+                    <label className="form-label text-xs uppercase text-gray-500 font-bold tracking-wider">Producto</label>
+                    <div className="text-gray-900 font-medium bg-gray-100 px-3 py-2 rounded-md border border-gray-200">
+                        {formData.product}
+                    </div>
+                </div>
+            )}
+
+
             {/* Ticket Jira */}
             <div className="form-group">
                 <label className="form-label required">Ticket de Jira</label>
-                <div style={{ position: 'relative' }}>
-                    <select
-                        name="ticket"
-                        className="form-select"
-                        value={formData.ticket}
-                        onChange={handleTicketChange}
-                        required
-                    >
-                        <option value="">-- Seleccionar ticket --</option>
-                        {filteredTickets.map(t => (
-                            <option key={t.key} value={t.key}>
-                                {t.summary}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+
+                {isReadOnly('ticket') && formData.ticket ? (
+                    // Read-only View
+                    <div className="text-gray-900 font-medium bg-blue-50 px-3 py-2 rounded-md border border-blue-100 flex items-center justify-between">
+                        <span>{formData.ticket}</span>
+                        {/* Try to show summary if available in activeTickets */}
+                        <span className="text-xs text-blue-600 truncate max-w-[200px]">
+                            {activeTickets.find(t => t.key === formData.ticket)?.summary}
+                        </span>
+                    </div>
+                ) : (
+                    // Normal Select View
+                    <div style={{ position: 'relative' }}>
+                        <select
+                            name="ticket"
+                            className="form-select"
+                            value={formData.ticket}
+                            onChange={handleTicketChange}
+                            required
+                        >
+                            <option value="">-- Seleccionar ticket --</option>
+                            {filteredTickets.map(t => (
+                                <option key={t.key} value={t.key}>
+                                    {t.summary}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* AUTOMATIC HAPPY PATHS SECTION */}

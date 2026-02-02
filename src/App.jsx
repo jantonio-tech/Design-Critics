@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import firebase from './utils/firebase';
 import { AuthStorage, FirestoreDataService } from './services/data';
 import CreateCriticsSession from './components/CreateCriticsSession';
+import { TicketAccordion } from './components/TicketAccordion'; // Import new component
 import './index.css';
 
 // --- Sub-components (Toast, Navbar, etc.) ---
@@ -146,19 +147,16 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
-const DashboardPage = ({ activeTickets, onQuickAdd }) => {
-    // Weekend logic
+const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
+    // Weekend logic (retained for fallback default date in modal)
     const today = new Date();
-    const day = today.getDay(); // 0 = Sun, 6 = Sat
+    const day = today.getDay();
     let targetDate = new Date(today);
-    let buttonLabel = 'Agendar para Hoy';
 
-    if (day === 6) { // Saturday -> Monday (+2)
+    if (day === 6) {
         targetDate.setDate(today.getDate() + 2);
-        buttonLabel = 'Agendar para el Lunes';
-    } else if (day === 0) { // Sunday -> Monday (+1)
+    } else if (day === 0) {
         targetDate.setDate(today.getDate() + 1);
-        buttonLabel = 'Agendar para el Lunes';
     }
 
     const dateStr = targetDate.toISOString().split('T')[0];
@@ -170,25 +168,34 @@ const DashboardPage = ({ activeTickets, onQuickAdd }) => {
                 <p>Tus tickets activos en Jira</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+            <div className="dashboard-grid">
                 {activeTickets.length === 0 ? <p>No tienes tickets activos asignados.</p> : activeTickets.map(ticket => (
-                    <div key={ticket.key} className="day-card" style={{ minHeight: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{ticket.key}</span>
-                            <span className="table-badge table-badge-blue">{ticket.fields?.status?.name || ticket.status || 'Active'}</span>
-                        </div>
-                        <h3 style={{ fontSize: '16px', margin: 0 }}>{ticket.fields?.summary || ticket.summary}</h3>
-
-                        <button
-                            className="btn btn-primary"
-                            style={{ marginTop: 'auto', width: '100%' }}
-                            onClick={() => onQuickAdd({ ticket: ticket.key, product: '', type: 'Design Critic', date: dateStr })}
-                        >
-                            {buttonLabel}
-                        </button>
-                    </div>
+                    <TicketAccordion
+                        key={ticket.key}
+                        ticket={ticket}
+                        sessions={dcs} // Pass all sessions to calculate progress
+                        onSchedule={(data) => {
+                            // Quick Add Handler from Accordion
+                            // data includes: ticket, product, flow (optional), type, figmaLink (optional)
+                            onQuickAdd({
+                                ...data,
+                                date: dateStr,
+                                // Trigger Simplified Mode in Modal
+                                simplifiedMode: true
+                            });
+                        }}
+                    />
                 ))}
             </div>
+
+            <style jsx>{`
+                .dashboard-grid {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    max-width: 800px; /* Limit width for better readability on desktop */
+                }
+            `}</style>
         </div>
     );
 };
@@ -506,7 +513,13 @@ export default function App() {
                 <button className={`tab ${currentTab === 'calendar' ? 'active' : ''}`} onClick={() => setCurrentTab('calendar')}>Calendario</button>
             </div>
 
-            {currentTab === 'dashboard' && <DashboardPage activeTickets={activeTickets} onQuickAdd={(data) => handleOpenModal(data)} />}
+            {currentTab === 'dashboard' && (
+                <DashboardPage
+                    activeTickets={activeTickets}
+                    dcs={dcs} // Pass dcs here
+                    onQuickAdd={(data) => handleOpenModal(data)}
+                />
+            )}
 
             {currentTab === 'calendar' && (
                 <CalendarPage
@@ -534,6 +547,8 @@ export default function App() {
                                 initialData={editingDC}
                                 user={user}
                                 activeTickets={activeTickets}
+                                // If editingDC has simplifiedMode flag (passed from onQuickAdd), lock fields
+                                readOnlyFields={editingDC?.simplifiedMode ? ['ticket', 'product'] : []}
                             />
                         </div>
                     </div>
