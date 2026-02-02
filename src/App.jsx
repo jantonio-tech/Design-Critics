@@ -193,8 +193,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                     display: grid;
                     grid-template-columns: 1fr;
                     gap: 16px;
-                    max-width: 1200px; /* Increased max-width for 2 cols */
-                    margin: 0 auto; /* Centered */
+                    /* max-width removed to fill container (1440px) */
                 }
                 
                 @media (min-width: 1024px) {
