@@ -1,103 +1,121 @@
 :root {
-    /* Primary colors with gradient variants */
-    --primary: #0EA5E9;
-    --primary-dark: #0284C7;
-    --primary-light: #38BDF8;
-    --primary-gradient: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
-    --accent-gradient: linear-gradient(135deg, #10B981 0%, #0EA5E9 100%);
+    /* UNTITLED UI TOKENS */
 
-    /* Gray scale */
-    --gray-50: #F9FAFB;
-    --gray-100: #F3F4F6;
-    --gray-200: #E5E7EB;
-    --gray-300: #D1D5DB;
-    --gray-400: #9CA3AF;
-    --gray-500: #6B7280;
-    --gray-600: #4B5563;
-    --gray-700: #374151;
-    --gray-800: #1F2937;
-    --gray-900: #111827;
+    /* Primitive Colors: Slate (Gray) */
+    --gray-25: #FCFCFD;
+    --gray-50: #F8FAFC;
+    --gray-100: #F1F5F9;
+    --gray-200: #E2E8F0;
+    --gray-300: #CBD5E1;
+    --gray-400: #94A3B8;
+    --gray-500: #64748B;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1E293B;
+    --gray-900: #0F172A;
+    --gray-950: #020617;
 
-    /* Semantic colors */
-    --error: #EF4444;
-    --success: #10B981;
-    --warning: #F59E0B;
+    /* Primitive Colors: Brand (Sky/Blue) */
+    --brand-25: #F0F9FF;
+    --brand-50: #E0F2FE;
+    --brand-100: #BAE6FD;
+    --brand-200: #7DD3FC;
+    --brand-300: #38BDF8;
+    --brand-400: #0EA5E9;
+    --brand-500: #0284C7;
+    --brand-600: #0369A1;
+    --brand-700: #075985;
+    --brand-800: #0C4A6E;
+    --brand-900: #082F49;
 
-    /* Glass effect */
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.3);
+    /* Semantic Mappings (Light Mode) */
+    --primary: var(--brand-500);
+    --primary-hover: var(--brand-600);
+    --primary-light: var(--brand-300);
 
-    /* Enhanced shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-glow: 0 4px 14px rgba(14, 165, 233, 0.4);
-    /* Semantic Base Colors (Light Mode Default) */
-    --bg-body: #F3F4F6;
+    --bg-body: var(--gray-50);
     --bg-card: #FFFFFF;
-    --bg-hover: #F9FAFB;
-    --text-main: #111827;
-    --text-secondary: #6B7280;
-    --text-muted: #9CA3AF;
-    --border-color: #E5E7EB;
-    --input-bg: #FFFFFF;
-    --navbar-bg: rgba(255, 255, 255, 0.85);
-    --navbar-border: rgba(255, 255, 255, 0.3);
+    --bg-hover: var(--gray-50);
+    --bg-active: var(--gray-100);
 
-    /* Enhanced shadows vars */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-glow: 0 4px 14px rgba(14, 165, 233, 0.4);
+    --text-main: var(--gray-900);
+    --text-secondary: var(--gray-600);
+    --text-tertiary: var(--gray-400);
+    --text-placeholder: var(--gray-400);
+
+    --border-color: var(--gray-200);
+    --border-hover: var(--gray-300);
+
+    --input-bg: #FFFFFF;
+
+    /* Navbar */
+    --navbar-bg: rgba(255, 255, 255, 0.8);
+    --navbar-border: var(--gray-200);
+
+    /* Shadows (Untitled UI) */
+    --shadow-xs: 0px 1px 2px rgba(16, 24, 40, 0.05);
+    --shadow-sm: 0px 1px 3px rgba(16, 24, 40, 0.1), 0px 1px 2px rgba(16, 24, 40, 0.06);
+    --shadow-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+    --shadow-lg: 0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+    --shadow-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+    --shadow-2xl: 0px 24px 48px -12px rgba(16, 24, 40, 0.18);
+
+    /* Semantic Status */
+    --error: #D92D20;
+    --success: #039855;
+    --warning: #DC6803;
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* Gradients */
+    --primary-gradient: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 100%);
 }
 
 /* Dark Mode Theme Overrides */
 [data-theme="dark"] {
     color-scheme: dark;
-    --bg-body: #0f172a;
-    /* Slate 900 */
-    --bg-card: #1e293b;
-    /* Slate 800 */
-    --bg-hover: #334155;
-    /* Slate 700 */
-    --text-main: #f8fafc;
-    /* Slate 50 */
-    --text-secondary: #cbd5e1;
-    /* Slate 300 */
-    --text-muted: #94a3b8;
-    /* Slate 400 */
-    --border-color: #334155;
-    /* Slate 700 */
-    --input-bg: #1e293b;
-    --navbar-bg: rgba(15, 23, 42, 0.85);
-    /* Slate 900 with opacity */
-    --navbar-border: rgba(255, 255, 255, 0.1);
 
-    /* Adjust shadows for dark mode */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    /* Backgrounds */
+    --bg-body: var(--gray-950);
+    --bg-card: var(--gray-900);
+    --bg-hover: var(--gray-800);
+    --bg-active: var(--gray-800);
 
-    /* Adjust generic grays for dark context if used directly */
-    --gray-50: #1e293b;
-    --gray-100: #334155;
-    --gray-200: #475569;
-    --gray-300: #64748b;
-    --gray-400: #94a3b8;
-    --gray-500: #cbd5e1;
-    /* Lighter for readability */
-    --gray-600: #e2e8f0;
-    /* Even lighter for secondary text */
-    --gray-700: #f1f5f9;
-    --gray-800: #f8fafc;
-    --gray-900: #ffffff;
+    /* Text */
+    --text-main: var(--gray-25);
+    --text-secondary: var(--gray-300);
+    --text-tertiary: var(--gray-500);
+    --text-placeholder: var(--gray-500);
 
-    /* Invert standard white/black */
-    --bg-white: #1e293b;
+    /* Borders */
+    --border-color: var(--gray-700);
+    --border-hover: var(--gray-600);
 
-    /* Dark Gradient */
-    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    --glass-bg: rgba(15, 23, 42, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    /* Inputs */
+    --input-bg: var(--gray-900);
+
+    /* Navbar */
+    --navbar-bg: rgba(15, 23, 42, 0.7);
+    /* Slate 900 approx */
+    --navbar-border: var(--gray-800);
+
+    /* Shadows (Adjusted for dark) */
+    --shadow-xs: 0px 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.5), 0px 1px 2px rgba(0, 0, 0, 0.6);
+    --shadow-md: 0px 4px 8px -2px rgba(0, 0, 0, 0.5), 0px 2px 4px -2px rgba(0, 0, 0, 0.6);
+
+    /* Primary in Dark Mode */
+    --primary: var(--brand-400);
+    /* Lighter for contrast */
+    --primary-hover: var(--brand-300);
+
+    /* Gradients */
+    --bg-gradient: linear-gradient(135deg, var(--gray-950) 0%, #0f172a 100%);
 }
 
 [data-theme="dark"] .btn-secondary {
@@ -335,27 +353,41 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
+/* Untitled UI Card Style */
 .dc-card {
-    background: var(--bg-hover);
-    /* Slightly different in dark mode? or bg-card */
-    border-left: 4px solid var(--primary);
-    padding: 12px;
-    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: var(--radius-lg);
     position: relative;
     box-shadow: var(--shadow-sm);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Optional: Keep a refined stripe or indicator */
+.dc-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
+    opacity: 0.8;
 }
 
 .dc-card:hover {
-    background: var(--bg-body);
-    /* Contrast on hover */
-    transform: translateX(4px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+    border-color: var(--gray-300);
 }
 
 .dc-card:hover .dc-actions {
@@ -768,26 +800,33 @@ tbody tr {
     color: var(--error);
 }
 
+/* Untitled UI Input Styles */
 .form-input,
 .form-select,
 .form-textarea {
     width: 100%;
-    padding: 12px 14px;
+    padding: 10px 14px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-size: 14px;
-    font-family: inherit;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--input-bg);
     color: var(--text-main);
+    background: var(--input-bg);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-xs);
+}
+
+.form-input::placeholder,
+.form-select::placeholder,
+.form-textarea::placeholder {
+    color: var(--text-placeholder);
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+    border-color: var(--brand-300);
+    box-shadow: 0 0 0 4px var(--brand-100), var(--shadow-xs);
 }
 
 .form-input:disabled {
@@ -845,38 +884,56 @@ tbody tr {
     margin-top: 2px;
 }
 
+/* Untitled UI Button Styles */
 .btn {
     padding: 10px 16px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: none;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: var(--shadow-xs);
+}
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--brand-100), var(--shadow-xs);
 }
 
 .btn-primary {
     background: var(--primary);
     color: white;
+    border-color: var(--primary);
 }
 
 .btn-primary:hover {
-    background: var(--primary-dark);
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
+    background: var(--brand-200);
+    border-color: var(--brand-200);
 }
 
 .btn-secondary {
-    background: white;
+    background: var(--bg-card);
     color: var(--gray-700);
-    border: 1px solid var(--gray-300);
+    border-color: var(--gray-300);
 }
 
 .btn-secondary:hover {
     background: var(--gray-50);
+    color: var(--gray-800);
+    border-color: var(--gray-400);
 }
 
 .login-container {
@@ -1429,31 +1486,34 @@ tr:hover td {
     /* subtle hover effect */
 }
 
-/* Event Cards */
+/* Event Cards (Untitled UI) */
 .dc-card-gcal {
     background: var(--bg-card);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     padding: 8px 10px;
     margin-bottom: 8px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-xs);
     border: 1px solid var(--border-color);
     position: relative;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: all 0.2s ease;
     display: flex;
     gap: 8px;
 }
 
 .dc-card-gcal:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     z-index: 10;
+    border-color: var(--brand-300);
+    /* Highlight border on hover */
 }
 
 .dc-card-stripe {
-    width: 4px;
-    border-radius: 2px;
+    width: 3px;
+    /* Thinner */
+    border-radius: 4px;
     flex-shrink: 0;
 }
 
@@ -1474,7 +1534,8 @@ tr:hover td {
 
 .dc-gcal-time {
     font-size: 11px;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
+    /* Lighter */
 }
 
 .dc-gcal-actions {
@@ -1482,7 +1543,8 @@ tr:hover td {
     top: 4px;
     right: 4px;
     display: none;
-    gap: 2px;
+    gap: 4px;
+    /* More space */
 }
 
 .dc-card-gcal:hover .dc-gcal-actions {
@@ -1493,19 +1555,22 @@ tr:hover td {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    /* Slightly larger */
+    height: 22px;
     font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     color: var(--text-secondary);
+    transition: all 0.2s ease;
 }
 
 .tiny-btn:hover {
     background: var(--bg-hover);
-    color: var(--primary);
+    color: var(--error);
+    border-color: var(--error);
 }
 
 /* Mobile UX Improvements */
@@ -1551,7 +1616,7 @@ tr:hover td {
 
     .day-column {
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: var(--radius-lg);
         background: var(--bg-card);
         margin-bottom: 0;
         box-shadow: var(--shadow-sm);
@@ -1563,9 +1628,9 @@ tr:hover td {
         align-items: center;
         justify-content: space-between;
         padding: 12px 16px;
-        border-bottom: 1px solid var(--gray-100);
+        border-bottom: 1px solid var(--border-color);
         background: var(--gray-50);
-        border-radius: 12px 12px 0 0;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
     .day-name {
@@ -1578,7 +1643,6 @@ tr:hover td {
         width: 28px;
         height: 28px;
         line-height: 28px;
-        margin: 0;
     }
 
     /* Modals - Full Screen */
@@ -1620,21 +1684,22 @@ tr:hover td {
     background: transparent;
     border: 1px dashed var(--border-color);
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 500;
     padding: 8px;
     /* Larger area */
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     margin-top: 4px;
     width: 100%;
     /* margin-left: auto; margin-right: auto; removed */
     display: block;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     text-align: center;
 }
 
 .btn-add-gcal:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(37, 99, 235, 0.05);
+    border-color: var(--brand-300);
+    color: var(--brand-600);
+    background: var(--brand-25);
 }
