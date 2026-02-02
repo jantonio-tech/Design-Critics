@@ -265,7 +265,7 @@ function CreateCriticsSession({
 
                 {/* Status: Error finding link */}
                 {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
-                    <div className="text-sm text-gray-400 p-3 rounded-md border border-gray-600/50 flex flex-col gap-1">
+                    <div className="text-sm text-gray-400 p-3 rounded-md flex flex-col gap-1" style={{ border: '1px solid #64748B' }}>
                         <div className="flex items-center gap-2 text-amber-500 font-medium">
                             <span>⚠️</span> Falta el link de Figma
                         </div>
