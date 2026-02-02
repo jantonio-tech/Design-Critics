@@ -269,8 +269,7 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                         <button onClick={handleNextWeek} className="icon-btn nav-arrow">›</button>
                     </div>
                 </div>
-                    <span className="current-month-label">{capitalizedMonthYear}</span>
-                </div>
+                <span className="current-month-label">{capitalizedMonthYear}</span>
             </div>
 
             <div className="calendar-grid gcal-grid">
@@ -310,48 +309,48 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
                 })}
             </div>
 
-            {/* INTEGRATED MODAL WITH CREATE CRITICS SESSION */ }
-    {
-        modalOpen && (
-            <div className="modal-overlay">
-                <div className="modal">
-                    <div className="modal-header">
-                        <h3 className="modal-title">{editingDC?.id ? 'Editar Sesión' : 'Nueva Sesión'}</h3>
-                        <button onClick={() => setModalOpen(false)} className="close-btn">×</button>
-                    </div>
-                    <div className="modal-body">
-                        <CreateCriticsSession
-                            user={user}
-                            initialData={editingDC}
-                            activeTickets={activeTickets}
-                            onClose={() => setModalOpen(false)}
-                            onSubmit={async (data) => {
-                                // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
-                                // Actually original Modal selects date separately or assumes today?
-                                // The original Modal passed selectedDate to onSubmit logic.
-                                // My CreateCriticsSession does NOT have a Date picker.
-                                // I should inject the selectedDate into the data if missing.
+            {/* INTEGRATED MODAL WITH CREATE CRITICS SESSION */}
+            {
+                modalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal">
+                            <div className="modal-header">
+                                <h3 className="modal-title">{editingDC?.id ? 'Editar Sesión' : 'Nueva Sesión'}</h3>
+                                <button onClick={() => setModalOpen(false)} className="close-btn">×</button>
+                            </div>
+                            <div className="modal-body">
+                                <CreateCriticsSession
+                                    user={user}
+                                    initialData={editingDC}
+                                    activeTickets={activeTickets}
+                                    onClose={() => setModalOpen(false)}
+                                    onSubmit={async (data) => {
+                                        // Merge date if not in data (CreateCriticsSession doesn't have date picker inside form yet? 
+                                        // Actually original Modal selects date separately or assumes today?
+                                        // The original Modal passed selectedDate to onSubmit logic.
+                                        // My CreateCriticsSession does NOT have a Date picker.
+                                        // I should inject the selectedDate into the data if missing.
 
-                                const finalData = {
-                                    ...data,
-                                    date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
-                                    presenter: user.name, // Ensure presenter is set
-                                    createdBy: user.email
-                                };
+                                        const finalData = {
+                                            ...data,
+                                            date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
+                                            presenter: user.name, // Ensure presenter is set
+                                            createdBy: user.email
+                                        };
 
-                                if (editingDC?.id) {
-                                    await onEditDC({ ...finalData, id: editingDC.id });
-                                } else {
-                                    await onAddDC(finalData);
-                                }
-                                setModalOpen(false);
-                            }}
-                        />
+                                        if (editingDC?.id) {
+                                            await onEditDC({ ...finalData, id: editingDC.id });
+                                        } else {
+                                            await onAddDC(finalData);
+                                        }
+                                        setModalOpen(false);
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        )
-    }
+                )
+            }
         </div >
     );
 }
