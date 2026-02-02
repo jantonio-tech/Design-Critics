@@ -413,9 +413,26 @@ export default function App() {
         setDcs(prev => prev.map(d => d.id === data.id ? updated : d));
     };
 
-    const handleDeleteDC = async (id) => {
-        await dataService.delete(id);
-        setDcs(prev => prev.filter(d => d.id !== id));
+    const [deletingId, setDeletingId] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteDC = (id) => {
+        setDeletingId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingId) return;
+        setIsDeleting(true);
+        try {
+            await dataService.delete(deletingId);
+            setDcs(prev => prev.filter(d => d.id !== deletingId));
+            setDeletingId(null);
+        } catch (error) {
+            console.error(error);
+            // Optionally show toast error
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (isLoading) return (
@@ -468,6 +485,15 @@ export default function App() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={!!deletingId}
+                onClose={() => setDeletingId(null)}
+                onConfirm={confirmDelete}
+                title="¿Eliminar sesión?"
+                description="Esta acción no se puede deshacer."
+                isSubmitting={isDeleting}
+            />
         </>
     );
 }
