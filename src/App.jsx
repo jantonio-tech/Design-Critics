@@ -190,10 +190,17 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
 
             <style jsx>{`
                 .dashboard-grid {
-                    display: flex;
-                    flex-direction: column;
+                    display: grid;
+                    grid-template-columns: 1fr;
                     gap: 16px;
-                    max-width: 800px; /* Limit width for better readability on desktop */
+                    max-width: 1200px; /* Increased max-width for 2 cols */
+                    margin: 0 auto; /* Centered */
+                }
+                
+                @media (min-width: 1024px) {
+                    .dashboard-grid {
+                        grid-template-columns: 1fr 1fr;
+                    }
                 }
             `}</style>
         </div>
