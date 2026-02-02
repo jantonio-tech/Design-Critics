@@ -768,7 +768,7 @@ tbody tr {
 }
 
 .btn-secondary:hover {
-    background: var(--bg-hover) !important;
+    background: var(--bg-hover);
     color: var(--text-main);
     border-color: var(--text-secondary);
 }
@@ -807,7 +807,8 @@ tbody tr {
 .form-select,
 .form-textarea {
     width: 100%;
-    max-width: 100%; /* Ensure it doesn't overflow parent */
+    max-width: 100%;
+    /* Ensure it doesn't overflow parent */
     padding: 10px 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);

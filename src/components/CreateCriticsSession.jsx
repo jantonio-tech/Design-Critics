@@ -218,6 +218,46 @@ function CreateCriticsSession({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Producto y Ticket */}
+            {/* Ticket Jira - Moved to Top */}
+            <div className="form-group">
+                <label className="form-label required">Ticket de Jira</label>
+
+                {isReadOnly('ticket') && formData.ticket ? (
+                    // Read-only View (Styled like Disabled Select)
+                    <div className="form-select disabled" style={{
+                        backgroundColor: 'var(--bg-active)',
+                        color: 'var(--text-secondary)',
+                        cursor: 'not-allowed',
+                        opacity: 0.7,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                    }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {formData.ticket} - {activeTickets.find(t => t.key === formData.ticket)?.summary}
+                        </span>
+                    </div>
+                ) : (
+                    // Normal Select View
+                    <div style={{ position: 'relative' }}>
+                        <select
+                            name="ticket"
+                            className="form-select"
+                            value={formData.ticket}
+                            onChange={handleTicketChange}
+                            required
+                        >
+                            <option value="">-- Seleccionar ticket --</option>
+                            {filteredTickets.map(t => (
+                                <option key={t.key} value={t.key}>
+                                    {t.summary}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
+
             {/* Tipo - Replaced with Radio Buttons */}
             <div className="form-group">
                 <label className="form-label required">Tipo de sesión</label>
@@ -344,39 +384,7 @@ function CreateCriticsSession({
 
             {/* Product Label Removed as requested */}
 
-            {/* Ticket Jira */}
-            <div className="form-group">
-                <label className="form-label required">Ticket de Jira</label>
 
-                {isReadOnly('ticket') && formData.ticket ? (
-                    // Read-only View
-                    <div className="text-gray-900 font-medium bg-blue-50 px-3 py-2 rounded-md border border-blue-100 flex items-center justify-between">
-                        <span>{formData.ticket}</span>
-                        {/* Try to show summary if available in activeTickets */}
-                        <span className="text-xs text-blue-600 truncate max-w-[200px]">
-                            {activeTickets.find(t => t.key === formData.ticket)?.summary}
-                        </span>
-                    </div>
-                ) : (
-                    // Normal Select View
-                    <div style={{ position: 'relative' }}>
-                        <select
-                            name="ticket"
-                            className="form-select"
-                            value={formData.ticket}
-                            onChange={handleTicketChange}
-                            required
-                        >
-                            <option value="">-- Seleccionar ticket --</option>
-                            {filteredTickets.map(t => (
-                                <option key={t.key} value={t.key}>
-                                    {t.summary}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-            </div>
 
             {/* AUTOMATIC HAPPY PATHS SECTION */}
             <div className="form-group p-4 bg-gray-50 border border-gray-200 rounded-lg">
