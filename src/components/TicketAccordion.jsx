@@ -103,32 +103,7 @@ export function TicketAccordion({
 
 
 
-    // Helper to get critics count for a specific HP
-    const getHpStatus = (hpName) => {
-        const count = validFlowCounts[hpName] || 0;
 
-        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: 'Agendar Hoy' };
-        if (count === 2) return { status: 'warning', count, label: '2/2 Critics (Límite)', action: 'Agendar Hoy' };
-        // 0 or 1 is good
-        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
-    };
-
-    return (
-        <div className={`ticket-accordion ${expanded ? 'expanded' : ''}`}>
-            {/* ... header ... */}
-            <div className="accordion-header" onClick={() => setExpanded(!expanded)}>
-                {/* ... */}
-                {/* Rest of header content (omitted for brevity in logic update, but need to be careful with replace) */}
-
-                {/* Actually, I should only replace the getHpStatus function and the CSS below */}
-                {/* Since split replacement is risky with broad context, let me focus on getHpStatus first */}
-            </div>
-            {/* ... */}
-        </div>
-    );
-*/
-    /* wait, I need to match the specific blocks. */
-    /* Let's do the function first, then the CSS. */
 
     // Helper to get critics count for a specific HP
     const getHpStatus = (hpName) => {
