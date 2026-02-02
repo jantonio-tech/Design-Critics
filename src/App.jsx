@@ -210,7 +210,16 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
     const getWeekDays = () => {
         const days = [];
         const current = new Date(baseDate);
-        const currentDay = current.getDay();
+        let currentDay = current.getDay();
+
+        // Smart Weekend Logic: If Sat/Sun, show next week
+        if (currentDay === 0) { // Sunday
+            current.setDate(current.getDate() + 1);
+        } else if (currentDay === 6) { // Saturday
+            current.setDate(current.getDate() + 2);
+        }
+
+        currentDay = current.getDay();
         const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
         const monday = new Date(current);
         monday.setDate(current.getDate() + mondayOffset);
