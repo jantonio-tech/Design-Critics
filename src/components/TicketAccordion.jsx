@@ -107,9 +107,61 @@ export function TicketAccordion({
     const getHpStatus = (hpName) => {
         const count = validFlowCounts[hpName] || 0;
 
-        if (count >= 2) return { status: 'complete', count, label: 'Completo ✅', action: null };
-        if (count === 1) return { status: 'inprogress', count, label: '1/2 Critics', action: 'Agendar Hoy' };
-        return { status: 'new', count: 0, label: '0/2 Critics', action: 'Agendar Hoy' };
+        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: 'Agendar Hoy' };
+        if (count === 2) return { status: 'warning', count, label: '2/2 Critics (Límite)', action: 'Agendar Hoy' };
+        // 0 or 1 is good
+        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
+    };
+
+    return (
+        <div className={`ticket-accordion ${expanded ? 'expanded' : ''}`}>
+            {/* ... header ... */}
+            <div className="accordion-header" onClick={() => setExpanded(!expanded)}>
+                {/* ... */}
+                {/* Rest of header content (omitted for brevity in logic update, but need to be careful with replace) */}
+
+                {/* Actually, I should only replace the getHpStatus function and the CSS below */}
+                {/* Since split replacement is risky with broad context, let me focus on getHpStatus first */}
+            </div>
+            {/* ... */}
+        </div>
+    );
+*/
+    /* wait, I need to match the specific blocks. */
+    /* Let's do the function first, then the CSS. */
+
+    // Helper to get critics count for a specific HP
+    const getHpStatus = (hpName) => {
+        const count = validFlowCounts[hpName] || 0;
+
+        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: 'Agendar Hoy' };
+        if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics`, action: null }; // Limit reached, maybe no action? User said "2 es lo máximo". Usually implies stop? But usually you can still schedule. Let's keep action null if "Completo" was null before?
+        // Actually user said "2 es lo máximo", potentially meaning "don't add more".
+        // But if I want to allow "Nuevo alcance", I should probably allow action?
+        // Wait, "Nuevo alcance" resets the count.
+        // So if I have 2, and I want to do "Nuevo alcance", I need the button.
+        // But the previous code had `action: null` for >=2 ("Completo").
+        // If I hide the button, they can't do "Nuevo alcance".
+        // BUT "Agendar Hoy" (Quick Add) opens the modal.
+        // If I hide "Agendar Hoy" inside the HP row, they can't schedule for that specific HP easily?
+        // Actually, the previous code hid the button for "Completo".
+        // But "Nuevo alcance" is a valid next step.
+        // So I should probably ALWAYS allow "Agendar Hoy" or similar?
+        // Let's stick to the color request first.
+
+        // Revised Logic:
+        // >= 3: Danger
+        // 2: Warning
+        // 0-1: Good
+
+        // Action availability:
+        // Before: >=2 was "Completo", action=null.
+        // Now: If 2 is limit, maybe allow creating "Nuevo alcance"?
+        // Let's enable action for all for now, to enable "Nuevo alcance".
+
+        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (⚠️)`, action: 'Agendar' };
+        if (count === 2) return { status: 'warning', count, label: '2/2 Critics', action: 'Agendar' };
+        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar' };
     };
 
     return (
@@ -349,10 +401,10 @@ export function TicketAccordion({
                 
                 .hp-info { display: flex; flex-direction: column; gap: 2px; }
                 .hp-name { font-weight: 500; font-size: 14px; color: #374151; }
-                .hp-status-text { font-size: 11px; }
-                .status-complete { color: #10B981; }
-                .status-inprogress { color: #F59E0B; }
-                .status-new { color: #9CA3AF; }
+                .hp-status-text { font-size: 11px; font-weight: 600; }
+                .status-good { color: #10B981; }   /* 0-1 Critics: Success/Green */
+                .status-warning { color: #F59E0B; } /* 2 Critics: Warning/Orange */
+                .status-danger { color: #EF4444; }  /* 3+ Critics: Danger/Red */
 
                 .btn-hp-action {
                     padding: 6px 12px;
