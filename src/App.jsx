@@ -268,7 +268,7 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
     };
 
     return (
-        <div className="container" style={{ maxWidth: '100%', padding: '0 24px' }}>
+        <div className="container">
             <div className="calendar-header-bar">
                 <div className="calendar-nav-group">
                     <h1 style={{ fontSize: '22px', fontWeight: 600, marginRight: '24px' }}>Calendario</h1>
