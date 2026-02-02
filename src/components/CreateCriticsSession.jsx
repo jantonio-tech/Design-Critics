@@ -258,63 +258,131 @@ function CreateCriticsSession({
                 )}
             </div>
 
-            {/* Tipo - Replaced with Radio Buttons */}
-            <div className="form-group">
-                <label className="form-label required">Tipo de sesión</label>
-                <div className="radio-group-container">
-                    <label className={`radio-card ${formData.type === 'Design Critic' ? 'selected' : ''}`}>
-                        <input
-                            type="radio"
-                            name="type"
-                            value="Design Critic"
-                            checked={formData.type === 'Design Critic'}
-                            onChange={handleChange}
-                        />
-                        <div className="radio-content">
-                            <span className="radio-title">Design Critic</span>
-                            <span className="radio-desc">Primera revisión del flujo</span>
-                        </div>
-                    </label>
-
-                    {!excludeTypes.includes('Iteración DS') && (
-                        <label className={`radio-card ${formData.type === 'Iteración DS' ? 'selected' : ''}`}>
-                            <input
-                                type="radio"
-                                name="type"
-                                value="Iteración DS"
-                                checked={formData.type === 'Iteración DS'}
-                                onChange={handleChange}
-                            />
-                            <div className="radio-content">
-                                <span className="radio-title">Iteración DS</span>
-                                <span className="radio-desc">Revisión de cambios</span>
-                            </div>
-                        </label>
-                    )}
-
-                    <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''} ${!canDoNewScope ? 'disabled' : ''}`}>
-                        <input
-                            type="radio"
-                            name="type"
-                            value="Nuevo alcance"
-                            checked={formData.type === 'Nuevo alcance'}
-                            onChange={handleChange}
-                            disabled={!canDoNewScope}
-                        />
-                        <div className="radio-content">
-                            <span className="radio-title">Nuevo alcance</span>
-                            <span className="radio-desc">Reemplaza a "Nuevo scope"</span>
-                        </div>
-                    </label>
-                </div>
-                {!canDoNewScope && formData.flow && (
-                    <div className="text-xs text-gray-500 mt-1">
-                        * Requiere un Design Critic previo en este flujo.
+            {/* AUTOMATIC HAPPY PATHS SECTION - MOVED UP */}
+            <div className="form-group p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                {/* Status: Detecting Link */}
+                {detectingLink && (
+                    <div className="flex items-center gap-2 text-sm text-blue-600">
+                        <span className="animate-spin">⏳</span>
+                        Buscando link de Figma en Jira...
                     </div>
+                )}
+
+                {/* Status: Error finding link */}
+                {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
+                    <div className="text-sm text-gray-400 p-3 rounded-md flex flex-col gap-1" style={{ border: '1px solid #64748B' }}>
+                        <div className="flex items-center gap-2 text-amber-500 font-medium">
+                            <span>⚠️</span> Falta el link de Figma
+                        </div>
+                        <div className="text-xs opacity-80">
+                            Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
+                        </div>
+                    </div>
+                )}
+
+                {/* Status: Link Found & Loading Paths */}
+                {formData.figmaLink && (
+                    <>
+                        {loadingHappyPaths ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <span className="animate-spin">🔄</span>
+                                Cargando Happy Paths desde Figma...
+                            </div>
+                        ) : happyPaths.length > 0 ? (
+                            <div className="search-animation">
+                                <label className="form-label text-sm text-green-700">✅ Selecciona un Happy Path:</label>
+                                <select
+                                    className="form-select border-green-300 bg-green-50"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
+                                    value={formData.flow}
+                                >
+                                    <option value="">-- Seleccionar --</option>
+                                    {happyPaths.map(hp => (
+                                        <option key={hp.id} value={hp.name}>
+                                            {hp.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-red-500">
+                                ❌ No se encontraron Happy Paths (Frames que empiecen con "HP-").
+                                <button type="button" onClick={refreshHappyPaths} className="ml-2 text-blue-500 underline text-xs">Reintentar</button>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
+            {/* Tipo - Replaced with Radio Buttons */}
+            {/* Show only if Flow is selected */}
+            {formData.flow && (
+                <div className="form-group fade-in-up">
+                    <label className="form-label required">Tipo de sesión</label>
+                    <div className="radio-group-container">
+                        <label className={`radio-card ${formData.type === 'Design Critic' ? 'selected' : ''}`}>
+                            <input
+                                type="radio"
+                                name="type"
+                                value="Design Critic"
+                                checked={formData.type === 'Design Critic'}
+                                onChange={handleChange}
+                            />
+                            <div className="radio-content">
+                                <span className="radio-title">Design Critic</span>
+                                <span className="radio-desc">Primera revisión del flujo</span>
+                            </div>
+                        </label>
+
+                        {!excludeTypes.includes('Iteración DS') && (
+                            <label className={`radio-card ${formData.type === 'Iteración DS' ? 'selected' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="type"
+                                    value="Iteración DS"
+                                    checked={formData.type === 'Iteración DS'}
+                                    onChange={handleChange}
+                                />
+                                <div className="radio-content">
+                                    <span className="radio-title">Iteración DS</span>
+                                    <span className="radio-desc">Revisión de cambios</span>
+                                </div>
+                            </label>
+                        )}
+
+                        {!excludeTypes.includes('Nuevo alcance') && (
+                            <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''} ${!canDoNewScope ? 'disabled' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="type"
+                                    value="Nuevo alcance"
+                                    checked={formData.type === 'Nuevo alcance'}
+                                    onChange={handleChange}
+                                    disabled={!canDoNewScope}
+                                />
+                                <div className="radio-content">
+                                    <span className="radio-title">Nuevo alcance</span>
+                                    <span className="radio-desc">Reemplaza a "Nuevo scope"</span>
+                                </div>
+                            </label>
+                        )}
+                    </div>
+                    {!canDoNewScope && formData.flow && !excludeTypes.includes('Nuevo alcance') && (
+                        <div className="text-xs text-gray-500 mt-1">
+                            * Requiere un Design Critic previo en este flujo.
+                        </div>
+                    )}
+                </div>
+            )}
+
             <style jsx>{`
+                .fade-in-up {
+                    animation: fadeInUp 0.3s ease-out;
+                }
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
                 .radio-group-container {
                     display: flex;
                     gap: 12px;
@@ -402,65 +470,7 @@ function CreateCriticsSession({
 
 
 
-            {/* AUTOMATIC HAPPY PATHS SECTION */}
-            <div className="form-group p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                {/* Status: No ticket selected - Instructions removed as requested */}
 
-                {/* Status: Detecting Link */}
-                {detectingLink && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <span className="animate-spin">⏳</span>
-                        Buscando link de Figma en Jira...
-                    </div>
-                )}
-
-                {/* Status: Error finding link */}
-                {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
-                    <div className="text-sm text-gray-400 p-3 rounded-md flex flex-col gap-1" style={{ border: '1px solid #64748B' }}>
-                        <div className="flex items-center gap-2 text-amber-500 font-medium">
-                            <span>⚠️</span> Falta el link de Figma
-                        </div>
-                        <div className="text-xs opacity-80">
-                            Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
-                        </div>
-                    </div>
-                )}
-
-                {/* Status: Link Found & Loading Paths */}
-                {formData.figmaLink && (
-                    <>
-                        {/* Hidden URL display as requested */}
-
-                        {loadingHappyPaths ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <span className="animate-spin">🔄</span>
-                                Cargando Happy Paths desde Figma...
-                            </div>
-                        ) : happyPaths.length > 0 ? (
-                            <div className="search-animation">
-                                <label className="form-label text-sm text-green-700">✅ Selecciona un Happy Path:</label>
-                                <select
-                                    className="form-select border-green-300 bg-green-50"
-                                    onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
-                                    value={formData.flow}
-                                >
-                                    <option value="">-- Seleccionar --</option>
-                                    {happyPaths.map(hp => (
-                                        <option key={hp.id} value={hp.name}>
-                                            {hp.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        ) : (
-                            <div className="text-sm text-red-500">
-                                ❌ No se encontraron Happy Paths (Frames que empiecen con "HP-").
-                                <button type="button" onClick={refreshHappyPaths} className="ml-2 text-blue-500 underline text-xs">Reintentar</button>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
 
 
 

@@ -175,8 +175,8 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                                 date: dateStr,
                                 // Trigger Simplified Mode in Modal
                                 simplifiedMode: true,
-                                // Exclude 'Iteración DS' when adding from Dashboard (requested)
-                                excludeTypes: ['Iteración DS']
+                                // Exclude 'Iteración DS' and 'Nuevo alcance' when adding from Dashboard
+                                excludeTypes: ['Iteración DS', 'Nuevo alcance']
                             });
                         }}
                     />
