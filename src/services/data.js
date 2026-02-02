@@ -98,20 +98,22 @@ export class FirestoreDataService {
                 .orderBy('fecha_dc', 'desc')
                 .get();
 
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                timestamp: doc.data().created_at,
-                date: doc.data().fecha_dc,
-                presenter: doc.data().presentador,
-                product: doc.data().producto,
-                ticket: doc.data().ticket,
-                flow: doc.data().flujo,
-                type: doc.data().tipo,
-                descartaDate: doc.data().descarta_fecha || '',
-                notes: doc.data().notas || '',
-                status: doc.data().estado,
-                createdBy: doc.data().presentador_email
-            }));
+            return snapshot.docs
+                .map(doc => ({
+                    id: doc.id,
+                    timestamp: doc.data().created_at,
+                    date: doc.data().fecha_dc,
+                    presenter: doc.data().presentador,
+                    product: doc.data().producto,
+                    ticket: doc.data().ticket,
+                    flow: doc.data().flujo,
+                    type: doc.data().tipo,
+                    descartaDate: doc.data().descarta_fecha || '',
+                    notes: doc.data().notas || '',
+                    status: doc.data().estado,
+                    createdBy: doc.data().presentador_email
+                }))
+                .filter(item => item.status !== 'eliminado');
         } catch (error) {
             console.error('Error reading user history:', error);
             // Don't block
