@@ -291,18 +291,32 @@ function CreateCriticsSession({
                         ) : happyPaths.length > 0 ? (
                             <div className="search-animation">
                                 <label className="form-label text-sm text-green-700">✅ Selecciona un Happy Path:</label>
-                                <select
-                                    className="form-select border-green-300 bg-green-50"
-                                    onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
-                                    value={formData.flow}
-                                >
-                                    <option value="">-- Seleccionar --</option>
-                                    {happyPaths.map(hp => (
-                                        <option key={hp.id} value={hp.name}>
-                                            {hp.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                {isReadOnly('flow') && formData.flow ? (
+                                    /* Read Only Flow View */
+                                    <div className="form-select disabled" style={{
+                                        backgroundColor: 'var(--bg-active, #F3F4F6)',
+                                        color: 'var(--text-secondary, #6B7280)',
+                                        cursor: 'not-allowed',
+                                        opacity: 0.8,
+                                        border: '1px solid #D1D5DB'
+                                    }}>
+                                        {formData.flow}
+                                    </div>
+                                ) : (
+                                    /* Normal Select */
+                                    <select
+                                        className="form-select border-green-300 bg-green-50"
+                                        onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
+                                        value={formData.flow}
+                                    >
+                                        <option value="">-- Seleccionar --</option>
+                                        {happyPaths.map(hp => (
+                                            <option key={hp.id} value={hp.name}>
+                                                {hp.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         ) : (
                             <div className="text-sm text-red-500">

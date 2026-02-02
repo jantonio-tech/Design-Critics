@@ -212,6 +212,7 @@ export function TicketAccordion({
                                             product: product,
                                             flow: hp.name,
                                             type: 'Design Critic',
+                                            lockFlow: true, // Lock the flow choice
                                             figmaLink: figmaLink
                                         })}
                                     >

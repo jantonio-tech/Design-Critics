@@ -551,7 +551,7 @@ export default function App() {
                                 user={user}
                                 activeTickets={activeTickets}
                                 // If editingDC has simplifiedMode flag (passed from onQuickAdd), lock fields
-                                readOnlyFields={editingDC?.simplifiedMode ? ['ticket', 'product'] : []}
+                                readOnlyFields={editingDC?.simplifiedMode ? (editingDC.lockFlow ? ['ticket', 'product', 'flow'] : ['ticket', 'product']) : []}
                                 // Pass down excludeTypes (e.g., from Dashboard)
                                 excludeTypes={editingDC?.excludeTypes || []}
                             />
