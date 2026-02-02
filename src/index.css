@@ -1017,27 +1017,29 @@ tbody tr {
     padding: 12px 16px;
 }
 
-/* Untitled UI Alert Modal Styles */
+/* Confirm Modal Specifics */
+.confirm-modal-body {
+    text-align: center;
+    padding: 32px 24px;
+}
+
 .confirm-modal-icon {
     width: 48px;
     height: 48px;
     border-radius: 50%;
     background-color: #FEE2E2;
-    /* Rojo suave fondo */
-    border: 8px solid #FEF2F2;
-    /* Borde más suave */
     color: #DC2626;
-    /* Rojo icono */
+    border: 8px solid #FEF2F2;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
+    margin: 0 auto 20px;
 }
 
 .confirm-modal-title {
     font-size: 18px;
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-main);
     margin-bottom: 8px;
 }
 
@@ -1045,6 +1047,7 @@ tbody tr {
     color: var(--text-secondary);
     margin-bottom: 24px;
     font-size: 14px;
+    line-height: 1.5;
 }
 
 .confirm-modal-actions {
