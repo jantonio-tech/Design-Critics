@@ -265,9 +265,11 @@ function CreateCriticsSession({
 
                 {/* Status: Error finding link */}
                 {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
-                    <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
-                        ⚠️ <strong>Falta el link de Figma.</strong>
-                        <div className="mt-1">
+                    <div className="text-sm text-gray-400 p-3 rounded-md border border-gray-600/50 flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-amber-500 font-medium">
+                            <span>⚠️</span> Falta el link de Figma
+                        </div>
+                        <div className="text-xs opacity-80">
                             Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
                         </div>
                     </div>
