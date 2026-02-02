@@ -221,6 +221,9 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
     };
 
     const weekDays = getWeekDays();
+    const startOfWeek = weekDays[0];
+    const monthYear = startOfWeek.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const capitalizedMonthYear = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
 
     const handleCellClick = (date) => {
         const dateStr = date.toISOString().split('T')[0];
@@ -229,41 +232,56 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC,
         setModalOpen(true);
     };
 
+    const isToday = (date) => {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
+    };
+
     return (
-        <div className="container">
-            <div className="page-header">
-                <h1>Calendario Semanal</h1>
-                <div className="week-nav">
-                    <button onClick={() => setWeekOffset(w => w - 1)} className="week-nav-btn">←</button>
-                    <span className="week-nav-range">Semana {weekOffset === 0 ? 'Actual' : weekOffset}</span>
-                    <button onClick={() => setWeekOffset(w => w + 1)} className="week-nav-btn">→</button>
+        <div className="container" style={{ maxWidth: '100%', padding: '0 24px' }}>
+            <div className="calendar-header-bar">
+                <div className="calendar-nav-group">
+                    <h1 style={{ fontSize: '22px', fontWeight: 600, marginRight: '24px' }}>Calendario</h1>
+                    <button className="btn btn-secondary nav-today-btn" onClick={() => setWeekOffset(0)}>Hoy</button>
+                    <div className="nav-arrows">
+                        <button onClick={() => setWeekOffset(w => w - 1)} className="icon-btn nav-arrow">‹</button>
+                        <button onClick={() => setWeekOffset(w => w + 1)} className="icon-btn nav-arrow">›</button>
+                    </div>
+                    <span className="current-month-label">{capitalizedMonthYear}</span>
                 </div>
             </div>
 
-            <div className="calendar-grid">
+            <div className="calendar-grid gcal-grid">
                 {weekDays.map((date, i) => {
                     const dateStr = date.toISOString().split('T')[0];
                     const dayDCs = dcs.filter(d => d.date === dateStr);
+                    const today = isToday(date);
+
                     return (
-                        <div key={i} className="day-card">
-                            <div className="day-header">
-                                <div>{date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}</div>
-                                <button className="add-btn" style={{ width: 'auto', padding: '4px 8px' }} onClick={() => handleCellClick(date)}>+</button>
+                        <div key={i} className={`day-column ${today ? 'is-today' : ''}`}>
+                            <div className="day-header-gcal">
+                                <div className="day-name">{date.toLocaleDateString('es-ES', { weekday: 'short' }).toUpperCase().replace('.', '')}</div>
+                                <div className={`day-number ${today ? 'today-circle' : ''}`}>
+                                    {date.getDate()}
+                                </div>
                             </div>
-                            <div className="dc-list">
+                            <div className="day-body" onClick={() => handleCellClick(date)}>
+                                {/* Invisible fill to make empty space clickable */}
                                 {dayDCs.map(dc => (
-                                    <div key={dc.id} className="dc-card">
-                                        <div className="dc-header">
-                                            <span className="table-badge table-badge-blue">{dc.type}</span>
-                                            <span className="dc-ticket">{dc.ticket}</span>
+                                    <div key={dc.id} className="dc-card-gcal" onClick={(e) => { e.stopPropagation(); /* prevent triggering add */ }}>
+                                        <div className="dc-card-stripe" style={{ background: dc.type === 'Design Critic' ? '#0ea5e9' : '#6366f1' }}></div>
+                                        <div className="dc-card-content">
+                                            <div className="dc-gcal-title">{dc.flow || 'Sin título'}</div>
+                                            <div className="dc-gcal-time">{dc.ticket}</div>
+                                            {dc.createdBy === user.email && (
+                                                <div className="dc-gcal-actions">
+                                                    <button className="tiny-btn" onClick={() => { setEditingDC(dc); setModalOpen(true); }}>✎</button>
+                                                    <button className="tiny-btn" onClick={() => onDeleteDC(dc.id)}>&times;</button>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="dc-flow">{dc.flow}</div>
-                                        {dc.createdBy === user.email && (
-                                            <div className="dc-actions" style={{ opacity: 1, position: 'relative', top: 0, right: 0, marginTop: '8px' }}>
-                                                <button className="icon-btn" onClick={() => { setEditingDC(dc); setModalOpen(true); }}>✏️</button>
-                                                <button className="icon-btn icon-btn-delete" onClick={() => onDeleteDC(dc.id)}>🗑️</button>
-                                            </div>
-                                        )}
                                     </div>
                                 ))}
                             </div>

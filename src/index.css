@@ -1286,3 +1286,203 @@ tr:hover td {
         font-size: 14px;
     }
 }
+
+/* Google Calendar Style Overrides */
+
+.calendar-header-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.calendar-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav-today-btn {
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+.nav-arrows {
+    display: flex;
+    gap: 4px;
+}
+
+.nav-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-arrow:hover {
+    background: var(--bg-hover);
+}
+
+.current-month-label {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+/* Grid Layout */
+.gcal-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-left: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-card);
+    min-height: 600px;
+}
+
+@media (max-width: 768px) {
+    .gcal-grid {
+        grid-template-columns: 1fr;
+        /* Stack on mobile */
+    }
+}
+
+.day-column {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.day-column.is-today {
+    background-color: rgba(66, 133, 244, 0.04);
+    /* GCal subtle blue tint */
+}
+
+.day-header-gcal {
+    text-align: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+    /* allow column bg to show */
+}
+
+.day-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+.day-number {
+    font-size: 24px;
+    width: 46px;
+    height: 46px;
+    line-height: 46px;
+    margin: 0 auto;
+    border-radius: 50%;
+    color: var(--text-main);
+}
+
+.day-number.today-circle {
+    background: var(--primary);
+    color: white;
+}
+
+.day-body {
+    flex: 1;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-height: 100px;
+    /* clickable area */
+}
+
+.day-body:hover {
+    background: var(--bg-hover);
+    /* subtle hover effect */
+}
+
+/* Event Cards */
+.dc-card-gcal {
+    background: var(--bg-card);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: flex;
+    gap: 8px;
+}
+
+.dc-card-gcal:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.dc-card-stripe {
+    width: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.dc-card-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.dc-gcal-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.dc-gcal-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.dc-gcal-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: none;
+    gap: 2px;
+}
+
+.dc-card-gcal:hover .dc-gcal-actions {
+    display: flex;
+}
+
+.tiny-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.tiny-btn:hover {
+    background: var(--bg-hover);
+    color: var(--primary);
+}
