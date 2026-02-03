@@ -131,27 +131,27 @@ export function TicketAccordion({
                 </h3>
 
                 {/* Progress Section */}
-                <div className="mt-3 space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="font-medium">
-                            {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
-                        </span>
-                        {happyPaths.length > 0 && (
+                {happyPaths.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                            <span className="font-medium">
+                                {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
+                            </span>
                             <span>({happyPaths.length} HPs)</span>
+                        </div>
+                        {maxCritics > 0 && (
+                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div
+                                    className={cn(
+                                        "h-full rounded-full transition-all duration-500",
+                                        progressPercent >= 100 ? "bg-green-500" : "bg-primary"
+                                    )}
+                                    style={{ width: `${progressPercent}%` }}
+                                />
+                            </div>
                         )}
                     </div>
-                    {maxCritics > 0 && (
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className={cn(
-                                    "h-full rounded-full transition-all duration-500",
-                                    progressPercent >= 100 ? "bg-green-500" : "bg-primary"
-                                )}
-                                style={{ width: `${progressPercent}%` }}
-                            />
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Quick Schedule CTA (Collapsed only) */}
                 {!expanded && (
