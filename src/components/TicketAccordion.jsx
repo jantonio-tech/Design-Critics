@@ -15,7 +15,7 @@ export function TicketAccordion({
     const [expanded, setExpanded] = useState(false);
     const [figmaLink, setFigmaLink] = useState(null);
 
-    const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
+    const { happyPaths, loading: loadingHPs, error: errorHPs, hasLoaded } = useHappyPaths(figmaLink);
 
     // Calculate progress with "Nuevo alcance" reset logic
     const { validFlowCounts, totalCriticsDone } = React.useMemo(() => {
