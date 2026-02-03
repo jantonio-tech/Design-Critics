@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useHappyPaths } from '../hooks/useHappyPaths';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const PRODUCTS = ['PGH', 'Recadia', 'Cambio Seguro', 'Factoring', 'Gestora', 'Transversal', 'Web Pública'];
 const TYPES = ['Design Critic', 'Iteración DS', 'Nuevo scope'];
@@ -10,11 +14,11 @@ function CreateCriticsSession({
     initialData,
     user,
     activeTickets = [],
-    sessions = [],       // New prop for history check
-    readOnlyFields = [], // Prop for Simplified Mode
-    excludeTypes = []    // Prop to filter specific types
+    sessions = [],
+    readOnlyFields = [],
+    excludeTypes = []
 }) {
-    const props = { readOnlyFields }; // Access wrapper for helper function
+    const props = { readOnlyFields };
     const [formData, setFormData] = useState({
         product: '',
         ticket: '',
@@ -25,21 +29,17 @@ function CreateCriticsSession({
     });
 
     const isReadOnly = (field) => {
-        // Check if we are in "Simplified Mode" via props (readOnlyFields)
-        // usage: <CreateCriticsSession readOnlyFields={['ticket', 'product']} ... />
         return props.readOnlyFields && props.readOnlyFields.includes(field);
     };
 
     const [detectingLink, setDetectingLink] = useState(false);
     const [linkError, setLinkError] = useState(null);
 
-    // Initial Data Load & Auto-Detect Logic
     useEffect(() => {
         if (initialData) {
             const ticketKey = initialData.ticket || '';
-            let product = initialData.product || ''; // Allow empty default if simplified mode passing it
+            let product = initialData.product || '';
 
-            // If product is missing but ticket exists, try to detect
             if (!product && ticketKey && activeTickets.length > 0) {
                 const selectedTicket = activeTickets.find(t => t.key === ticketKey);
                 if (selectedTicket) {
@@ -58,7 +58,6 @@ function CreateCriticsSession({
                 }
             }
 
-            // Fallback for standalone usage
             if (!product) product = 'PGH';
 
             setFormData({
@@ -70,20 +69,12 @@ function CreateCriticsSession({
                 figmaLink: initialData.figmaLink || ''
             });
 
-            // If link is provided directly (e.g. from Accordion), use it!
-            if (initialData.figmaLink) {
-                // No need to fetch, just use it. 
-                // We might want to trigger happy path loading immediately though.
-            }
-            // Trigger link fetch if needed (simulating selection)
-            else if (ticketKey && ticketKey.includes('-')) {
-                // We need to fetch the link. 
+            if (!initialData.figmaLink && ticketKey && ticketKey.includes('-')) {
                 fetchFigmaLink(ticketKey);
             }
         }
     }, [initialData, activeTickets]);
 
-    // Helper to fetch link (extracted from handleTicketChange)
     const fetchFigmaLink = async (key) => {
         setDetectingLink(true);
         setLinkError(null);
@@ -112,16 +103,10 @@ function CreateCriticsSession({
         }
     };
 
-
-    // Happy Paths Hook
     const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths, hasLoaded } = useHappyPaths(formData.figmaLink);
 
-    // Filter tickets logic
-    // Logic to Enable "Nuevo alcance"
     const canDoNewScope = React.useMemo(() => {
         if (!formData.ticket || !formData.flow) return false;
-        // Check if there is at least one 'Design Critic' session for this ticket + flow
-        // Note: sessions prop must be passed from parent
         return sessions.some(s =>
             s.ticket === formData.ticket &&
             s.flow === formData.flow &&
@@ -129,7 +114,6 @@ function CreateCriticsSession({
         );
     }, [sessions, formData.ticket, formData.flow]);
 
-    // Effect to reset type if "Nuevo alcance" becomes invalid
     useEffect(() => {
         if (formData.type === 'Nuevo alcance' && !canDoNewScope) {
             setFormData(prev => ({ ...prev, type: 'Design Critic' }));
@@ -152,8 +136,6 @@ function CreateCriticsSession({
 
     const handleTicketChange = async (e) => {
         const selectedKey = e.target.value;
-
-        // 1. Detect Product from Ticket Summary locally (fast)
         const selectedTicket = activeTickets.find(t => t.key === selectedKey);
         let detectedProduct = formData.product;
 
@@ -176,11 +158,10 @@ function CreateCriticsSession({
             ...prev,
             ticket: selectedKey,
             product: detectedProduct,
-            figmaLink: '',   // Reset link
-            flow: ''         // Reset flow
+            figmaLink: '',
+            flow: ''
         }));
 
-        // 2. Auto-fetch Figma Link from Jira (Async)
         if (selectedKey && selectedKey.includes('-')) {
             setDetectingLink(true);
             setLinkError(null);
@@ -217,94 +198,76 @@ function CreateCriticsSession({
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Producto y Ticket */}
-            {/* Ticket Jira - Moved to Top */}
-            <div className="form-group">
-                <label className="form-label required">Ticket de Jira</label>
+            {/* Ticket Jira */}
+            <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                    Ticket de Jira <span className="text-destructive">*</span>
+                </Label>
 
                 {isReadOnly('ticket') && formData.ticket ? (
-                    // Read-only View (Styled like Disabled Select)
-                    <div className="form-select disabled" style={{
-                        backgroundColor: 'var(--bg-active)',
-                        color: 'var(--text-secondary)',
-                        cursor: 'not-allowed',
-                        opacity: 0.7,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                    }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
+                        <span className="truncate">
                             {formData.ticket} - {activeTickets.find(t => t.key === formData.ticket)?.summary}
                         </span>
                     </div>
                 ) : (
-                    // Normal Select View
-                    <div style={{ position: 'relative' }}>
-                        <select
-                            name="ticket"
-                            className="form-select"
-                            value={formData.ticket}
-                            onChange={handleTicketChange}
-                            required
-                        >
-                            <option value="">-- Seleccionar ticket --</option>
-                            {filteredTickets.map(t => (
-                                <option key={t.key} value={t.key}>
-                                    {t.summary}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        name="ticket"
+                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
+                        value={formData.ticket}
+                        onChange={handleTicketChange}
+                        required
+                    >
+                        <option value="">-- Seleccionar ticket --</option>
+                        {filteredTickets.map(t => (
+                            <option key={t.key} value={t.key}>
+                                {t.summary}
+                            </option>
+                        ))}
+                    </select>
                 )}
             </div>
 
-            {/* AUTOMATIC HAPPY PATHS SECTION - MOVED UP */}
-            <div className="form-group">
-                {/* Status: Detecting Link */}
+            {/* Automatic Happy Paths Section */}
+            <div className="space-y-2">
                 {detectingLink && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <span className="animate-spin">⏳</span>
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Buscando link de Figma en Jira...
                     </div>
                 )}
 
-                {/* Status: Error finding link */}
                 {!detectingLink && linkError && formData.ticket && !formData.figmaLink && (
-                    <div className="text-sm text-gray-400 p-3 rounded-md flex flex-col gap-1" style={{ border: '1px solid #64748B' }}>
-                        <div className="flex items-center gap-2 text-amber-500 font-medium">
-                            <span>⚠️</span> Falta el link de Figma
+                    <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1">
+                        <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
+                            <AlertTriangle className="h-4 w-4" />
+                            Falta el link de Figma
                         </div>
-                        <div className="text-xs opacity-80">
+                        <p className="text-xs text-muted-foreground">
                             Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
-                        </div>
+                        </p>
                     </div>
                 )}
 
-                {/* Status: Link Found & Loading Paths */}
                 {formData.figmaLink && (
                     <>
                         {loadingHappyPaths || !hasLoaded ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <span className="animate-spin">🔄</span>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 Cargando Happy Paths desde Figma...
                             </div>
                         ) : happyPaths.length > 0 ? (
-                            <div className="search-animation">
-                                <label className="form-label required">Happy Path</label>
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label className="text-sm font-medium">
+                                    Happy Path <span className="text-destructive">*</span>
+                                </Label>
                                 {isReadOnly('flow') && formData.flow ? (
-                                    /* Read Only Flow View */
-                                    <div className="form-select disabled" style={{
-                                        backgroundColor: 'var(--bg-active)',
-                                        color: 'var(--text-secondary)',
-                                        cursor: 'not-allowed',
-                                        opacity: 0.7
-                                    }}>
+                                    <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
                                         {formData.flow}
                                     </div>
                                 ) : (
-                                    /* Normal Select */
                                     <select
-                                        className="form-select"
+                                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
                                         onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
                                         value={formData.flow}
                                     >
@@ -318,179 +281,115 @@ function CreateCriticsSession({
                                 )}
                             </div>
                         ) : (
-                            <div className="text-sm text-red-500">
+                            <div className="flex items-center gap-2 text-sm text-destructive">
                                 ❌ No se encontraron Happy Paths (Frames que empiecen con "HP-").
-                                <button type="button" onClick={refreshHappyPaths} className="ml-2 text-blue-500 underline text-xs">Reintentar</button>
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    onClick={refreshHappyPaths}
+                                    className="h-auto p-0 text-xs"
+                                >
+                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                    Reintentar
+                                </Button>
                             </div>
                         )}
                     </>
                 )}
             </div>
 
-            {/* Tipo - Replaced with Radio Buttons */}
-            {/* Show only if Flow is selected */}
+            {/* Session Type - Radio Cards */}
             {formData.flow && (
-                <div className="form-group fade-in-up">
-                    <label className="form-label required">Tipo de sesión</label>
-                    <div className="radio-group-container">
-                        <label className={`radio-card ${formData.type === 'Design Critic' ? 'selected' : ''}`}>
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Label className="text-sm font-medium">
+                        Tipo de sesión <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <label
+                            className={cn(
+                                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                formData.type === 'Design Critic'
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                    : "border-input hover:bg-muted"
+                            )}
+                        >
                             <input
                                 type="radio"
                                 name="type"
                                 value="Design Critic"
                                 checked={formData.type === 'Design Critic'}
                                 onChange={handleChange}
+                                className="h-4 w-4 text-primary accent-primary"
                             />
-                            <div className="radio-content">
-                                <span className="radio-title">Design Critic</span>
-                                <span className="radio-desc">Primera revisión del flujo</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium">Design Critic</span>
+                                <span className="text-xs text-muted-foreground">Primera revisión del flujo</span>
                             </div>
                         </label>
 
                         {!excludeTypes.includes('Iteración DS') && (
-                            <label className={`radio-card ${formData.type === 'Iteración DS' ? 'selected' : ''}`}>
+                            <label
+                                className={cn(
+                                    "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                    formData.type === 'Iteración DS'
+                                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                        : "border-input hover:bg-muted"
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     name="type"
                                     value="Iteración DS"
                                     checked={formData.type === 'Iteración DS'}
                                     onChange={handleChange}
+                                    className="h-4 w-4 text-primary accent-primary"
                                 />
-                                <div className="radio-content">
-                                    <span className="radio-title">Iteración DS</span>
-                                    <span className="radio-desc">Revisión de cambios</span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Iteración DS</span>
+                                    <span className="text-xs text-muted-foreground">Revisión de cambios</span>
                                 </div>
                             </label>
                         )}
 
                         {!excludeTypes.includes('Nuevo alcance') && canDoNewScope && (
-                            <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''}`}>
+                            <label
+                                className={cn(
+                                    "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                    formData.type === 'Nuevo alcance'
+                                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                        : "border-input hover:bg-muted"
+                                )}
+                            >
                                 <input
                                     type="radio"
                                     name="type"
                                     value="Nuevo alcance"
                                     checked={formData.type === 'Nuevo alcance'}
                                     onChange={handleChange}
+                                    className="h-4 w-4 text-primary accent-primary"
                                 />
-                                <div className="radio-content">
-                                    <span className="radio-title">Nuevo alcance</span>
-                                    <span className="radio-desc">Reemplaza a "Nuevo scope"</span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Nuevo alcance</span>
+                                    <span className="text-xs text-muted-foreground">Reemplaza a "Nuevo scope"</span>
                                 </div>
                             </label>
                         )}
                     </div>
-                    {/* Helper text removed as button is now hidden if unavailable */}
                 </div>
             )}
 
-            <style jsx>{`
-                .fade-in-up {
-                    animation: fadeInUp 0.3s ease-out;
-                }
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .radio-group-container {
-                    display: flex;
-                    gap: 12px;
-                }
-                .radio-card {
-                    flex: 1;
-                    display: flex;
-                    align-items: center; /* Vertical center alignment */
-                    gap: 10px;          /* Match design spacing */
-                    padding: 12px;
-                    border: 1px solid #E5E7EB;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    position: relative;
-                }
-                .radio-card:hover:not(.disabled) {
-                    background: #F9FAFB;
-                    border-color: #D1D5DB;
-                }
-                .radio-card.selected {
-                    border-color: #2563EB;
-                    background: #EFF6FF;
-                    box-shadow: 0 0 0 1px #2563EB;
-                }
-                .radio-card.disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    background: #F3F4F6;
-                }
-                /* Hide default radio but keep accessible? Or style it? */
-                /* Let's keep specific style for radio input if needed, or simple */
-                .radio-card input {
-                    margin: 0;
-                    width: 16px;
-                    height: 16px;
-                    accent-color: #2563EB;
-                }
-                .radio-content {
-                    display: flex;
-                    flex-direction: column;
-                }
-                .radio-title {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: #111827;
-                }
-                .radio-desc {
-                    font-size: 12px;
-                    color: #6B7280;
-                }
-                .radio-card.disabled .radio-title,
-                .radio-card.disabled .radio-desc {
-                     color: #9CA3AF;
-                }
-
-                /* Dark Mode Support */
-                html[data-theme="dark"] .radio-card {
-                    border-color: #374151;
-                    background: #1F2937;
-                }
-                html[data-theme="dark"] .radio-card:hover:not(.disabled) {
-                    background: #374151;
-                    border-color: #4B5563;
-                }
-                html[data-theme="dark"] .radio-card.selected {
-                    background: rgba(37, 99, 235, 0.2);
-                    border-color: #3B82F6;
-                }
-                html[data-theme="dark"] .radio-card.disabled {
-                    background: #0F172A; /* Darker than card */
-                    border-color: #1E293B;
-                    opacity: 0.6;
-                }
-                html[data-theme="dark"] .radio-title { color: #F3F4F6; }
-                html[data-theme="dark"] .radio-desc { color: #9CA3AF; }
-                
-                html[data-theme="dark"] .radio-card.disabled .radio-title,
-                html[data-theme="dark"] .radio-card.disabled .radio-desc {
-                    color: #4B5563;
-                }
-            `}</style>
-
-            {/* Product Label Removed as requested */}
-
-
-
-
-
-
-
-
-
-            <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onClose}>
+            {/* Footer Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={onClose}>
                     Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={detectingLink || !formData.ticket || !formData.flow || !formData.type}>
+                </Button>
+                <Button
+                    type="submit"
+                    disabled={detectingLink || !formData.ticket || !formData.flow || !formData.type}
+                >
                     {initialData?.id ? 'Guardar Cambios' : 'Agendar'}
-                </button>
+                </Button>
             </div>
         </form>
     );
