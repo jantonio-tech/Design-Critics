@@ -152,7 +152,8 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
         targetDate.setDate(today.getDate() + 1);
     }
 
-    const dateStr = targetDate.toISOString().split('T')[0];
+    // Fix: Use local date to prevent timezone shifts (e.g. UTC-5 becoming next day in UTC)
+    const dateStr = targetDate.toLocaleDateString('en-CA'); // Return YYYY-MM-DD in local time
 
     return (
         <div className="container">
