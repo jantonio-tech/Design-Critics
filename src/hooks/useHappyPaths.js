@@ -23,8 +23,8 @@ export function useHappyPaths(figmaLink) {
             return;
         }
 
+        let loadedFromCache = false;
         try {
-            let loadedFromCache = false;
             setError(null);
 
             // ESTRATEGIA: Stale-While-Revalidate
