@@ -259,7 +259,7 @@ function CreateCriticsSession({
             </div>
 
             {/* AUTOMATIC HAPPY PATHS SECTION - MOVED UP */}
-            <div className="form-group p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="form-group">
                 {/* Status: Detecting Link */}
                 {detectingLink && (
                     <div className="flex items-center gap-2 text-sm text-blue-600">
@@ -290,22 +290,21 @@ function CreateCriticsSession({
                             </div>
                         ) : happyPaths.length > 0 ? (
                             <div className="search-animation">
-                                <label className="form-label text-sm text-green-700">✅ Selecciona un Happy Path:</label>
+                                <label className="form-label required">Happy Path</label>
                                 {isReadOnly('flow') && formData.flow ? (
                                     /* Read Only Flow View */
                                     <div className="form-select disabled" style={{
-                                        backgroundColor: 'var(--bg-active, #F3F4F6)',
-                                        color: 'var(--text-secondary, #6B7280)',
+                                        backgroundColor: 'var(--bg-active)',
+                                        color: 'var(--text-secondary)',
                                         cursor: 'not-allowed',
-                                        opacity: 0.8,
-                                        border: '1px solid #D1D5DB'
+                                        opacity: 0.7
                                     }}>
                                         {formData.flow}
                                     </div>
                                 ) : (
                                     /* Normal Select */
                                     <select
-                                        className="form-select border-green-300 bg-green-50"
+                                        className="form-select"
                                         onChange={(e) => setFormData(prev => ({ ...prev, flow: e.target.value }))}
                                         value={formData.flow}
                                     >

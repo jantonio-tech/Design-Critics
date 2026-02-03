@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getHappyPathsFromUrl } from '../utils/figma';
+import { getHappyPathsFromUrl, getCachedHappyPaths } from '../utils/figma';
 
 /**
  * Hook personalizado para obtener Happy Paths de un ticket
@@ -23,16 +23,41 @@ export function useHappyPaths(figmaLink) {
         }
 
         try {
-            setLoading(true);
+            let loadedFromCache = false;
             setError(null);
 
+            // ESTRATEGIA: Stale-While-Revalidate
+            // 1. Si no es refresh forzado, intentar mostrar caché INMEDIATAMENTE
+            if (!forceRefresh) {
+                const cachedPaths = await getCachedHappyPaths(figmaLink);
+                if (cachedPaths && cachedPaths.length > 0) {
+                    console.log('⚡ Cache hit (Instant Load)');
+                    setHappyPaths(cachedPaths);
+                    setLoading(false); // Ya tenemos datos, no mostramos spinner
+                    loadedFromCache = true;
+                } else {
+                    setLoading(true); // No hay caché, mostrar spinner
+                }
+            } else {
+                setLoading(true);
+            }
+
+            // 2. Sincronizar con Figma en background (o foreground si no había caché)
+            // Esto verificará metadata y descargará solo si cambió
             const paths = await getHappyPathsFromUrl(figmaLink, forceRefresh);
+
+            // Actualizar estado con la versión más reciente
             setHappyPaths(paths);
 
         } catch (err) {
             console.error('Error loading happy paths:', err);
+            // Si ya mostramos caché, el error de red es menos crítico para el usuario,
+            // pero igual lo guardamos por si queremos mostrar un warning.
+            // Si NO mostramos caché, esto mostrará el error en la UI.
             setError(err.message);
-            setHappyPaths([]);
+            if (!loadedFromCache && happyPaths.length === 0) {
+                setHappyPaths([]);
+            }
 
         } finally {
             setLoading(false);

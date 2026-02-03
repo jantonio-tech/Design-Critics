@@ -298,6 +298,27 @@ async function saveCachedData(fileKey, data) {
 // I will export a function that accepts `figmaLink` directly as well, to be flexible.
 
 /**
+ * Intenta obtener Happy Paths del caché local (sin consulta a API Figma)
+ * Útil para la carga instantánea (Stale-While-Revalidate)
+ */
+export async function getCachedHappyPaths(figmaLink) {
+    const fileKey = extractFileKey(figmaLink);
+    if (!fileKey) return null;
+
+    const CACHE_SCHEMA_VERSION = 'v8';
+
+    try {
+        const cached = await getCachedData(fileKey);
+        if (cached && cached.schemaVersion === CACHE_SCHEMA_VERSION) {
+            return cached.happyPaths;
+        }
+    } catch (e) {
+        console.warn('Error reading cache:', e);
+    }
+    return null;
+}
+
+/**
  * Obtiene Happy Paths usando una URL de Figma Directamente
  */
 export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
