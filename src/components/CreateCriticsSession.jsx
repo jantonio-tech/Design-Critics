@@ -114,7 +114,7 @@ function CreateCriticsSession({
 
 
     // Happy Paths Hook
-    const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths } = useHappyPaths(formData.figmaLink);
+    const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths, hasLoaded } = useHappyPaths(formData.figmaLink);
 
     // Filter tickets logic
     // Logic to Enable "Nuevo alcance"
@@ -283,7 +283,7 @@ function CreateCriticsSession({
                 {/* Status: Link Found & Loading Paths */}
                 {formData.figmaLink && (
                     <>
-                        {loadingHappyPaths ? (
+                        {loadingHappyPaths || !hasLoaded ? (
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <span className="animate-spin">🔄</span>
                                 Cargando Happy Paths desde Figma...

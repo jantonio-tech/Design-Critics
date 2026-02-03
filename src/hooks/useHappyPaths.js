@@ -15,6 +15,7 @@ export function useHappyPaths(figmaLink) {
     const [happyPaths, setHappyPaths] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [hasLoaded, setHasLoaded] = useState(false);
 
     const loadHappyPaths = useCallback(async (forceRefresh = false) => {
         if (!figmaLink) {
@@ -35,6 +36,7 @@ export function useHappyPaths(figmaLink) {
                     setHappyPaths(cachedPaths);
                     setLoading(false); // Ya tenemos datos, no mostramos spinner
                     loadedFromCache = true;
+                    setHasLoaded(true);
                 } else {
                     setLoading(true); // No hay caché, mostrar spinner
                 }
@@ -61,6 +63,7 @@ export function useHappyPaths(figmaLink) {
 
         } finally {
             setLoading(false);
+            setHasLoaded(true);
         }
     }, [figmaLink]);
 
@@ -68,6 +71,7 @@ export function useHappyPaths(figmaLink) {
     // Solo si el link parece valido para evitar loops con strings vacios
     useEffect(() => {
         if (figmaLink) {
+            setHasLoaded(false);
             loadHappyPaths(false);
         }
     }, [loadHappyPaths, figmaLink]);
@@ -77,5 +81,5 @@ export function useHappyPaths(figmaLink) {
         return loadHappyPaths(true);
     }, [loadHappyPaths]);
 
-    return { happyPaths, loading, error, refresh };
+    return { happyPaths, loading, error, refresh, hasLoaded };
 }
