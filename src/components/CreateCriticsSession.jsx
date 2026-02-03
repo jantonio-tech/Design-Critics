@@ -363,15 +363,14 @@ function CreateCriticsSession({
                             </label>
                         )}
 
-                        {!excludeTypes.includes('Nuevo alcance') && (
-                            <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''} ${!canDoNewScope ? 'disabled' : ''}`}>
+                        {!excludeTypes.includes('Nuevo alcance') && canDoNewScope && (
+                            <label className={`radio-card ${formData.type === 'Nuevo alcance' ? 'selected' : ''}`}>
                                 <input
                                     type="radio"
                                     name="type"
                                     value="Nuevo alcance"
                                     checked={formData.type === 'Nuevo alcance'}
                                     onChange={handleChange}
-                                    disabled={!canDoNewScope}
                                 />
                                 <div className="radio-content">
                                     <span className="radio-title">Nuevo alcance</span>
@@ -380,11 +379,7 @@ function CreateCriticsSession({
                             </label>
                         )}
                     </div>
-                    {!canDoNewScope && formData.flow && !excludeTypes.includes('Nuevo alcance') && (
-                        <div className="text-xs text-gray-500 mt-1">
-                            * Requiere un Design Critic previo en este flujo.
-                        </div>
-                    )}
+                    {/* Helper text removed as button is now hidden if unavailable */}
                 </div>
             )}
 
