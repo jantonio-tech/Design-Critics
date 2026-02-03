@@ -132,6 +132,8 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
+import { TicketSkeleton } from './components/skeletons/TicketSkeleton';
+
 const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
     const today = new Date();
     const day = today.getDay();
@@ -153,27 +155,38 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
             </div>
 
             <div className="dashboard-grid">
-                {activeTickets.length === 0 ? (
+                {activeTickets === null ? (
+                    // Loading State: Show Skeletons
+                    <>
+                        <TicketSkeleton />
+                        <TicketSkeleton />
+                        <TicketSkeleton />
+                    </>
+                ) : activeTickets.length === 0 ? (
+                    // Empty State: No tickets found
                     <Card>
                         <CardContent className="p-6">
                             <p className="text-muted-foreground">No tienes tickets activos asignados.</p>
                         </CardContent>
                     </Card>
-                ) : activeTickets.map(ticket => (
-                    <TicketAccordion
-                        key={ticket.key}
-                        ticket={ticket}
-                        sessions={dcs}
-                        onSchedule={(data) => {
-                            onQuickAdd({
-                                ...data,
-                                date: dateStr,
-                                simplifiedMode: true,
-                                excludeTypes: ['Iteración DS']
-                            });
-                        }}
-                    />
-                ))}
+                ) : (
+                    // Data State: Render Tickets
+                    activeTickets.map(ticket => (
+                        <TicketAccordion
+                            key={ticket.key}
+                            ticket={ticket}
+                            sessions={dcs}
+                            onSchedule={(data) => {
+                                onQuickAdd({
+                                    ...data,
+                                    date: dateStr,
+                                    simplifiedMode: true,
+                                    excludeTypes: ['Iteración DS']
+                                });
+                            }}
+                        />
+                    ))
+                )}
             </div>
         </div>
     );
@@ -357,7 +370,7 @@ export default function App() {
     const [loginError, setLoginError] = useState(null);
     const [dataService, setDataService] = useState(null);
     const [dcs, setDcs] = useState([]);
-    const [activeTickets, setActiveTickets] = useState([]);
+    const [activeTickets, setActiveTickets] = useState(null);
     const [currentTab, setCurrentTab] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(true);
 

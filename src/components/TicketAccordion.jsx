@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TicketSkeleton } from './skeletons/TicketSkeleton';
 
 export function TicketAccordion({
     ticket,
@@ -97,6 +98,11 @@ export function TicketAccordion({
         return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
     };
 
+    // Show skeleton until EVERYTHING (including progress) is ready
+    if (loadingHPs || !hasLoaded) {
+        return <TicketSkeleton />;
+    }
+
     return (
         <Card className={cn("transition-all", expanded && "ring-1 ring-primary/20")}>
             {/* Header */}
@@ -125,27 +131,27 @@ export function TicketAccordion({
                 </h3>
 
                 {/* Progress Section */}
-                {happyPaths.length > 0 && (
-                    <div className="mt-3 space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                            <span className="font-medium">
-                                {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
-                            </span>
+                <div className="mt-3 space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span className="font-medium">
+                            {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
+                        </span>
+                        {happyPaths.length > 0 && (
                             <span>({happyPaths.length} HPs)</span>
-                        </div>
-                        {maxCritics > 0 && (
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div
-                                    className={cn(
-                                        "h-full rounded-full transition-all duration-500",
-                                        progressPercent >= 100 ? "bg-green-500" : "bg-primary"
-                                    )}
-                                    style={{ width: `${progressPercent}%` }}
-                                />
-                            </div>
                         )}
                     </div>
-                )}
+                    {maxCritics > 0 && (
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                                className={cn(
+                                    "h-full rounded-full transition-all duration-500",
+                                    progressPercent >= 100 ? "bg-green-500" : "bg-primary"
+                                )}
+                                style={{ width: `${progressPercent}%` }}
+                            />
+                        </div>
+                    )}
+                </div>
 
                 {/* Quick Schedule CTA (Collapsed only) */}
                 {!expanded && (
