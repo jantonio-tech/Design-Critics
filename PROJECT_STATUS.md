@@ -18,11 +18,6 @@ Herramienta web para gestionar y agendar "Design Critics" (revisiones de diseño
 #### ⚡ Quick Add & UX Improvements
 - **CreateCriticsSession Component**: Lógica de creación de sesiones extraída y refinada.
 - **Mejoras Visuales**: Ajustes en UX/UI de las tarjetas de sesión y manejo de estados vacíos.
-- 🎨 **Skeleton Loading**: Implementación de cargas progresivas (Skeletons) para tickets y cards, eliminando saltos de contenido.
-- 🐛 **Bug Fixes**:
-  - Solución al desbordamiento de `select` en modales.
-  - Corrección de `ReferenceError` en hooks.
-  - Ocultamiento condicional de barra de progreso en tickets sin Happy Paths detectados.
 
 ### ✅ Implementaciones Previas (v2.2)
 

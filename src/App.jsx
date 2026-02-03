@@ -132,8 +132,6 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
-import { TicketSkeleton } from './components/skeletons/TicketSkeleton';
-
 const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
     const today = new Date();
     const day = today.getDay();
@@ -156,30 +154,26 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
 
             <div className="dashboard-grid">
                 {activeTickets.length === 0 ? (
-                    // Empty State: No tickets found
                     <Card>
                         <CardContent className="p-6">
                             <p className="text-muted-foreground">No tienes tickets activos asignados.</p>
                         </CardContent>
                     </Card>
-                ) : (
-                    // Data State: Render Tickets
-                    activeTickets.map(ticket => (
-                        <TicketAccordion
-                            key={ticket.key}
-                            ticket={ticket}
-                            sessions={dcs}
-                            onSchedule={(data) => {
-                                onQuickAdd({
-                                    ...data,
-                                    date: dateStr,
-                                    simplifiedMode: true,
-                                    excludeTypes: ['Iteración DS']
-                                });
-                            }}
-                        />
-                    ))
-                )}
+                ) : activeTickets.map(ticket => (
+                    <TicketAccordion
+                        key={ticket.key}
+                        ticket={ticket}
+                        sessions={dcs}
+                        onSchedule={(data) => {
+                            onQuickAdd({
+                                ...data,
+                                date: dateStr,
+                                simplifiedMode: true,
+                                excludeTypes: ['Iteración DS']
+                            });
+                        }}
+                    />
+                ))}
             </div>
         </div>
     );
