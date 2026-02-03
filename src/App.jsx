@@ -155,14 +155,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
             </div>
 
             <div className="dashboard-grid">
-                {activeTickets === null ? (
-                    // Loading State: Show Skeletons
-                    <>
-                        <TicketSkeleton />
-                        <TicketSkeleton />
-                        <TicketSkeleton />
-                    </>
-                ) : activeTickets.length === 0 ? (
+                {activeTickets.length === 0 ? (
                     // Empty State: No tickets found
                     <Card>
                         <CardContent className="p-6">
@@ -370,7 +363,7 @@ export default function App() {
     const [loginError, setLoginError] = useState(null);
     const [dataService, setDataService] = useState(null);
     const [dcs, setDcs] = useState([]);
-    const [activeTickets, setActiveTickets] = useState(null);
+    const [activeTickets, setActiveTickets] = useState([]);
     const [currentTab, setCurrentTab] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(true);
 

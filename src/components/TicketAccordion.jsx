@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TicketSkeleton } from './skeletons/TicketSkeleton';
 
 export function TicketAccordion({
     ticket,
@@ -98,10 +97,7 @@ export function TicketAccordion({
         return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
     };
 
-    // Show skeleton until EVERYTHING (including progress) is ready
-    if (loadingHPs || !hasLoaded) {
-        return <TicketSkeleton />;
-    }
+
 
     return (
         <Card className={cn("transition-all", expanded && "ring-1 ring-primary/20")}>
