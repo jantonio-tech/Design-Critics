@@ -493,7 +493,7 @@ export default function App() {
 
             <div className="container">
                 <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                    <TabsList className="mb-6">
+                    <TabsList variant="line" className="mb-6">
                         <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                         <TabsTrigger value="calendar">Calendario</TabsTrigger>
                     </TabsList>
