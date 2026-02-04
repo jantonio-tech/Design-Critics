@@ -333,10 +333,14 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
     // Cache Version to force invalidation on logic changes
     const CACHE_SCHEMA_VERSION = 'v10';
 
+    let metadata = null;
+    let cached = null;
+    let needsRefresh = forceRefresh;
+
     if (!forceRefresh) {
         try {
             // Obtener metadata y caché en paralelo para optimizar tiempo
-            const [metadata, cached] = await Promise.all([
+            [metadata, cached] = await Promise.all([
                 fetchFigmaMetadata(fileKey),
                 getCachedData(fileKey)
             ]);
@@ -350,14 +354,36 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
             }
 
             console.log('🔄 Archivo modificado o esquema antiguo, actualizando caché...');
+            needsRefresh = true;
 
         } catch (metadataError) {
-            console.warn('Error al verificar metadata, consultando Figma directamente:', metadataError);
+            // Si es un error 404, significa que el archivo no existe - lanzar inmediatamente
+            if (metadataError.message.includes('404')) {
+                console.error('❌ Archivo de Figma no encontrado (404):', fileKey);
+                throw new Error(
+                    'El archivo de Figma no existe o ha sido eliminado. ' +
+                    'Por favor, verifica que el link de Figma sea correcto.'
+                );
+            }
+
+            // Para otros errores, intentar usar caché si existe
+            console.warn('Error al verificar metadata:', metadataError.message);
+            if (cached && cached.happyPaths && cached.happyPaths.length > 0) {
+                console.log('⚠️ Usando caché existente debido a error de conexión');
+                return cached.happyPaths;
+            }
+
+            // Si no hay caché, re-lanzar el error
+            throw metadataError;
         }
     }
 
     // 3. Archivo modificado o refresh forzado: obtener contenido completo
-    const metadata = await fetchFigmaMetadata(fileKey);
+    // Si ya tenemos metadata de la verificación anterior, usarla
+    if (!metadata) {
+        metadata = await fetchFigmaMetadata(fileKey);
+    }
+
     const happyPaths = await fetchHappyPathsFromFigma(fileKey, nodeId);
 
     // 4. Guardar en caché
