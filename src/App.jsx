@@ -407,17 +407,27 @@ export default function App() {
     };
 
     const handleSaveDC = (formData) => {
+        const dateToUse = formData.date || editingDC?.date || (() => {
+            const now = new Date();
+            const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
+            // en-CA outputs YYYY-MM-DD
+            return new Intl.DateTimeFormat('en-CA', options).format(now);
+        })();
+
+        console.log('💾 handleSaveDC Executing:', {
+            formDataDate: formData.date,
+            editingDCDate: editingDC?.date,
+            calculatedDateToUse: dateToUse,
+            formData,
+            editingDC
+        });
+
         const newDC = {
             ...formData,
             createdBy: user.email,
             presenter: user.name,
             id: editingDC?.id || Date.now().toString(),
-            date: formData.date || editingDC?.date || (() => {
-                const now = new Date();
-                const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
-                // en-CA outputs YYYY-MM-DD
-                return new Intl.DateTimeFormat('en-CA', options).format(now);
-            })()
+            date: dateToUse
         };
 
         if (editingDC && editingDC.id) {
