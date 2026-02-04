@@ -307,7 +307,7 @@
 
 /* Dashboard Grid */
 .dashboard-grid {
-    @apply grid grid-cols-1 lg:grid-cols-2 gap-4;
+    @apply grid grid-cols-1 gap-4;
 }
 
 /* Icon Button */
