@@ -103,55 +103,74 @@ function LoginPage({ onLogin, error }) {
 
     const handleGoogleLogin = async () => {
         setIsAuthenticating(true);
+        const provider = new firebase.auth.GoogleAuthProvider();
+
         try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // Mobile detection for better UX (Popups often blocked/buggy on mobile)
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        } catch (e) {
+            console.warn('Persistence warning:', e);
+        }
 
-            if (isMobile) {
-                // Redirect flow - page will reload
+        // Robust mobile detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Function to handle redirect login
+        const doRedirect = async () => {
+            try {
                 await firebase.auth().signInWithRedirect(provider);
-                // No code after this point executes until reload
-            } else {
-                // Desktop - Popup flow
-                const result = await firebase.auth().signInWithPopup(provider);
-                const firebaseUser = result.user;
-
-                // Domain check specific for Popup (Redirect flow handled in App.useEffect)
-                if (!firebaseUser.email.endsWith('@prestamype.com')) {
-                    await firebase.auth().signOut();
-                    onLogin(null, 'Debes usar un correo @prestamype.com');
-                    setIsAuthenticating(false);
-                    return;
-                }
-
-                // If success, logic continues...
-                // But App component listener handles state update too.
-                // We can just rely on the listener, but for immediate feedback in popup flow:
-
-                // Note: onAuthStateChanged in App.jsx will trigger and set the user.
-                // We don't strictly need to do manual setUser here if App handles it, 
-                // but setting storage is good.
-
-                const user = {
-                    name: firebaseUser.displayName,
-                    email: firebaseUser.email,
-                    picture: firebaseUser.photoURL,
-                    initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
-                    uid: firebaseUser.uid
-                };
-
-                AuthStorage.setUserConsent(firebaseUser.email);
-                AuthStorage.setLastUserEmail(firebaseUser.email);
-                AuthStorage.saveSession(user);
-                // onLogin will be redundant if App listener wires up, but harmless
-                // onLogin(user, null); 
+            } catch (err) {
+                console.error("Redirect error:", err);
+                setIsAuthenticating(false);
+                onLogin(null, 'Error al redireccionar: ' + err.message);
             }
+        };
+
+        if (isMobile) {
+            await doRedirect();
+            return;
+        }
+
+        // Desktop: Try Popup first
+        try {
+            const result = await firebase.auth().signInWithPopup(provider);
+            const firebaseUser = result.user;
+
+            // Domain check
+            if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                await firebase.auth().signOut();
+                onLogin(null, 'Debes usar un correo @prestamype.com');
+                setIsAuthenticating(false);
+                return;
+            }
+
+            // Prepare user data
+            const user = {
+                name: firebaseUser.displayName,
+                email: firebaseUser.email,
+                picture: firebaseUser.photoURL,
+                initials: (firebaseUser.displayName || 'U').substring(0, 2),
+                uid: firebaseUser.uid
+            };
+
+            AuthStorage.setUserConsent(firebaseUser.email);
+            AuthStorage.setLastUserEmail(firebaseUser.email);
+            AuthStorage.saveSession(user);
+
         } catch (error) {
-            console.error('Auth error:', error);
-            setIsAuthenticating(false);
-            if (error.code === 'auth/popup-closed-by-user') return;
-            onLogin(null, 'Error de autenticación: ' + error.message);
+            console.error('Popup Auth error:', error);
+
+            if (error.code === 'auth/popup-closed-by-user') {
+                setIsAuthenticating(false);
+                return;
+            }
+
+            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+                // Fallback to redirect if popup is blocked
+                await doRedirect();
+            } else {
+                setIsAuthenticating(false);
+                onLogin(null, 'Error de autenticación: ' + error.message);
+            }
         }
     };
 
