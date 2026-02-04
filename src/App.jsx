@@ -106,43 +106,39 @@ function LoginPage({ onLogin, error }) {
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
 
-            // Mobile detection for better UX (Popups often blocked/buggy on mobile)
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // Use popup for ALL devices (including mobile)
+            // Redirect flow has cross-domain issues on iOS due to ITP
+            const result = await firebase.auth().signInWithPopup(provider);
+            const firebaseUser = result.user;
 
-            if (isMobile) {
-                // Redirect flow - page will reload
-                await firebase.auth().signInWithRedirect(provider);
-                // No code after this point executes until reload
-            } else {
-                // Desktop - Popup flow
-                const result = await firebase.auth().signInWithPopup(provider);
-                const firebaseUser = result.user;
-
-                // Domain check specific for Popup (Redirect flow handled in App.useEffect)
-                if (!firebaseUser.email.endsWith('@prestamype.com')) {
-                    await firebase.auth().signOut();
-                    onLogin(null, 'Debes usar un correo @prestamype.com');
-                    setIsAuthenticating(false);
-                    return;
-                }
-
-                // Success - onAuthStateChanged in App.jsx will trigger and set the user
-                const user = {
-                    name: firebaseUser.displayName,
-                    email: firebaseUser.email,
-                    picture: firebaseUser.photoURL,
-                    initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
-                    uid: firebaseUser.uid
-                };
-
-                AuthStorage.setUserConsent(firebaseUser.email);
-                AuthStorage.setLastUserEmail(firebaseUser.email);
-                AuthStorage.saveSession(user);
+            // Domain validation
+            if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                await firebase.auth().signOut();
+                onLogin(null, 'Debes usar un correo @prestamype.com');
+                setIsAuthenticating(false);
+                return;
             }
+
+            // Success - onAuthStateChanged in App.jsx will trigger and set the user
+            const user = {
+                name: firebaseUser.displayName,
+                email: firebaseUser.email,
+                picture: firebaseUser.photoURL,
+                initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+                uid: firebaseUser.uid
+            };
+
+            AuthStorage.setUserConsent(firebaseUser.email);
+            AuthStorage.setLastUserEmail(firebaseUser.email);
+            AuthStorage.saveSession(user);
         } catch (error) {
             console.error('Auth error:', error);
             setIsAuthenticating(false);
             if (error.code === 'auth/popup-closed-by-user') return;
+            if (error.code === 'auth/popup-blocked') {
+                onLogin(null, 'Popup bloqueado. Por favor permite ventanas emergentes.');
+                return;
+            }
             onLogin(null, 'Error de autenticación: ' + error.message);
         }
     };
