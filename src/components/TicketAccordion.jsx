@@ -21,7 +21,7 @@ export function TicketAccordion({
     const [figmaLink, setFigmaLink] = useState(null);
     const isOpen = value === "item-1";
 
-    const { happyPaths, loading: loadingHPs, error: errorHPs, hasLoaded } = useHappyPaths(figmaLink);
+    const { happyPaths, loading: loadingHPs, error: errorHPs, hasLoaded, refresh } = useHappyPaths(figmaLink);
 
     // Calculate progress with "Nuevo alcance" reset logic
     const { validFlowCounts, totalCriticsDone } = React.useMemo(() => {
@@ -227,23 +227,43 @@ export function TicketAccordion({
 
                         {!loadingHPs && !errorHPs && happyPaths.length === 0 && (
                             <div className="py-4">
-                                <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1 mb-3">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        Falta el link de Figma
+                                {!figmaLink ? (
+                                    <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1 mb-3">
+                                        <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Falta el link de Figma
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2 h-7 bg-background text-xs"
+                                            onClick={() => window.open(`https://prestamype.atlassian.net/browse/${ticket.key}`, '_blank')}
+                                        >
+                                            Ir a Jira
+                                        </Button>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
-                                    </p>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="mt-2 h-7 bg-background text-xs"
-                                        onClick={() => window.open(`https://prestamype.atlassian.net/browse/${ticket.key}`, '_blank')}
-                                    >
-                                        Ir a Jira
-                                    </Button>
-                                </div>
+                                ) : (
+                                    <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1 mb-3">
+                                        <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Falta registrar happy paths
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Utiliza el componente "Encabezado casuística" de Neo DS.
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2 h-7 bg-background text-xs"
+                                            onClick={() => refresh()}
+                                        >
+                                            Actualizar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         )}
 

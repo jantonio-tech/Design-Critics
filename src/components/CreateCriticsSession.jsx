@@ -296,17 +296,23 @@ function CreateCriticsSession({
                                 {errors.flow && <span className="text-xs text-destructive">{errors.flow.message}</span>}
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 text-sm text-destructive">
-                                ❌ No se encontraron Happy Paths (Frames que empiecen con "HP-").
+                            <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1">
+                                <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Falta registrar happy paths
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Utiliza el componente "Encabezado casuística" de Neo DS.
+                                </p>
                                 <Button
                                     type="button"
-                                    variant="link"
+                                    variant="outline"
                                     size="sm"
                                     onClick={refreshHappyPaths}
-                                    className="h-auto p-0 text-xs"
+                                    className="mt-2 h-7 bg-background text-xs"
                                 >
                                     <RefreshCw className="h-3 w-3 mr-1" />
-                                    Reintentar
+                                    Actualizar
                                 </Button>
                             </div>
                         )}
