@@ -41,12 +41,12 @@ function CreateCriticsSession({
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            ticket: '',
-            flow: '',
-            type: 'Design Critic',
-            notes: '',
-            figmaLink: '',
-            product: ''
+            ticket: initialData?.ticket || '',
+            flow: initialData?.flow || '',
+            type: initialData?.type || 'Design Critic',
+            notes: initialData?.notes || '',
+            figmaLink: initialData?.figmaLink || '',
+            product: initialData?.product || ''
         }
     });
 
