@@ -180,7 +180,7 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
-const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
+const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete }) => {
     const today = new Date();
     const day = today.getDay();
     let targetDate = new Date(today);
@@ -195,7 +195,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
 
     return (
         <div>
-            <AgendaCard sessions={dcs} />
+            <AgendaCard sessions={dcs} user={user} onDelete={onDelete} />
 
             <div className="page-header">
                 <h1>Dashboard Personal</h1>
@@ -623,6 +623,8 @@ export default function App() {
                         <DashboardPage
                             activeTickets={activeTickets}
                             dcs={dcs}
+                            user={user}
+                            onDelete={handleDeleteDC}
                             onQuickAdd={(data) => handleOpenModal(data)}
                         />
                     </TabsContent>
