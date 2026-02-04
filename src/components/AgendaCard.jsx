@@ -28,7 +28,7 @@ export function AgendaCard({ sessions }) {
     const capitalizedDate = displayDate.charAt(0).toUpperCase() + displayDate.slice(1);
 
     return (
-        <Card className="mb-6 border-l-4 border-l-primary shadow-sm bg-card/50 backdrop-blur-sm">
+        <Card className="mb-6 border-l-4 border-l-primary shadow-sm bg-muted/50 backdrop-blur-md">
             <CardHeader className="pb-3 border-b border-border/50">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
