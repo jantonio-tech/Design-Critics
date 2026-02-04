@@ -363,7 +363,13 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
                                         />
                                         <div className="dc-card-content">
                                             <div className="dc-gcal-title">{dc.flow || 'Sin título'}</div>
-                                            <div className="dc-gcal-time">{dc.ticket}</div>
+                                            <div className="dc-gcal-time font-medium text-xs opacity-90 mb-0.5">
+                                                {dc.product || dc.ticket}
+                                            </div>
+                                            <div className="text-[10px] text-muted-foreground/80 truncate flex items-center gap-1">
+                                                <User className="w-3 h-3 inline-block" />
+                                                {dc.presenter || 'Usuario'}
+                                            </div>
                                             {dc.createdBy === user.email && (
                                                 <div className="dc-gcal-actions">
                                                     <button
