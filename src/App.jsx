@@ -105,8 +105,7 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        // Ensure fresh login to avoid stale cookies issues
-        provider.setCustomParameters({ prompt: 'select_account' });
+        // Use device language for localized prompts
         firebase.auth().useDeviceLanguage();
 
         const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -497,7 +496,7 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // 1. Configure Persistence Globaly
+        // 1. Configure Persistence Globally
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
             .catch(e => console.warn('Persistence Error:', e));
 
@@ -568,27 +567,47 @@ export default function App() {
             }
         };
 
-        // 3. Listen for Auth State Changes (The Single Source of Truth)
-        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
-            if (u) {
-                // User is signed in (or restored from persistence)
-                await processLogin(u);
-            } else {
-                // User is signed out
-                setUser(null);
-                setIsLoading(false);
-            }
-        });
-
-        // 4. Handle Redirect Errors ONLY
-        // We do NOT use this to set user session, onAuthStateChanged handles that.
-        // We only check for specific redirect errors here.
+        // 3. CRITICAL: Check Redirect Result FIRST (Mobile Flow)
+        // This MUST complete before we trust onAuthStateChanged, because 
+        // onAuthStateChanged may fire with null initially on page reload after redirect.
+        let redirectChecked = false;
         firebase.auth().getRedirectResult()
+            .then(async (result) => {
+                redirectChecked = true;
+                if (result.user) {
+                    console.log("Redirect returned user:", result.user.email);
+                    await processLogin(result.user);
+                }
+                // If no user from redirect, the onAuthStateChanged listener will handle it
+            })
             .catch(error => {
+                redirectChecked = true;
                 console.error("Redirect Failed:", error);
                 setLoginError('Error al iniciar sesión con Google: ' + error.message);
                 setIsLoading(false);
             });
+
+        // 4. Listen for Auth State Changes (Desktop/Persistence)
+        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
+            // On mobile redirect, this may fire with null BEFORE getRedirectResult resolves.
+            // We use a small delay to give getRedirectResult priority.
+            setTimeout(async () => {
+                // If redirect already handled the user, skip
+                if (redirectChecked) {
+                    if (u && !user) {
+                        // User restored from persistence (not redirect)
+                        await processLogin(u);
+                    } else if (!u) {
+                        setUser(null);
+                        setIsLoading(false);
+                    }
+                } else {
+                    // Redirect not yet checked, wait a bit more
+                    // This happens rarely, usually on fast connections
+                    if (u) await processLogin(u);
+                }
+            }, 100); // Small delay to let getRedirectResult run first
+        });
 
         return () => unsubscribe();
     }, []);
