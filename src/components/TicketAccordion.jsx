@@ -5,14 +5,20 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
 
 export function TicketAccordion({
     ticket,
     sessions = [],
     onSchedule
 }) {
-    const [expanded, setExpanded] = useState(false);
-    const [figmaLink, setFigmaLink] = useState(null);
+    const [value, setValue] = useState("");
+    const isOpen = value === "item-1";
 
     const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
 
@@ -98,145 +104,136 @@ export function TicketAccordion({
     };
 
     return (
-        <Card className={cn("transition-all", expanded && "ring-1 ring-primary/20")}>
-            {/* Header */}
-            <CardHeader
-                className="cursor-pointer p-4 pb-3"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-muted-foreground">{ticket.key}</span>
-                        <Badge variant="secondary" className="text-xs">
-                            {product}
-                        </Badge>
-                    </div>
-                    <div className="text-muted-foreground">
-                        {expanded ? (
-                            <ChevronUp className="h-5 w-5" />
-                        ) : (
-                            <ChevronDown className="h-5 w-5" />
-                        )}
-                    </div>
-                </div>
+        <Card className={cn("transition-all", isOpen && "ring-1 ring-primary/20")}>
+            <Accordion type="single" collapsible value={value} onValueChange={setValue}>
+                <AccordionItem value="item-1" className="border-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex flex-col gap-2 w-full text-left pr-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-muted-foreground">{ticket.key}</span>
+                                    <Badge variant="secondary" className="text-xs">
+                                        {product}
+                                    </Badge>
+                                </div>
+                                {/* Chevron is handled by AccordionTrigger automatically */}
+                            </div>
 
-                <h3 className="text-sm font-semibold leading-tight mt-2 pr-6">
-                    {ticket.fields?.summary || ticket.summary}
-                </h3>
+                            <h3 className="text-sm font-semibold leading-tight">
+                                {ticket.fields?.summary || ticket.summary}
+                            </h3>
 
-                {/* Progress Section */}
-                <div className="mt-3 space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="font-medium">
-                            {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
-                        </span>
-                        {happyPaths.length > 0 && (
-                            <span>({happyPaths.length} HPs)</span>
-                        )}
-                    </div>
-                    {maxCritics > 0 && (
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className={cn(
-                                    "h-full rounded-full transition-all duration-500",
-                                    progressPercent >= 100 ? "bg-green-500" : "bg-primary"
-                                )}
-                                style={{ width: `${progressPercent}%` }}
-                            />
-                        </div>
-                    )}
-                </div>
-
-                {/* Quick Schedule CTA (Collapsed only) */}
-                {!expanded && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-3 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSchedule({
-                                ticket: ticket.key,
-                                product: product,
-                                type: 'Design Critic',
-                                figmaLink: figmaLink
-                            });
-                        }}
-                    >
-                        Agendar Hoy
-                    </Button>
-                )}
-            </CardHeader>
-
-            {/* Expanded Body */}
-            {expanded && (
-                <CardContent className="border-t bg-muted/30 p-4 pt-4">
-                    <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-3">
-                        Detalle de Happy Paths
-                    </h4>
-
-                    {loadingHPs && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Cargando flujos desde Figma...
-                        </div>
-                    )}
-
-                    {!loadingHPs && happyPaths.length === 0 && (
-                        <div className="text-center py-4">
-                            <p className="text-sm text-muted-foreground mb-3">
-                                No se detectaron frames "HP-" en el archivo de Figma asociado.
-                            </p>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
-                            >
-                                Agendar Manualmente
-                            </Button>
-                        </div>
-                    )}
-
-                    <div className="space-y-0">
-                        {happyPaths.map(hp => {
-                            const status = getHpStatus(hp.name);
-                            return (
-                                <div
-                                    key={hp.id}
-                                    className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
-                                >
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-sm font-medium">{hp.name}</span>
-                                        <span className={cn(
-                                            "text-xs font-semibold",
-                                            status.status === 'good' && "text-green-600 dark:text-green-400",
-                                            status.status === 'warning' && "text-yellow-600 dark:text-yellow-400",
-                                            status.status === 'danger' && "text-red-600 dark:text-red-400"
-                                        )}>
-                                            {status.label}
-                                        </span>
-                                    </div>
-                                    {status.action && (
-                                        <Button
-                                            size="sm"
-                                            onClick={() => onSchedule({
-                                                ticket: ticket.key,
-                                                product: product,
-                                                flow: hp.name,
-                                                type: 'Design Critic',
-                                                lockFlow: true,
-                                                figmaLink: figmaLink
-                                            })}
-                                        >
-                                            {status.action}
-                                        </Button>
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span className="font-medium">
+                                        {loadingHPs ? 'Calculando...' : maxCritics > 0 ? `${totalCriticsDone}/${maxCritics} Critics` : `${totalCriticsDone} Critics`}
+                                    </span>
+                                    {happyPaths.length > 0 && (
+                                        <span>({happyPaths.length} HPs)</span>
                                     )}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            )}
+                                {maxCritics > 0 && (
+                                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                        <div
+                                            className={cn(
+                                                "h-full rounded-full transition-all duration-500",
+                                                progressPercent >= 100 ? "bg-green-500" : "bg-primary"
+                                            )}
+                                            style={{ width: `${progressPercent}%` }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {!isOpen && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full mt-1 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSchedule({
+                                            ticket: ticket.key,
+                                            product: product,
+                                            type: 'Design Critic',
+                                            figmaLink: figmaLink
+                                        });
+                                    }}
+                                >
+                                    Agendar Hoy
+                                </Button>
+                            )}
+                        </div>
+                    </AccordionTrigger>
+
+                    <AccordionContent className="px-4 pb-4 border-t bg-muted/30 pt-4">
+                        <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-3">
+                            Detalle de Happy Paths
+                        </h4>
+
+                        {loadingHPs && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Cargando flujos desde Figma...
+                            </div>
+                        )}
+
+                        {!loadingHPs && happyPaths.length === 0 && (
+                            <div className="text-center py-4">
+                                <p className="text-sm text-muted-foreground mb-3">
+                                    No se detectaron frames "HP-" en el archivo de Figma asociado.
+                                </p>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
+                                >
+                                    Agendar Manualmente
+                                </Button>
+                            </div>
+                        )}
+
+                        <div className="space-y-0">
+                            {happyPaths.map(hp => {
+                                const status = getHpStatus(hp.name);
+                                return (
+                                    <div
+                                        key={hp.id}
+                                        className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
+                                    >
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-sm font-medium">{hp.name}</span>
+                                            <span className={cn(
+                                                "text-xs font-semibold",
+                                                status.status === 'good' && "text-green-600 dark:text-green-400",
+                                                status.status === 'warning' && "text-yellow-600 dark:text-yellow-400",
+                                                status.status === 'danger' && "text-red-600 dark:text-red-400"
+                                            )}>
+                                                {status.label}
+                                            </span>
+                                        </div>
+                                        {status.action && (
+                                            <Button
+                                                size="sm"
+                                                onClick={() => onSchedule({
+                                                    ticket: ticket.key,
+                                                    product: product,
+                                                    flow: hp.name,
+                                                    type: 'Design Critic',
+                                                    lockFlow: true,
+                                                    figmaLink: figmaLink
+                                                })}
+                                            >
+                                                {status.action}
+                                            </Button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
         </Card>
     );
 }
