@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getHappyPathsFromUrl, getCachedHappyPaths } from '../utils/figma';
 
 /**
@@ -19,7 +19,7 @@ export function useHappyPaths(figmaLink, preloadedData = null) {
     const [hasLoaded, setHasLoaded] = useState(!!preloadedData);
 
     // Keep ref to happyPaths to check inside loadHappyPaths without adding to dependencies
-    const happyPathsRef = React.useRef(happyPaths);
+    const happyPathsRef = useRef(happyPaths);
     useEffect(() => { happyPathsRef.current = happyPaths; }, [happyPaths]);
 
     const loadHappyPaths = useCallback(async (forceRefresh = false) => {

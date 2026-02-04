@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -152,7 +152,7 @@ function CreateCriticsSession({
     }, [watchedTicket, activeTickets, setValue, initialData]);
 
     // Optimization: Use preloaded happy paths if available for current ticket
-    const preloadedHappyPaths = React.useMemo(() => {
+    const preloadedHappyPaths = useMemo(() => {
         if (initialData?.happyPaths && initialData.ticket === watchedTicket) {
             return initialData.happyPaths;
         }
@@ -162,7 +162,7 @@ function CreateCriticsSession({
     const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths, hasLoaded } = useHappyPaths(watchedFigmaLink, preloadedHappyPaths);
 
     // Business Logic: Can Do New Scope?
-    const canDoNewScope = React.useMemo(() => {
+    const canDoNewScope = useMemo(() => {
         if (!watchedTicket || !watchedFlow) return false;
         return sessions.some(s =>
             s.ticket === watchedTicket &&
