@@ -146,104 +146,76 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
             }
         }
 
-        // 1. Detectar instancias del componente "Encabezados casuística"
-        if (node.type === 'INSTANCE') {
-            const isEncabezado = node.name &&
-                (node.name.includes('Encabezados casuística') ||
-                    node.name.includes('Encabezados casuistica'));
+        // 1. Detectar instancias que tengan la propiedad Tipo = "Happy Path"
+        // ESTRATEGIA FLEXIBLE: Buscar en TODOS los INSTANCE que tengan propiedades de tipo
+        if (node.type === 'INSTANCE' && node.componentProperties) {
+            // Verificar si este componente tiene propiedades relevantes
+            const props = node.componentProperties;
+            const propEntries = Object.entries(props);
 
-            if (isEncabezado) {
-                console.log('🔍 Encontrado componente Encabezados:', node.name);
+            // Buscar propiedad Tipo
+            let tipoValue = null;
+            let pantallaValue = null;
+            let propertyText = null;
 
-                if (node.componentProperties) {
-                    console.log('   📋 Propiedades encontradas:', Object.keys(node.componentProperties));
+            for (const [key, prop] of propEntries) {
+                const keyLower = key.toLowerCase();
+                const valueLower = String(prop.value).toLowerCase();
 
-                    // 2. Verificar si Tipo = "Happy Path" Y Pantalla = "Desktop" o "Mobile"
-                    // ESTRATEGIA ESTRICTA: Solo incluir componentes que cumplan ambos criterios
-                    let isHappyPath = false;
-                    let isValidPlatform = false;
-                    let propertyText = null;
+                // Detectar propiedad Tipo
+                if (keyLower.includes('tipo') || keyLower.includes('type')) {
+                    tipoValue = valueLower;
+                }
 
-                    for (const [key, prop] of Object.entries(node.componentProperties)) {
-                        const keyLower = key.toLowerCase();
-                        const valueLower = String(prop.value).toLowerCase();
+                // Detectar propiedad Pantalla/Screen
+                if (keyLower.includes('pantalla') || keyLower.includes('screen') ||
+                    keyLower.includes('device') || keyLower.includes('platform')) {
+                    pantallaValue = valueLower;
+                }
 
-                        // Debug detailed properties
-                        console.log(`      🔹 [${prop.type}] ${key} = ${prop.value}`);
-
-                        // Verificar si Tipo = "Happy Path"
-                        if (keyLower.includes('tipo') || keyLower.includes('type')) {
-                            if (valueLower.includes('happy path') || valueLower.includes('happy-path')) {
-                                isHappyPath = true;
-                                console.log('      ✅ Tipo es Happy Path');
-                            }
-                        }
-
-                        // Verificar si Pantalla = "Desktop" o "Mobile"
-                        if (keyLower.includes('pantalla') || keyLower.includes('screen') || keyLower.includes('device') || keyLower.includes('platform')) {
-                            if (valueLower.includes('desktop') || valueLower.includes('mobile') ||
-                                valueLower.includes('web') || valueLower.includes('app')) {
-                                isValidPlatform = true;
-                                console.log(`      ✅ Pantalla válida: ${prop.value}`);
-                            }
-                        }
-
-                        // Buscar propiedades de TEXTO para usar como título
-                        if (prop.type === 'TEXT') {
-                            if (keyLower.includes('título') || keyLower.includes('titulo') ||
-                                keyLower.includes('title') || keyLower.includes('name') ||
-                                keyLower.includes('casuística') || keyLower.includes('nombre') ||
-                                keyLower.includes('text') || keyLower.includes('texto') ||
-                                keyLower.includes('label') || keyLower.includes('contenido') ||
-                                keyLower.includes('content') || keyLower.includes('flow')) {
-                                propertyText = prop.value;
-                            } else if (!propertyText) {
-                                propertyText = prop.value;
-                            }
-                        }
+                // Capturar texto para título
+                if (prop.type === 'TEXT') {
+                    if (keyLower.includes('título') || keyLower.includes('titulo') ||
+                        keyLower.includes('title') || keyLower.includes('flow') ||
+                        keyLower.includes('nombre') || keyLower.includes('name')) {
+                        propertyText = prop.value;
+                    } else if (!propertyText && prop.value) {
+                        propertyText = prop.value;
                     }
+                }
+            }
 
-                    // Si no encontramos propiedades de plataforma, aceptar por defecto
-                    // (retrocompatibilidad con archivos que no usan variantes de pantalla)
-                    if (!isValidPlatform) {
-                        // Check if there are any platform-related properties at all
-                        const hasPlatformProperty = Object.keys(node.componentProperties).some(key => {
-                            const k = key.toLowerCase();
-                            return k.includes('pantalla') || k.includes('screen') || k.includes('device') || k.includes('platform');
-                        });
+            // Verificar si es Happy Path
+            const isHappyPath = tipoValue &&
+                (tipoValue.includes('happy path') || tipoValue.includes('happy-path') || tipoValue === 'happypath');
 
-                        // If no platform property exists, accept the component
-                        isValidPlatform = !hasPlatformProperty;
-                        if (isValidPlatform) {
-                            console.log('      ℹ️ Sin propiedad de pantalla, aceptando por defecto');
-                        }
-                    }
+            // Verificar plataforma válida (Desktop o Mobile)
+            // Si no hay propiedad de pantalla, aceptar por defecto
+            const hasValidPlatform = !pantallaValue ||
+                pantallaValue.includes('desktop') || pantallaValue.includes('mobile') ||
+                pantallaValue.includes('web') || pantallaValue.includes('app');
 
-                    if (isHappyPath && isValidPlatform) {
-                        console.log('   ✅ Es un Happy Path válido (Desktop/Mobile)!');
+            if (isHappyPath && hasValidPlatform) {
+                console.log(`🔍 Happy Path encontrado: ${node.name}`);
+                console.log(`   📋 Tipo: ${tipoValue}, Pantalla: ${pantallaValue || 'N/A'}`);
+                // Extraer el título/nombre del Happy Path
+                const titleText = propertyText || extractTextFromNode(node) || node.name;
 
-                        // 3. Extraer el nombre
-                        const titleText = propertyText || extractTextFromNode(node);
-                        console.log('   📝 Título detectado:', titleText);
+                // Determinar ID y nombre
+                const id = node.id;
+                let name = titleText || parentSection?.name || 'Happy Path Sin Nombre';
 
-                        // 4. Determinar ID y nombre
-                        // IMPORTANT: Use node.id to allow multiple Happy Paths in the same section/frame.
-                        // Using parentSection.id caused duplicates to be filtered out (2 out of 8).
-                        const id = node.id;
-                        let name = titleText || parentSection?.name || 'Happy Path Sin Nombre';
+                // Limpiar el nombre de prefijos comunes
+                name = name.replace(/Encabezados casuística/gi, '').trim();
+                name = name.replace(/^HP[-_\s]*/i, '').trim();
 
-                        // Limpiar el nombre
-                        name = name.replace(/Encabezados casuística/gi, '').trim();
+                // Si el nombre está vacío, usar el nombre del nodo
+                if (!name) name = node.name;
 
-                        // 5. Agregar si no es duplicado
-                        if (!happyPaths.find(hp => hp.id === id)) {
-                            happyPaths.push({ id, name });
-                        }
-                    } else {
-                        console.log(`   ❌ Excluido: isHappyPath=${isHappyPath}, isValidPlatform=${isValidPlatform}`);
-                    }
-                } else {
-                    console.warn('   ⚠️ El componente no tiene properties expuestas en la API');
+                // Agregar si no es duplicado
+                if (!happyPaths.find(hp => hp.id === id)) {
+                    happyPaths.push({ id, name, platform: pantallaValue || 'unknown' });
+                    console.log(`   ✅ Agregado: "${name}" (${pantallaValue || 'sin plataforma'})`);
                 }
             }
         }
@@ -330,7 +302,7 @@ export async function getCachedHappyPaths(figmaLink) {
     const fileKey = extractFileKey(figmaLink);
     if (!fileKey) return null;
 
-    const CACHE_SCHEMA_VERSION = 'v9';
+    const CACHE_SCHEMA_VERSION = 'v10';
 
     try {
         const cached = await getCachedData(fileKey);
@@ -359,7 +331,7 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
 
     // 2. Si no es refresh forzado, verificar caché
     // Cache Version to force invalidation on logic changes
-    const CACHE_SCHEMA_VERSION = 'v9';
+    const CACHE_SCHEMA_VERSION = 'v10';
 
     if (!forceRefresh) {
         try {
