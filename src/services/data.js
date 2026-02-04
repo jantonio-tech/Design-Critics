@@ -142,7 +142,7 @@ export class FirestoreDataService {
             // Si es tipo Nuevo scope (o legacy Cambio de alcance), marcar TODOS los DCs anteriores de este ticket como descartados
             // (excluyendo el recién creado)
             if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance' || dcData.type === 'Nuevo alcance') {
-                await this.archiveAllPrevious(dcData.ticket, docRef.id);
+                await this.archiveAllPrevious(dcData.ticket, dcData.flow, docRef.id);
             }
 
             // Retornar en formato esperado
@@ -176,7 +176,7 @@ export class FirestoreDataService {
             await this.db.collection(this.collection).doc(dcData.id).update(updateFields);
 
             if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance' || dcData.type === 'Nuevo alcance') {
-                await this.archiveAllPrevious(dcData.ticket, dcData.id);
+                await this.archiveAllPrevious(dcData.ticket, dcData.flow, dcData.id);
             }
 
             return { ...dcData };
@@ -199,11 +199,12 @@ export class FirestoreDataService {
         }
     }
 
-    async archiveAllPrevious(ticket, currentId) {
+    async archiveAllPrevious(ticket, flow, currentId) {
         try {
-            console.log(`🧹 Archiving previous active critics for ticket ${ticket}...`);
+            console.log(`🧹 Archiving previous active critics for ticket ${ticket} and flow ${flow}...`);
             const snapshot = await this.db.collection(this.collection)
                 .where('ticket', '==', ticket)
+                .where('flujo', '==', flow)
                 .where('estado', '==', 'activo')
                 .get();
 
