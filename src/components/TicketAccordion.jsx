@@ -18,6 +18,7 @@ export function TicketAccordion({
     onSchedule
 }) {
     const [value, setValue] = useState("");
+    const [figmaLink, setFigmaLink] = useState(null);
     const isOpen = value === "item-1";
 
     const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
