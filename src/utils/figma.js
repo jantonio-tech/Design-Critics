@@ -147,8 +147,20 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
         }
 
         // 1. Detectar instancias que tengan la propiedad Tipo = "Happy Path"
-        // ESTRATEGIA FLEXIBLE: Buscar en TODOS los INSTANCE que tengan propiedades de tipo
+        // ESTRATEGIA: Buscar componentes que se llamen "Encabezados casuística"
         if (node.type === 'INSTANCE' && node.componentProperties) {
+
+            // FILTRO POR NOMBRE: El usuario indica que se llaman "Encabezados casuística"
+            const nameLower = node.name.toLowerCase();
+            const isEncabezado = nameLower.includes('encabezados casuística') ||
+                nameLower.includes('encabezados casuistica') ||
+                nameLower.includes('happy path'); // Mantenemos cierta flexibilidad por si renombran la instancia
+
+            // Evitar explícitamente "Cover"
+            if (nameLower.includes('cover')) return;
+
+            if (!isEncabezado) return;
+
             // Verificar si este componente tiene propiedades relevantes
             const props = node.componentProperties;
             const propEntries = Object.entries(props);
@@ -169,7 +181,8 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
 
                 // Detectar propiedad Pantalla/Screen
                 if (keyLower.includes('pantalla') || keyLower.includes('screen') ||
-                    keyLower.includes('device') || keyLower.includes('platform')) {
+                    keyLower.includes('device') || keyLower.includes('platform') ||
+                    keyLower.includes('formato')) { // Agregado 'formato' según screenshot
                     pantallaValue = valueLower;
                 }
 
@@ -190,7 +203,6 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                 (tipoValue.includes('happy path') || tipoValue.includes('happy-path') || tipoValue === 'happypath');
 
             // Verificar plataforma válida (Desktop o Mobile)
-            // Si no hay propiedad de pantalla, aceptar por defecto
             const hasValidPlatform = !pantallaValue ||
                 pantallaValue.includes('desktop') || pantallaValue.includes('mobile') ||
                 pantallaValue.includes('web') || pantallaValue.includes('app');
