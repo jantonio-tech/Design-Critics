@@ -165,25 +165,39 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                         ticket={ticket}
                         sessions={dcs}
                         onSchedule={(data) => {
-                            const today = new Date();
-                            const day = today.getDay();
-                            let targetDate = new Date(today);
+                            const getPeruDate = () => {
+                                const now = new Date();
+                                const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
+                                const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
+                                return formatter.format(now);
+                            };
 
-                            if (day === 6) {
-                                targetDate.setDate(today.getDate() + 2);
-                            } else if (day === 0) {
-                                targetDate.setDate(today.getDate() + 1);
+                            const todayStr = getPeruDate();
+                            // Parse todayStr back to Date object for day-of-week logic if needed, 
+                            // but simply using today's date for 'Agendar Hoy' is usually correct unless weekend logic is strict.
+                            // The previous logic added days for weekends. Let's keep that but base it on Peru time.
+
+                            const todayParts = todayStr.split('-');
+                            const todayDate = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+                            const day = todayDate.getDay();
+
+                            let targetDate = new Date(todayDate);
+
+                            if (day === 6) { // Saturday -> Monday
+                                targetDate.setDate(todayDate.getDate() + 2);
+                            } else if (day === 0) { // Sunday -> Monday
+                                targetDate.setDate(todayDate.getDate() + 1);
                             }
 
-                            // Force YYYY-MM-DD in local time
+                            // Format targetDate back to YYYY-MM-DD
                             const year = targetDate.getFullYear();
                             const month = String(targetDate.getMonth() + 1).padStart(2, '0');
                             const dateNum = String(targetDate.getDate()).padStart(2, '0');
-                            const dateStr = `${year}-${month}-${dateNum}`;
+                            const finalDateStr = `${year}-${month}-${dateNum}`;
 
                             onQuickAdd({
                                 ...data,
-                                date: dateStr,
+                                date: finalDateStr,
                                 simplifiedMode: true,
                                 excludeTypes: ['Iteración DS']
                             });
@@ -346,11 +360,9 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
                             const finalData = {
                                 ...data,
                                 date: data.date || editingDC?.date || selectedDate || (() => {
-                                    const d = new Date();
-                                    const year = d.getFullYear();
-                                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                                    const day = String(d.getDate()).padStart(2, '0');
-                                    return `${year}-${month}-${day}`;
+                                    const now = new Date();
+                                    const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
+                                    return new Intl.DateTimeFormat('en-CA', options).format(now);
                                 })(),
                                 presenter: user.name,
                                 createdBy: user.email
@@ -398,11 +410,10 @@ export default function App() {
             presenter: user.name,
             id: editingDC?.id || Date.now().toString(),
             date: formData.date || editingDC?.date || (() => {
-                const d = new Date();
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+                const now = new Date();
+                const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
+                // en-CA outputs YYYY-MM-DD
+                return new Intl.DateTimeFormat('en-CA', options).format(now);
             })()
         };
 
