@@ -83,7 +83,12 @@ export class FirestoreDataService {
                 notes: doc.data().notas || '',
                 status: doc.data().estado,
                 createdBy: doc.data().presentador_email
-            }));
+            })).sort((a, b) => {
+                // Sort by Created At (Ascending)
+                const timeA = a.timestamp && a.timestamp.seconds ? a.timestamp.seconds : 0;
+                const timeB = b.timestamp && b.timestamp.seconds ? b.timestamp.seconds : 0;
+                return timeA - timeB;
+            });
         } catch (error) {
             console.error('Error reading all DCs:', error);
             throw new Error('Error al cargar datos');
