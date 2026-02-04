@@ -592,6 +592,39 @@ export default function App() {
 
     if (!user) return <LoginPage onLogin={() => { }} error={loginError} />;
 
+    const handleQuickAdd = async (data) => {
+        // 1. Check history specific to this flow
+        const existingCritics = dcs.filter(dc =>
+            dc.ticket === data.ticket &&
+            dc.flow === data.flow &&
+            dc.type === 'Design Critic' &&
+            dc.estado === 'activo'
+        );
+
+        if (existingCritics.length === 0) {
+            // 2. Auto-create if 0 critics (Instant One-Click)
+            const autoSession = {
+                ...data, // Contains ticket, flow, product, date, figmaLink
+                type: 'Design Critic', // Force default type
+                notes: '',
+                presenter: user.name,
+                presenter_email: user.email,
+                createdBy: user.email
+            };
+
+            try {
+                // handleAddDC handles the API call, state update, and toast
+                await handleAddDC(autoSession);
+            } catch (e) {
+                console.error("Auto-add failed", e);
+                toast.error("Error al agendar automáticamente");
+            }
+        } else {
+            // 3. Open modal if history exists (to allow New Scope selection)
+            handleOpenModal(data);
+        }
+    };
+
     return (
         <>
             <Toaster position="top-right" richColors />
@@ -615,7 +648,7 @@ export default function App() {
                             dcs={dcs}
                             user={user}
                             onDelete={handleDeleteDC}
-                            onQuickAdd={(data) => handleOpenModal(data)}
+                            onQuickAdd={handleQuickAdd}
                         />
                     </TabsContent>
 

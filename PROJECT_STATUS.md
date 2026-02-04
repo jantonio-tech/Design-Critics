@@ -75,9 +75,14 @@ La aplicación es totalmente **Responsive**.
     -   **Importante**: Los botones de acción (Editar/Eliminar) son **siempre visibles** (no dependen de `hover`), garantizando accesibilidad en pantallas táctiles.
 
 ### Flujo de Agenda Rápida (Quick Add)
+**Comportamiento Inteligente**:
 1.  Desde el **Dashboard**: Click en "Agendar Hoy" en un Happy Path específico.
-2.  Pre-llena el formulario con: Ticket, Flujo, Producto y Fecha (hoy/lunes próximo).
-3.  **Smart Date**: Si es Sábado/Domingo, sugiere automáticamente el Lunes.
+2.  **Caso 1: Sin Historial (0 Critics)**:
+    -   ⚡ **Acción Inmediata**: El sistema crea la sesión automáticamente y muestra confirmación. **No abre ventanas modales.**
+    -   Asume "Design Critic" y usa fecha inteligente.
+3.  **Caso 2: Con Historial (1+ Critics)**:
+    -   📋 **Abre Modal**: Muestra el formulario pre-llenado para permitir seleccionar "Nuevo alcance" o "Iteración DS".
+4.  **Smart Date**: Si es Sábado/Domingo, sugiere automáticamente el Lunes.
 
 ---
 
