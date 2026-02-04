@@ -345,7 +345,13 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
                         onSubmit={async (data) => {
                             const finalData = {
                                 ...data,
-                                date: data.date || editingDC?.date || selectedDate || new Date().toISOString().split('T')[0],
+                                date: data.date || editingDC?.date || selectedDate || (() => {
+                                    const d = new Date();
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    return `${year}-${month}-${day}`;
+                                })(),
                                 presenter: user.name,
                                 createdBy: user.email
                             };
