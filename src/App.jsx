@@ -165,6 +165,22 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                         ticket={ticket}
                         sessions={dcs}
                         onSchedule={(data) => {
+                            const today = new Date();
+                            const day = today.getDay();
+                            let targetDate = new Date(today);
+
+                            if (day === 6) {
+                                targetDate.setDate(today.getDate() + 2);
+                            } else if (day === 0) {
+                                targetDate.setDate(today.getDate() + 1);
+                            }
+
+                            // Force YYYY-MM-DD in local time
+                            const year = targetDate.getFullYear();
+                            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                            const dateNum = String(targetDate.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${dateNum}`;
+
                             onQuickAdd({
                                 ...data,
                                 date: dateStr,
@@ -375,7 +391,13 @@ export default function App() {
             createdBy: user.email,
             presenter: user.name,
             id: editingDC?.id || Date.now().toString(),
-            date: formData.date || editingDC?.date || new Date().toISOString().split('T')[0]
+            date: formData.date || editingDC?.date || (() => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            })()
         };
 
         if (editingDC && editingDC.id) {
