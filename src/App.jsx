@@ -105,6 +105,12 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
+        // Fix 400 Error: Force account selection to clear bad state
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        // Fix Localization
+        firebase.auth().useDeviceLanguage();
+
         // Robust mobile detection: If mobile, FORCE REDIRECT immediately
         // No async calls before this to verify user interaction requirements on iOS
         const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -521,11 +527,7 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // 1. Set Persistence Globaly on Mount
-        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .catch(e => console.warn('Persistence Init Error:', e));
-
-        // 2. Handle Redirect Results (Returning from Google)
+        // 1. Handle Redirect Results (Returning from Google)
         firebase.auth().getRedirectResult()
             .then((result) => {
                 if (result.user) {
