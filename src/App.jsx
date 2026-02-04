@@ -264,7 +264,11 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
     const capitalizedMonthYear = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
 
     const handleCellClick = (date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
         setEditingDC({ date: dateStr });
         setSelectedDate(dateStr);
         setModalOpen(true);
@@ -293,7 +297,13 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
 
             <div className="gcal-grid">
                 {weekDays.map((date, i) => {
-                    const dateStr = date.toISOString().split('T')[0];
+                    // Fix: Use local date components, NOT ISO/UTC, because 'date' preserves current time
+                    // and can shift to next day in UTC if late at night in Peru.
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const dayNum = String(date.getDate()).padStart(2, '0');
+                    const dateStr = `${year}-${month}-${dayNum}`;
+
                     const dayDCs = dcs.filter(d => d.date === dateStr);
                     const today = isToday(date);
 
