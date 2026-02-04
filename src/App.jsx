@@ -79,32 +79,53 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            const result = await firebase.auth().signInWithPopup(provider);
-            const firebaseUser = result.user;
+            // Mobile detection for better UX (Popups often blocked/buggy on mobile)
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-            if (!firebaseUser.email.endsWith('@prestamype.com')) {
-                await firebase.auth().signOut();
-                onLogin(null, 'Debes usar un correo @prestamype.com');
-                setIsAuthenticating(false);
-                return;
+            if (isMobile) {
+                // Redirect flow - page will reload
+                await firebase.auth().signInWithRedirect(provider);
+                // No code after this point executes until reload
+            } else {
+                // Desktop - Popup flow
+                const result = await firebase.auth().signInWithPopup(provider);
+                const firebaseUser = result.user;
+
+                // Domain check specific for Popup (Redirect flow handled in App.useEffect)
+                if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                    await firebase.auth().signOut();
+                    onLogin(null, 'Debes usar un correo @prestamype.com');
+                    setIsAuthenticating(false);
+                    return;
+                }
+
+                // If success, logic continues...
+                // But App component listener handles state update too.
+                // We can just rely on the listener, but for immediate feedback in popup flow:
+
+                // Note: onAuthStateChanged in App.jsx will trigger and set the user.
+                // We don't strictly need to do manual setUser here if App handles it, 
+                // but setting storage is good.
+
+                const user = {
+                    name: firebaseUser.displayName,
+                    email: firebaseUser.email,
+                    picture: firebaseUser.photoURL,
+                    initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+                    uid: firebaseUser.uid
+                };
+
+                AuthStorage.setUserConsent(firebaseUser.email);
+                AuthStorage.setLastUserEmail(firebaseUser.email);
+                AuthStorage.saveSession(user);
+                // onLogin will be redundant if App listener wires up, but harmless
+                // onLogin(user, null); 
             }
-
-            const user = {
-                name: firebaseUser.displayName,
-                email: firebaseUser.email,
-                picture: firebaseUser.photoURL,
-                initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
-                uid: firebaseUser.uid
-            };
-
-            AuthStorage.setUserConsent(firebaseUser.email);
-            AuthStorage.setLastUserEmail(firebaseUser.email);
-            AuthStorage.saveSession(user);
-            onLogin(user, null);
         } catch (error) {
             console.error('Auth error:', error);
             setIsAuthenticating(false);
-            onLogin(null, 'Error de autenticación');
+            if (error.code === 'auth/popup-closed-by-user') return;
+            onLogin(null, 'Error de autenticación: ' + error.message);
         }
     };
 
@@ -464,35 +485,44 @@ export default function App() {
     // Auth & Data Load
     useEffect(() => {
         firebase.auth().onAuthStateChanged(async (u) => {
-            if (u && u.email?.endsWith('@prestamype.com')) {
-                const userData = {
-                    name: u.displayName,
-                    email: u.email,
-                    picture: u.photoURL,
-                    initials: (u.displayName || 'U').substring(0, 2),
-                    uid: u.uid
-                };
-                const service = new FirestoreDataService(u.email);
-                const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
+            if (u) {
+                if (u.email?.endsWith('@prestamype.com')) {
+                    const userData = {
+                        name: u.displayName,
+                        email: u.email,
+                        picture: u.photoURL,
+                        initials: (u.displayName || 'U').substring(0, 2),
+                        uid: u.uid
+                    };
+                    const service = new FirestoreDataService(u.email);
+                    const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
 
-                const merged = [...all];
-                const allIds = new Set(all.map(d => d.id));
-                history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
+                    const merged = [...all];
+                    const allIds = new Set(all.map(d => d.id));
+                    history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
 
-                setUser(userData);
-                setDataService(service);
-                setDcs(merged);
+                    setUser(userData);
+                    setDataService(service);
+                    setDcs(merged);
+                    setLoginError(null); // Clear errors on success
 
-                fetch('/api/search-jira', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userEmail: u.email })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) setActiveTickets(data.tickets || []);
+                    fetch('/api/search-jira', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userEmail: u.email })
                     })
-                    .catch(console.error);
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) setActiveTickets(data.tickets || []);
+                        })
+                        .catch(console.error);
+                } else {
+                    // Invalid domain logic
+                    console.warn('Unauthorized domain:', u.email);
+                    await firebase.auth().signOut();
+                    setUser(null);
+                    setLoginError('Acceso restringido: Debes usar un correo @prestamype.com');
+                }
             } else {
                 setUser(null);
             }
