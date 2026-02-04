@@ -17,6 +17,14 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -45,27 +53,44 @@ function Navbar({ user, onLogout, darkMode, toggleDarkMode }) {
                 </div>
                 <div className="user-info">
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
                         onClick={toggleDarkMode}
-                        className="theme-toggle-btn"
+                        className="theme-toggle-btn rounded-full w-9 h-9"
                     >
                         {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     </Button>
-                    <Avatar className="h-8 w-8">
-                        {user.picture ? (
-                            <AvatarImage src={user.picture} alt={user.name} />
-                        ) : null}
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {user.initials}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="user-text">
-                        <div className="user-name">{user.name}</div>
-                        <button onClick={onLogout} className="logout-btn">
-                            Salir
-                        </button>
-                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 overflow-hidden">
+                                <Avatar className="h-9 w-9">
+                                    {user.picture ? (
+                                        <AvatarImage src={user.picture} alt={user.name} />
+                                    ) : null}
+                                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                                        {user.initials}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={onLogout}
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                            >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Cerrar sesión</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
         </nav>
