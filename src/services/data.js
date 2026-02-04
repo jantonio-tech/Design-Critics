@@ -204,7 +204,6 @@ export class FirestoreDataService {
             console.log(`🧹 Archiving previous active critics for ticket ${ticket} and flow ${flow}...`);
             const snapshot = await this.db.collection(this.collection)
                 .where('ticket', '==', ticket)
-                .where('flujo', '==', flow)
                 .where('estado', '==', 'activo')
                 .get();
 
@@ -212,7 +211,8 @@ export class FirestoreDataService {
             let count = 0;
 
             snapshot.docs.forEach(doc => {
-                if (doc.id !== currentId) {
+                const docFlow = doc.data().flujo;
+                if (doc.id !== currentId && docFlow === flow) {
                     batch.update(doc.ref, { estado: 'descartado' });
                     count++;
                 }
