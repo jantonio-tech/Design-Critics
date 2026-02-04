@@ -282,7 +282,7 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
     };
 
     return (
-        <div className="container">
+        <div>
             <div className="calendar-header-bar">
                 <div className="calendar-nav-group">
                     <h1 className="text-xl font-semibold mr-6">Calendario</h1>
