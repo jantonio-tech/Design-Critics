@@ -17,13 +17,7 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 
-    // Fix for "ERR_QUIC_PROTOCOL_ERROR" and mobile hanging
-    // Forces standard HTTP polling instead of QUIC/WebSockets which are often blocked
-    try {
-        firebase.firestore().settings({ experimentalForceLongPolling: true, merge: true });
-    } catch (err) {
-        console.warn("Firestore settings error ignored:", err);
-    }
+
 }
 
 export default firebase;
