@@ -496,22 +496,22 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // 1. Configure Persistence Globally
-        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .catch(e => console.warn('Persistence Error:', e));
+        let isMounted = true;
 
-        // 2. Centralized Login Processor
+        // Centralized Login Processor
         const processLogin = async (firebaseUser) => {
-            if (!firebaseUser) return;
+            if (!firebaseUser || !isMounted) return false;
 
             // A. Domain Validation
             if (!firebaseUser.email?.endsWith('@prestamype.com')) {
                 console.warn('Unauthorized domain:', firebaseUser.email);
                 await firebase.auth().signOut();
-                setUser(null);
-                setLoginError('Acceso restringido: Solo correos @prestamype.com');
-                setIsLoading(false);
-                return;
+                if (isMounted) {
+                    setUser(null);
+                    setLoginError('Acceso restringido: Solo correos @prestamype.com');
+                    setIsLoading(false);
+                }
+                return false;
             }
 
             try {
@@ -531,85 +531,106 @@ export default function App() {
                     service.readUserHistory()
                 ]);
 
-                // Filter history to avoid duplicates if needed
                 const merged = [...all];
                 const allIds = new Set(all.map(d => d.id));
                 history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
 
                 // D. Update State
-                setUser(userData);
-                setDataService(service);
-                setDcs(merged);
-                setLoginError(null);
+                if (isMounted) {
+                    setUser(userData);
+                    setDataService(service);
+                    setDcs(merged);
+                    setLoginError(null);
+                    setIsLoading(false);
 
-                // E. Save Session for fast reload (optional but good practice)
-                AuthStorage.setUserConsent(firebaseUser.email);
-                AuthStorage.setLastUserEmail(firebaseUser.email);
-                AuthStorage.saveSession(userData);
+                    // E. Save Session
+                    AuthStorage.setUserConsent(firebaseUser.email);
+                    AuthStorage.setLastUserEmail(firebaseUser.email);
+                    AuthStorage.saveSession(userData);
 
-                // F. Fetch Jira Tickets
-                fetch('/api/search-jira', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userEmail: firebaseUser.email })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) setActiveTickets(data.tickets || []);
+                    // F. Fetch Jira Tickets (non-blocking)
+                    fetch('/api/search-jira', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userEmail: firebaseUser.email })
                     })
-                    .catch(err => console.error("Jira Fetch Error:", err));
-
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && isMounted) setActiveTickets(data.tickets || []);
+                        })
+                        .catch(err => console.error("Jira Fetch Error:", err));
+                }
+                return true;
             } catch (e) {
                 console.error("Login Processing Error:", e);
-                setLoginError('Error cargando tus datos. Intenta recargar.');
-            } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setLoginError('Error cargando tus datos: ' + e.message);
+                    setIsLoading(false);
+                }
+                return false;
             }
         };
 
-        // 3. CRITICAL: Check Redirect Result FIRST (Mobile Flow)
-        // This MUST complete before we trust onAuthStateChanged, because 
-        // onAuthStateChanged may fire with null initially on page reload after redirect.
-        let redirectChecked = false;
-        firebase.auth().getRedirectResult()
-            .then(async (result) => {
-                redirectChecked = true;
+        // Sequential Auth Initialization (IIFE)
+        (async () => {
+            // 1. Set Persistence
+            try {
+                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            } catch (e) {
+                console.warn('Persistence Error:', e);
+            }
+
+            // 2. FIRST: Check if returning from redirect
+            try {
+                console.log("Checking redirect result...");
+                const result = await firebase.auth().getRedirectResult();
                 if (result.user) {
                     console.log("Redirect returned user:", result.user.email);
-                    await processLogin(result.user);
+                    const success = await processLogin(result.user);
+                    if (success) return; // Done, user logged in from redirect
                 }
-                // If no user from redirect, the onAuthStateChanged listener will handle it
-            })
-            .catch(error => {
-                redirectChecked = true;
-                console.error("Redirect Failed:", error);
-                setLoginError('Error al iniciar sesión con Google: ' + error.message);
-                setIsLoading(false);
-            });
+            } catch (error) {
+                console.error("Redirect Error:", error);
+                if (isMounted) {
+                    setLoginError('Error en la redirección: ' + error.message);
+                    setIsLoading(false);
+                }
+                return; // Stop here, show error
+            }
 
-        // 4. Listen for Auth State Changes (Desktop/Persistence)
-        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
-            // On mobile redirect, this may fire with null BEFORE getRedirectResult resolves.
-            // We use a small delay to give getRedirectResult priority.
-            setTimeout(async () => {
-                // If redirect already handled the user, skip
-                if (redirectChecked) {
-                    if (u && !user) {
-                        // User restored from persistence (not redirect)
-                        await processLogin(u);
-                    } else if (!u) {
-                        setUser(null);
-                        setIsLoading(false);
-                    }
-                } else {
-                    // Redirect not yet checked, wait a bit more
-                    // This happens rarely, usually on fast connections
-                    if (u) await processLogin(u);
-                }
-            }, 100); // Small delay to let getRedirectResult run first
+            // 3. SECOND: Check if user already persisted
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+                console.log("Found persisted user:", currentUser.email);
+                const success = await processLogin(currentUser);
+                if (success) return; // Done, user restored from persistence
+            }
+
+            // 4. No user found from redirect or persistence
+            console.log("No user found, showing login.");
+            if (isMounted) {
+                setUser(null);
+                setIsLoading(false);
+            }
+        })();
+
+        // Listener for auth changes after initial load (logout, etc)
+        const unsubscribe = firebase.auth().onAuthStateChanged((u) => {
+            // This is primarily for detecting logout AFTER initial load
+            // We don't use this for initial login to avoid race conditions
+            if (!u && isMounted) {
+                // User logged out
+                setUser(null);
+                setDataService(null);
+                setDcs([]);
+                setActiveTickets([]);
+            }
         });
 
-        return () => unsubscribe();
+        return () => {
+            isMounted = false;
+            unsubscribe();
+        };
     }, []);
 
     const handleAddDC = async (data) => {
