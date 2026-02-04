@@ -3,7 +3,7 @@ import { useHappyPaths } from '../hooks/useHappyPaths';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     Accordion,
@@ -226,17 +226,26 @@ export function TicketAccordion({
                         )}
 
                         {!loadingHPs && !errorHPs && happyPaths.length === 0 && (
-                            <div className="text-center py-4">
-                                <p className="text-sm text-muted-foreground mb-3">
-                                    No se detectaron frames "HP-" en el archivo de Figma asociado.
-                                </p>
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
-                                >
-                                    Agendar Manualmente
-                                </Button>
+                            <div className="py-4">
+                                <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 space-y-1 mb-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-500">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        Falta el link de Figma
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-center">
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
+                                    >
+                                        Agendar Manualmente
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
