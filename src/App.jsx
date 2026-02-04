@@ -36,7 +36,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Sun, Moon, LogOut, Sparkles } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, User } from 'lucide-react';
 
 import './index.css';
 
