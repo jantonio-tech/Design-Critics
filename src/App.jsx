@@ -131,7 +131,8 @@ function LoginPage({ onLogin, error }) {
             const result = await firebase.auth().signInWithPopup(provider);
             const firebaseUser = result.user;
 
-            // Domain check
+            // Domain check logic is handled centrally by initializeUser now, 
+            // but for immediate feedback in popup flow we can do a quick check:
             if (!firebaseUser.email.endsWith('@prestamype.com')) {
                 await firebase.auth().signOut();
                 onLogin(null, 'Debes usar un correo @prestamype.com');
@@ -139,18 +140,9 @@ function LoginPage({ onLogin, error }) {
                 return;
             }
 
-            // Prepare user data
-            const user = {
-                name: firebaseUser.displayName,
-                email: firebaseUser.email,
-                picture: firebaseUser.photoURL,
-                initials: (firebaseUser.displayName || 'U').substring(0, 2),
-                uid: firebaseUser.uid
-            };
-
-            AuthStorage.setUserConsent(firebaseUser.email);
-            AuthStorage.setLastUserEmail(firebaseUser.email);
-            AuthStorage.saveSession(user);
+            // The onAuthStateChanged listener will pick this up and run initializeUser, 
+            // avoiding race conditions. We just unset authenticating.
+            // setIsAuthenticating(false); // Let the listener handle it
 
         } catch (error) {
             console.error('Popup Auth error:', error);
@@ -527,25 +519,10 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // 1. Handle Redirect Results (Returning from Google)
-        firebase.auth().getRedirectResult()
-            .then((result) => {
-                if (result.user) {
-                    // Redirect login successful
-                    console.log("Redirect Login Success:", result.user.email);
-                    // onAuthStateChanged will handle the rest, but we confirm here
-                }
-            })
-            .catch(error => {
-                console.error("Redirect Result Error:", error);
-                setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
-                setIsLoading(false); // Stop loader if redirect failed
-            });
-
-        // 3. Listen for Auth State Changes
-        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
-            if (u) {
-                if (u.email?.endsWith('@prestamype.com')) {
+        // Shared User Initialization Logic
+        const initializeUser = async (u) => {
+            if (u.email?.endsWith('@prestamype.com')) {
+                try {
                     const userData = {
                         name: u.displayName,
                         email: u.email,
@@ -563,7 +540,12 @@ export default function App() {
                     setUser(userData);
                     setDataService(service);
                     setDcs(merged);
-                    setLoginError(null); // Clear errors on success
+                    setLoginError(null);
+
+                    // Persist session tokens
+                    AuthStorage.setUserConsent(u.email);
+                    AuthStorage.setLastUserEmail(u.email);
+                    AuthStorage.saveSession(userData);
 
                     fetch('/api/search-jira', {
                         method: 'POST',
@@ -575,17 +557,43 @@ export default function App() {
                             if (data.success) setActiveTickets(data.tickets || []);
                         })
                         .catch(console.error);
-                } else {
-                    // Invalid domain logic
-                    console.warn('Unauthorized domain:', u.email);
-                    await firebase.auth().signOut();
-                    setUser(null);
-                    setLoginError('Acceso restringido: Debes usar un correo @prestamype.com');
+
+                } catch (e) {
+                    console.error("Error initializing user data:", e);
+                    setLoginError('Error cargando datos de usuario.');
                 }
             } else {
+                console.warn('Unauthorized domain:', u.email);
+                await firebase.auth().signOut();
                 setUser(null);
+                setLoginError('Acceso restringido: Debes usar un correo @prestamype.com');
             }
             setIsLoading(false);
+        };
+
+        // 1. Handle Redirect Results (Returning from Google)
+        firebase.auth().getRedirectResult()
+            .then((result) => {
+                if (result.user) {
+                    console.log("Redirect Login Success:", result.user.email);
+                    // Force initialization immediately to fallback race condition
+                    initializeUser(result.user);
+                }
+            })
+            .catch(error => {
+                console.error("Redirect Result Error:", error);
+                setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
+                setIsLoading(false);
+            });
+
+        // 3. Listen for Auth State Changes
+        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
+            if (u) {
+                await initializeUser(u);
+            } else {
+                setUser(null);
+                setIsLoading(false);
+            }
         });
     }, []);
 
