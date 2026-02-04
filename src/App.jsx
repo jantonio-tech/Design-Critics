@@ -496,7 +496,7 @@ export default function App() {
         }
         setModalOpen(false);
         setEditingDC(null);
-        setCurrentTab('calendar');
+
     };
 
     // Dark Mode
