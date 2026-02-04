@@ -105,26 +105,18 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        // Remove explicit setPersistence to avoid breaking user interaction chain with await
-        // Firebase defaults to LOCAL persistence anyway.
-
-        // Robust mobile detection
+        // Robust mobile detection: If mobile, FORCE REDIRECT immediately
+        // No async calls before this to verify user interaction requirements on iOS
         const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        // Function to handle redirect login
-        const doRedirect = async () => {
-            try {
-                // Must be called directly on user interaction to avoid blocking
-                await firebase.auth().signInWithRedirect(provider);
-            } catch (err) {
-                console.error("Redirect error:", err);
-                setIsAuthenticating(false);
-                onLogin(null, 'Error al redireccionar: ' + err.message);
-            }
-        };
-
         if (isMobile) {
-            await doRedirect();
+            // Direct call, no try/catch wrapping the trigger itself if possible
+            // to keep the stack clean for the browser's "user interaction" check.
+            firebase.auth().signInWithRedirect(provider).catch(err => {
+                console.error("Redirect trigger error:", err);
+                setIsAuthenticating(false);
+                onLogin(null, 'Error al iniciar redirección: ' + err.message);
+            });
             return;
         }
 
@@ -164,7 +156,7 @@ function LoginPage({ onLogin, error }) {
 
             if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
                 // Fallback to redirect if popup is blocked
-                await doRedirect();
+                firebase.auth().signInWithRedirect(provider);
             } else {
                 setIsAuthenticating(false);
                 onLogin(null, 'Error de autenticación: ' + error.message);
@@ -529,13 +521,27 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // Check for redirect errors (important for mobile flow debugging)
-        firebase.auth().getRedirectResult().catch(error => {
-            console.error("Redirect Result Error:", error);
-            setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
-        });
+        // 1. Set Persistence Globaly on Mount
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch(e => console.warn('Persistence Init Error:', e));
 
-        firebase.auth().onAuthStateChanged(async (u) => {
+        // 2. Handle Redirect Results (Returning from Google)
+        firebase.auth().getRedirectResult()
+            .then((result) => {
+                if (result.user) {
+                    // Redirect login successful
+                    console.log("Redirect Login Success:", result.user.email);
+                    // onAuthStateChanged will handle the rest, but we confirm here
+                }
+            })
+            .catch(error => {
+                console.error("Redirect Result Error:", error);
+                setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
+                setIsLoading(false); // Stop loader if redirect failed
+            });
+
+        // 3. Listen for Auth State Changes
+        const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
             if (u) {
                 if (u.email?.endsWith('@prestamype.com')) {
                     const userData = {
