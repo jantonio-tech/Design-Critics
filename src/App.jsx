@@ -105,18 +105,16 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        try {
-            await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        } catch (e) {
-            console.warn('Persistence warning:', e);
-        }
+        // Remove explicit setPersistence to avoid breaking user interaction chain with await
+        // Firebase defaults to LOCAL persistence anyway.
 
         // Robust mobile detection
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         // Function to handle redirect login
         const doRedirect = async () => {
             try {
+                // Must be called directly on user interaction to avoid blocking
                 await firebase.auth().signInWithRedirect(provider);
             } catch (err) {
                 console.error("Redirect error:", err);
@@ -531,6 +529,12 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
+        // Check for redirect errors (important for mobile flow debugging)
+        firebase.auth().getRedirectResult().catch(error => {
+            console.error("Redirect Result Error:", error);
+            setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
+        });
+
         firebase.auth().onAuthStateChanged(async (u) => {
             if (u) {
                 if (u.email?.endsWith('@prestamype.com')) {
