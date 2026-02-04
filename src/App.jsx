@@ -516,6 +516,10 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
+        // 0. Ensure Persistence is LOCAL (Critical for restoring session after redirect)
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch(e => console.warn('Persistence Init Error:', e));
+
         // Shared User Initialization Logic
         const initializeUser = async (u) => {
             if (u.email?.endsWith('@prestamype.com')) {
@@ -530,7 +534,7 @@ export default function App() {
                     const service = new FirestoreDataService(u.email);
                     const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
 
-                    const merged = [...all];
+                    const merged = [...all]; // Simple spread
                     const allIds = new Set(all.map(d => d.id));
                     history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
 
@@ -557,7 +561,7 @@ export default function App() {
 
                 } catch (e) {
                     console.error("Error initializing user data:", e);
-                    setLoginError('Error cargando datos de usuario.');
+                    setLoginError('Error cargando datos de usuario: ' + e.message);
                 }
             } else {
                 console.warn('Unauthorized domain:', u.email);
@@ -568,12 +572,14 @@ export default function App() {
             setIsLoading(false);
         };
 
-        // 1. Handle Redirect Results (Returning from Google)
+        // 1. Handle Redirect Results (Returning from Google) - SAFETY NET
         firebase.auth().getRedirectResult()
             .then((result) => {
                 if (result.user) {
                     console.log("Redirect Login returned user:", result.user.email);
-                    // Do NOT initialize here to avoid race conditions with onAuthStateChanged
+                    // CRITICAL: Force initialization here. 
+                    // onAuthStateChanged might fail to fire or fire with null first in some redirect scenarios.
+                    initializeUser(result.user);
                 }
             })
             .catch(error => {
