@@ -151,7 +151,15 @@ function CreateCriticsSession({
         }
     }, [watchedTicket, activeTickets, setValue, initialData]);
 
-    const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths, hasLoaded } = useHappyPaths(watchedFigmaLink);
+    // Optimization: Use preloaded happy paths if available for current ticket
+    const preloadedHappyPaths = React.useMemo(() => {
+        if (initialData?.happyPaths && initialData.ticket === watchedTicket) {
+            return initialData.happyPaths;
+        }
+        return null;
+    }, [initialData, watchedTicket]);
+
+    const { happyPaths, loading: loadingHappyPaths, refresh: refreshHappyPaths, hasLoaded } = useHappyPaths(watchedFigmaLink, preloadedHappyPaths);
 
     // Business Logic: Can Do New Scope?
     const canDoNewScope = React.useMemo(() => {

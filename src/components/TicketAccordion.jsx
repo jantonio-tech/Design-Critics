@@ -167,7 +167,8 @@ export function TicketAccordion({
                                             ticket: ticket.key,
                                             product: product,
                                             type: 'Design Critic',
-                                            figmaLink: figmaLink
+                                            figmaLink: figmaLink,
+                                            happyPaths: happyPaths
                                         });
                                     }}
                                 >
@@ -279,7 +280,8 @@ export function TicketAccordion({
                                                     flow: hp.name,
                                                     type: 'Design Critic',
                                                     lockFlow: true,
-                                                    figmaLink: figmaLink
+                                                    figmaLink: figmaLink,
+                                                    happyPaths: happyPaths
                                                 })}
                                             >
                                                 {status.action}

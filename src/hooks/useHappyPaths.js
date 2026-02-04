@@ -11,11 +11,16 @@ import { getHappyPathsFromUrl, getCachedHappyPaths } from '../utils/figma';
  * @example
  * const { happyPaths, loading, error, refresh } = useHappyPaths('https://figma.com/...');
  */
-export function useHappyPaths(figmaLink) {
-    const [happyPaths, setHappyPaths] = useState([]);
-    const [loading, setLoading] = useState(false);
+export function useHappyPaths(figmaLink, preloadedData = null) {
+    const [happyPaths, setHappyPaths] = useState(preloadedData || []);
+    // Si hay preloadedData, NO estamos cargando inicialmente.
+    const [loading, setLoading] = useState(!preloadedData && !!figmaLink);
     const [error, setError] = useState(null);
-    const [hasLoaded, setHasLoaded] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(!!preloadedData);
+
+    // Keep ref to happyPaths to check inside loadHappyPaths without adding to dependencies
+    const happyPathsRef = React.useRef(happyPaths);
+    useEffect(() => { happyPathsRef.current = happyPaths; }, [happyPaths]);
 
     const loadHappyPaths = useCallback(async (forceRefresh = false) => {
         if (!figmaLink) {
@@ -31,15 +36,23 @@ export function useHappyPaths(figmaLink) {
             // ESTRATEGIA: Stale-While-Revalidate
             // 1. Si no es refresh forzado, intentar mostrar caché INMEDIATAMENTE
             if (!forceRefresh) {
-                const cachedPaths = await getCachedHappyPaths(figmaLink);
-                if (cachedPaths && cachedPaths.length > 0) {
-                    console.log('⚡ Cache hit (Instant Load)');
-                    setHappyPaths(cachedPaths);
-                    setLoading(false); // Ya tenemos datos, no mostramos spinner
+                // Happy Path: Si ya tenemos datos (preloaded o anteriores), no mostramos spinner
+                if (happyPathsRef.current && happyPathsRef.current.length > 0) {
+                    console.log('⚡ Using existing state (Preloaded/Previous)');
                     loadedFromCache = true;
                     setHasLoaded(true);
+                    // Proceed to background fetch...
                 } else {
-                    setLoading(true); // No hay caché, mostrar spinner
+                    const cachedPaths = await getCachedHappyPaths(figmaLink);
+                    if (cachedPaths && cachedPaths.length > 0) {
+                        console.log('⚡ Cache hit (Instant Load)');
+                        setHappyPaths(cachedPaths);
+                        setLoading(false); // Ya tenemos datos, no mostramos spinner
+                        loadedFromCache = true;
+                        setHasLoaded(true);
+                    } else {
+                        setLoading(true); // No hay caché, mostrar spinner
+                    }
                 }
             } else {
                 setLoading(true);
