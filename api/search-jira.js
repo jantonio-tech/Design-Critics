@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             searchJql = `key in (${keys}) ORDER BY updated DESC`;
         } else {
             // User custom JQL - Filter by User
-            searchJql = `project = UX AND status = "EN CURSO" AND issuetype IN (Requerimiento, Task) AND assignee = "${userEmail}" ORDER BY status ASC, created DESC`;
+            searchJql = `project = UX AND status = "EN CURSO" AND issuetype IN (Requerimiento, Task) AND assignee = "${userEmail}" ORDER BY Rank ASC`;
         }
 
         // Create Basic Auth header
