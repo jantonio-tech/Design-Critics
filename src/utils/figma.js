@@ -158,26 +158,35 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                 if (node.componentProperties) {
                     console.log('   📋 Propiedades encontradas:', Object.keys(node.componentProperties));
 
-                    // 2. Verificar si Tipo = "Happy Path" y buscar texto
-                    // ESTRATEGIA PERMISIVA: Si el nombre coincide, asumimos que es Happy Path.
-                    // Esto arregla casos donde la propiedad "Tipo" no está definida o tiene otro nombre.
-                    let isHappyPath = true;
+                    // 2. Verificar si Tipo = "Happy Path" Y Pantalla = "Desktop" o "Mobile"
+                    // ESTRATEGIA ESTRICTA: Solo incluir componentes que cumplan ambos criterios
+                    let isHappyPath = false;
+                    let isValidPlatform = false;
                     let propertyText = null;
 
                     for (const [key, prop] of Object.entries(node.componentProperties)) {
                         const keyLower = key.toLowerCase();
-                        // const valueLower = String(prop.value).toLowerCase();
+                        const valueLower = String(prop.value).toLowerCase();
 
                         // Debug detailed properties
                         console.log(`      🔹 [${prop.type}] ${key} = ${prop.value}`);
 
-                        /* 
-                           Si quisiéramos filtrar estricto:
-                           if (keyLower.includes('tipo') && !valueLower.includes('happy path')) {
-                               isHappyPath = false;
-                           }
-                           Pero por ahora, confiamos en el nombre del componente.
-                        */
+                        // Verificar si Tipo = "Happy Path"
+                        if (keyLower.includes('tipo') || keyLower.includes('type')) {
+                            if (valueLower.includes('happy path') || valueLower.includes('happy-path')) {
+                                isHappyPath = true;
+                                console.log('      ✅ Tipo es Happy Path');
+                            }
+                        }
+
+                        // Verificar si Pantalla = "Desktop" o "Mobile"
+                        if (keyLower.includes('pantalla') || keyLower.includes('screen') || keyLower.includes('device') || keyLower.includes('platform')) {
+                            if (valueLower.includes('desktop') || valueLower.includes('mobile') ||
+                                valueLower.includes('web') || valueLower.includes('app')) {
+                                isValidPlatform = true;
+                                console.log(`      ✅ Pantalla válida: ${prop.value}`);
+                            }
+                        }
 
                         // Buscar propiedades de TEXTO para usar como título
                         if (prop.type === 'TEXT') {
@@ -194,8 +203,24 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                         }
                     }
 
-                    if (isHappyPath) {
-                        console.log('   ✅ Es un Happy Path!');
+                    // Si no encontramos propiedades de plataforma, aceptar por defecto
+                    // (retrocompatibilidad con archivos que no usan variantes de pantalla)
+                    if (!isValidPlatform) {
+                        // Check if there are any platform-related properties at all
+                        const hasPlatformProperty = Object.keys(node.componentProperties).some(key => {
+                            const k = key.toLowerCase();
+                            return k.includes('pantalla') || k.includes('screen') || k.includes('device') || k.includes('platform');
+                        });
+
+                        // If no platform property exists, accept the component
+                        isValidPlatform = !hasPlatformProperty;
+                        if (isValidPlatform) {
+                            console.log('      ℹ️ Sin propiedad de pantalla, aceptando por defecto');
+                        }
+                    }
+
+                    if (isHappyPath && isValidPlatform) {
+                        console.log('   ✅ Es un Happy Path válido (Desktop/Mobile)!');
 
                         // 3. Extraer el nombre
                         const titleText = propertyText || extractTextFromNode(node);
@@ -215,7 +240,7 @@ async function fetchHappyPathsFromFigma(fileKey, nodeId = null) {
                             happyPaths.push({ id, name });
                         }
                     } else {
-                        console.log('   ❌ No es tipo Happy Path (Propiedad "Tipo" no coincidió)');
+                        console.log(`   ❌ Excluido: isHappyPath=${isHappyPath}, isValidPlatform=${isValidPlatform}`);
                     }
                 } else {
                     console.warn('   ⚠️ El componente no tiene properties expuestas en la API');
@@ -305,7 +330,7 @@ export async function getCachedHappyPaths(figmaLink) {
     const fileKey = extractFileKey(figmaLink);
     if (!fileKey) return null;
 
-    const CACHE_SCHEMA_VERSION = 'v8';
+    const CACHE_SCHEMA_VERSION = 'v9';
 
     try {
         const cached = await getCachedData(fileKey);
