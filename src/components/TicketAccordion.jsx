@@ -48,7 +48,15 @@ export function TicketAccordion({
                 if (!isCurrent) return;
             }
 
-            const sList = flowMap[flow].sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+            // Sort by timestamp to ensure chronological order (ID is not reliable for Firestore)
+            const getTimestamp = (s) => {
+                if (s.timestamp && s.timestamp.seconds) return s.timestamp.seconds * 1000;
+                if (typeof s.timestamp === 'string') return new Date(s.timestamp).getTime();
+                return 0;
+            };
+
+            const sList = flowMap[flow].sort((a, b) => getTimestamp(a) - getTimestamp(b));
+
             let sliceIndex = 0;
             for (let i = sList.length - 1; i >= 0; i--) {
                 if (sList[i].type === 'Nuevo alcance') {
