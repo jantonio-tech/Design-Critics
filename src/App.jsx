@@ -105,9 +105,6 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        // Fix 400 Error: Force account selection to clear bad state
-        provider.setCustomParameters({ prompt: 'select_account' });
-
         // Fix Localization
         firebase.auth().useDeviceLanguage();
 
@@ -575,9 +572,8 @@ export default function App() {
         firebase.auth().getRedirectResult()
             .then((result) => {
                 if (result.user) {
-                    console.log("Redirect Login Success:", result.user.email);
-                    // Force initialization immediately to fallback race condition
-                    initializeUser(result.user);
+                    console.log("Redirect Login returned user:", result.user.email);
+                    // Do NOT initialize here to avoid race conditions with onAuthStateChanged
                 }
             })
             .catch(error => {
