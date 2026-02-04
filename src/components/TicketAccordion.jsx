@@ -118,7 +118,7 @@ export function TicketAccordion({
         <Card className={cn("transition-all", isOpen && "ring-1 ring-primary/20")}>
             <Accordion type="single" collapsible value={value} onValueChange={setValue}>
                 <AccordionItem value="item-1" className="border-0">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline items-start">
                         <div className="flex flex-col gap-2 w-full text-left pr-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -155,26 +155,6 @@ export function TicketAccordion({
                                     </div>
                                 )}
                             </div>
-
-                            {!isOpen && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full mt-1 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSchedule({
-                                            ticket: ticket.key,
-                                            product: product,
-                                            type: 'Design Critic',
-                                            figmaLink: figmaLink,
-                                            happyPaths: happyPaths
-                                        });
-                                    }}
-                                >
-                                    Agendar Hoy
-                                </Button>
-                            )}
                         </div>
                     </AccordionTrigger>
 
