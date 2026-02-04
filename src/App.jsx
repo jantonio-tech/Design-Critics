@@ -147,7 +147,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
     const dateStr = targetDate.toLocaleDateString('en-CA');
 
     return (
-        <div className="container">
+        <div>
             <div className="page-header">
                 <h1>Dashboard Personal</h1>
                 <p>Tus tickets activos en Jira</p>
