@@ -103,39 +103,47 @@ function LoginPage({ onLogin, error }) {
 
     const handleGoogleLogin = async () => {
         setIsAuthenticating(true);
-        const provider = new firebase.auth.GoogleAuthProvider();
-
-        // Use device language for localized prompts
-        firebase.auth().useDeviceLanguage();
-
-        const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
         try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+
+            // Mobile detection for better UX (Popups often blocked/buggy on mobile)
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
             if (isMobile) {
-                // Mobile: Redirect flow
+                // Redirect flow - page will reload
                 await firebase.auth().signInWithRedirect(provider);
-                // Note: Code execution stops here on mobile usually, or redirects immediately.
-                // We don't need to do anything else.
+                // No code after this point executes until reload
             } else {
-                // Desktop: Popup flow
+                // Desktop - Popup flow
                 const result = await firebase.auth().signInWithPopup(provider);
-                // On success, the onAuthStateChanged listener in App component 
-                // will handle the user state update. We just wait.
+                const firebaseUser = result.user;
+
+                // Domain check specific for Popup (Redirect flow handled in App.useEffect)
+                if (!firebaseUser.email.endsWith('@prestamype.com')) {
+                    await firebase.auth().signOut();
+                    onLogin(null, 'Debes usar un correo @prestamype.com');
+                    setIsAuthenticating(false);
+                    return;
+                }
+
+                // Success - onAuthStateChanged in App.jsx will trigger and set the user
+                const user = {
+                    name: firebaseUser.displayName,
+                    email: firebaseUser.email,
+                    picture: firebaseUser.photoURL,
+                    initials: firebaseUser.displayName.split(' ').map(n => n[0]).join('').substring(0, 2),
+                    uid: firebaseUser.uid
+                };
+
+                AuthStorage.setUserConsent(firebaseUser.email);
+                AuthStorage.setLastUserEmail(firebaseUser.email);
+                AuthStorage.saveSession(user);
             }
         } catch (error) {
-            console.error('Login Error:', error);
+            console.error('Auth error:', error);
             setIsAuthenticating(false);
-
-            if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                return; // User cancelled, no error message needed
-            }
-
-            if (error.code === 'auth/popup-blocked') {
-                // Fallback for blocked popups on desktop if needed, or just warn
-                onLogin(null, 'Ventana emergente bloqueada. Por favor permite popups.');
-            } else {
-                onLogin(null, 'Error de autenticación: ' + error.message);
-            }
+            if (error.code === 'auth/popup-closed-by-user') return;
+            onLogin(null, 'Error de autenticación: ' + error.message);
         }
     };
 
@@ -496,141 +504,52 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        let isMounted = true;
+        firebase.auth().onAuthStateChanged(async (u) => {
+            if (u) {
+                if (u.email?.endsWith('@prestamype.com')) {
+                    const userData = {
+                        name: u.displayName,
+                        email: u.email,
+                        picture: u.photoURL,
+                        initials: (u.displayName || 'U').substring(0, 2),
+                        uid: u.uid
+                    };
+                    const service = new FirestoreDataService(u.email);
+                    const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
 
-        // Centralized Login Processor
-        const processLogin = async (firebaseUser) => {
-            if (!firebaseUser || !isMounted) return false;
+                    const merged = [...all];
+                    const allIds = new Set(all.map(d => d.id));
+                    history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
 
-            // A. Domain Validation
-            if (!firebaseUser.email?.endsWith('@prestamype.com')) {
-                console.warn('Unauthorized domain:', firebaseUser.email);
-                await firebase.auth().signOut();
-                if (isMounted) {
-                    setUser(null);
-                    setLoginError('Acceso restringido: Solo correos @prestamype.com');
-                    setIsLoading(false);
-                }
-                return false;
-            }
-
-            try {
-                // B. Prepare User Data
-                const userData = {
-                    name: firebaseUser.displayName,
-                    email: firebaseUser.email,
-                    picture: firebaseUser.photoURL,
-                    initials: (firebaseUser.displayName || 'U').substring(0, 2),
-                    uid: firebaseUser.uid
-                };
-
-                // C. Load Firestore Data
-                const service = new FirestoreDataService(firebaseUser.email);
-                const [all, history] = await Promise.all([
-                    service.readAll(),
-                    service.readUserHistory()
-                ]);
-
-                const merged = [...all];
-                const allIds = new Set(all.map(d => d.id));
-                history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
-
-                // D. Update State
-                if (isMounted) {
                     setUser(userData);
                     setDataService(service);
                     setDcs(merged);
                     setLoginError(null);
                     setIsLoading(false);
 
-                    // E. Save Session
-                    AuthStorage.setUserConsent(firebaseUser.email);
-                    AuthStorage.setLastUserEmail(firebaseUser.email);
-                    AuthStorage.saveSession(userData);
-
-                    // F. Fetch Jira Tickets (non-blocking)
                     fetch('/api/search-jira', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userEmail: firebaseUser.email })
+                        body: JSON.stringify({ userEmail: u.email })
                     })
                         .then(res => res.json())
                         .then(data => {
-                            if (data.success && isMounted) setActiveTickets(data.tickets || []);
+                            if (data.success) setActiveTickets(data.tickets || []);
                         })
-                        .catch(err => console.error("Jira Fetch Error:", err));
-                }
-                return true;
-            } catch (e) {
-                console.error("Login Processing Error:", e);
-                if (isMounted) {
-                    setLoginError('Error cargando tus datos: ' + e.message);
+                        .catch(console.error);
+                } else {
+                    // Invalid domain
+                    console.warn('Unauthorized domain:', u.email);
+                    await firebase.auth().signOut();
+                    setUser(null);
+                    setLoginError('Acceso restringido: Debes usar un correo @prestamype.com');
                     setIsLoading(false);
                 }
-                return false;
-            }
-        };
-
-        // Sequential Auth Initialization (IIFE)
-        (async () => {
-            // 1. Set Persistence
-            try {
-                await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-            } catch (e) {
-                console.warn('Persistence Error:', e);
-            }
-
-            // 2. FIRST: Check if returning from redirect
-            try {
-                console.log("Checking redirect result...");
-                const result = await firebase.auth().getRedirectResult();
-                if (result.user) {
-                    console.log("Redirect returned user:", result.user.email);
-                    const success = await processLogin(result.user);
-                    if (success) return; // Done, user logged in from redirect
-                }
-            } catch (error) {
-                console.error("Redirect Error:", error);
-                if (isMounted) {
-                    setLoginError('Error en la redirección: ' + error.message);
-                    setIsLoading(false);
-                }
-                return; // Stop here, show error
-            }
-
-            // 3. SECOND: Check if user already persisted
-            const currentUser = firebase.auth().currentUser;
-            if (currentUser) {
-                console.log("Found persisted user:", currentUser.email);
-                const success = await processLogin(currentUser);
-                if (success) return; // Done, user restored from persistence
-            }
-
-            // 4. No user found from redirect or persistence
-            console.log("No user found, showing login.");
-            if (isMounted) {
+            } else {
                 setUser(null);
                 setIsLoading(false);
             }
-        })();
-
-        // Listener for auth changes after initial load (logout, etc)
-        const unsubscribe = firebase.auth().onAuthStateChanged((u) => {
-            // This is primarily for detecting logout AFTER initial load
-            // We don't use this for initial login to avoid race conditions
-            if (!u && isMounted) {
-                // User logged out
-                setUser(null);
-                setDataService(null);
-                setDcs([]);
-                setActiveTickets([]);
-            }
         });
-
-        return () => {
-            isMounted = false;
-            unsubscribe();
-        };
     }, []);
 
     const handleAddDC = async (data) => {
