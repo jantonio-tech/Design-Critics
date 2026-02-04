@@ -105,55 +105,36 @@ function LoginPage({ onLogin, error }) {
         setIsAuthenticating(true);
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        // Fix Localization
+        // Ensure fresh login to avoid stale cookies issues
+        provider.setCustomParameters({ prompt: 'select_account' });
         firebase.auth().useDeviceLanguage();
 
-        // Robust mobile detection: If mobile, FORCE REDIRECT immediately
-        // No async calls before this to verify user interaction requirements on iOS
         const isMobile = /Android|webOS|iPhone|iPad|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        if (isMobile) {
-            // Direct call, no try/catch wrapping the trigger itself if possible
-            // to keep the stack clean for the browser's "user interaction" check.
-            firebase.auth().signInWithRedirect(provider).catch(err => {
-                console.error("Redirect trigger error:", err);
-                setIsAuthenticating(false);
-                onLogin(null, 'Error al iniciar redirección: ' + err.message);
-            });
-            return;
-        }
-
-        // Desktop: Try Popup first
         try {
-            const result = await firebase.auth().signInWithPopup(provider);
-            const firebaseUser = result.user;
-
-            // Domain check logic is handled centrally by initializeUser now, 
-            // but for immediate feedback in popup flow we can do a quick check:
-            if (!firebaseUser.email.endsWith('@prestamype.com')) {
-                await firebase.auth().signOut();
-                onLogin(null, 'Debes usar un correo @prestamype.com');
-                setIsAuthenticating(false);
-                return;
-            }
-
-            // The onAuthStateChanged listener will pick this up and run initializeUser, 
-            // avoiding race conditions. We just unset authenticating.
-            // setIsAuthenticating(false); // Let the listener handle it
-
-        } catch (error) {
-            console.error('Popup Auth error:', error);
-
-            if (error.code === 'auth/popup-closed-by-user') {
-                setIsAuthenticating(false);
-                return;
-            }
-
-            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-                // Fallback to redirect if popup is blocked
-                firebase.auth().signInWithRedirect(provider);
+            if (isMobile) {
+                // Mobile: Redirect flow
+                await firebase.auth().signInWithRedirect(provider);
+                // Note: Code execution stops here on mobile usually, or redirects immediately.
+                // We don't need to do anything else.
             } else {
-                setIsAuthenticating(false);
+                // Desktop: Popup flow
+                const result = await firebase.auth().signInWithPopup(provider);
+                // On success, the onAuthStateChanged listener in App component 
+                // will handle the user state update. We just wait.
+            }
+        } catch (error) {
+            console.error('Login Error:', error);
+            setIsAuthenticating(false);
+
+            if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                return; // User cancelled, no error message needed
+            }
+
+            if (error.code === 'auth/popup-blocked') {
+                // Fallback for blocked popups on desktop if needed, or just warn
+                onLogin(null, 'Ventana emergente bloqueada. Por favor permite popups.');
+            } else {
                 onLogin(null, 'Error de autenticación: ' + error.message);
             }
         }
@@ -516,87 +497,100 @@ export default function App() {
 
     // Auth & Data Load
     useEffect(() => {
-        // 0. Ensure Persistence is LOCAL (Critical for restoring session after redirect)
+        // 1. Configure Persistence Globaly
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .catch(e => console.warn('Persistence Init Error:', e));
+            .catch(e => console.warn('Persistence Error:', e));
 
-        // Shared User Initialization Logic
-        const initializeUser = async (u) => {
-            if (u.email?.endsWith('@prestamype.com')) {
-                try {
-                    const userData = {
-                        name: u.displayName,
-                        email: u.email,
-                        picture: u.photoURL,
-                        initials: (u.displayName || 'U').substring(0, 2),
-                        uid: u.uid
-                    };
-                    const service = new FirestoreDataService(u.email);
-                    const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
+        // 2. Centralized Login Processor
+        const processLogin = async (firebaseUser) => {
+            if (!firebaseUser) return;
 
-                    const merged = [...all]; // Simple spread
-                    const allIds = new Set(all.map(d => d.id));
-                    history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
-
-                    setUser(userData);
-                    setDataService(service);
-                    setDcs(merged);
-                    setLoginError(null);
-
-                    // Persist session tokens
-                    AuthStorage.setUserConsent(u.email);
-                    AuthStorage.setLastUserEmail(u.email);
-                    AuthStorage.saveSession(userData);
-
-                    fetch('/api/search-jira', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userEmail: u.email })
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) setActiveTickets(data.tickets || []);
-                        })
-                        .catch(console.error);
-
-                } catch (e) {
-                    console.error("Error initializing user data:", e);
-                    setLoginError('Error cargando datos de usuario: ' + e.message);
-                }
-            } else {
-                console.warn('Unauthorized domain:', u.email);
+            // A. Domain Validation
+            if (!firebaseUser.email?.endsWith('@prestamype.com')) {
+                console.warn('Unauthorized domain:', firebaseUser.email);
                 await firebase.auth().signOut();
                 setUser(null);
-                setLoginError('Acceso restringido: Debes usar un correo @prestamype.com');
+                setLoginError('Acceso restringido: Solo correos @prestamype.com');
+                setIsLoading(false);
+                return;
             }
-            setIsLoading(false);
+
+            try {
+                // B. Prepare User Data
+                const userData = {
+                    name: firebaseUser.displayName,
+                    email: firebaseUser.email,
+                    picture: firebaseUser.photoURL,
+                    initials: (firebaseUser.displayName || 'U').substring(0, 2),
+                    uid: firebaseUser.uid
+                };
+
+                // C. Load Firestore Data
+                const service = new FirestoreDataService(firebaseUser.email);
+                const [all, history] = await Promise.all([
+                    service.readAll(),
+                    service.readUserHistory()
+                ]);
+
+                // Filter history to avoid duplicates if needed
+                const merged = [...all];
+                const allIds = new Set(all.map(d => d.id));
+                history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
+
+                // D. Update State
+                setUser(userData);
+                setDataService(service);
+                setDcs(merged);
+                setLoginError(null);
+
+                // E. Save Session for fast reload (optional but good practice)
+                AuthStorage.setUserConsent(firebaseUser.email);
+                AuthStorage.setLastUserEmail(firebaseUser.email);
+                AuthStorage.saveSession(userData);
+
+                // F. Fetch Jira Tickets
+                fetch('/api/search-jira', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userEmail: firebaseUser.email })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) setActiveTickets(data.tickets || []);
+                    })
+                    .catch(err => console.error("Jira Fetch Error:", err));
+
+            } catch (e) {
+                console.error("Login Processing Error:", e);
+                setLoginError('Error cargando tus datos. Intenta recargar.');
+            } finally {
+                setIsLoading(false);
+            }
         };
 
-        // 1. Handle Redirect Results (Returning from Google) - SAFETY NET
-        firebase.auth().getRedirectResult()
-            .then((result) => {
-                if (result.user) {
-                    console.log("Redirect Login returned user:", result.user.email);
-                    // CRITICAL: Force initialization here. 
-                    // onAuthStateChanged might fail to fire or fire with null first in some redirect scenarios.
-                    initializeUser(result.user);
-                }
-            })
-            .catch(error => {
-                console.error("Redirect Result Error:", error);
-                setLoginError('Error en redirección: ' + (error.message || 'Desconocido'));
-                setIsLoading(false);
-            });
-
-        // 3. Listen for Auth State Changes
+        // 3. Listen for Auth State Changes (The Single Source of Truth)
         const unsubscribe = firebase.auth().onAuthStateChanged(async (u) => {
             if (u) {
-                await initializeUser(u);
+                // User is signed in (or restored from persistence)
+                await processLogin(u);
             } else {
+                // User is signed out
                 setUser(null);
                 setIsLoading(false);
             }
         });
+
+        // 4. Handle Redirect Errors ONLY
+        // We do NOT use this to set user session, onAuthStateChanged handles that.
+        // We only check for specific redirect errors here.
+        firebase.auth().getRedirectResult()
+            .catch(error => {
+                console.error("Redirect Failed:", error);
+                setLoginError('Error al iniciar sesión con Google: ' + error.message);
+                setIsLoading(false);
+            });
+
+        return () => unsubscribe();
     }, []);
 
     const handleAddDC = async (data) => {
