@@ -21,7 +21,7 @@ export function TicketAccordion({
     const [figmaLink, setFigmaLink] = useState(null);
     const isOpen = value === "item-1";
 
-    const { happyPaths, loading: loadingHPs, error: errorHPs } = useHappyPaths(figmaLink);
+    const { happyPaths, loading: loadingHPs, error: errorHPs, hasLoaded } = useHappyPaths(figmaLink);
 
     // Calculate progress with "Nuevo alcance" reset logic
     const { validFlowCounts, totalCriticsDone } = React.useMemo(() => {
@@ -38,6 +38,16 @@ export function TicketAccordion({
         let total = 0;
 
         Object.keys(flowMap).forEach(flow => {
+            // Sync with Happy Paths:
+            // If HPs are loaded, ONLY count flows that exist in the current list
+            if (hasLoaded) {
+                // Normalizamos para comparar (aunque deberían ser idénticos si vienen del mismo select)
+                const isCurrent = happyPaths.some(hp => hp.name === flow);
+                // Si el flujo de la sesión NO está en los happy paths actuales, lo ignoramos
+                // Esto corrige el caso "1/4" donde el 1 es de un HP eliminado
+                if (!isCurrent) return;
+            }
+
             const sList = flowMap[flow].sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
             let sliceIndex = 0;
             for (let i = sList.length - 1; i >= 0; i--) {
@@ -54,7 +64,7 @@ export function TicketAccordion({
         });
 
         return { validFlowCounts: counts, totalCriticsDone: total };
-    }, [sessions, ticket.key]);
+    }, [sessions, ticket.key, happyPaths, hasLoaded]);
 
     const maxCritics = happyPaths.length > 0 ? happyPaths.length * 2 : 0;
     const progressPercent = maxCritics > 0 ? Math.min((totalCriticsDone / maxCritics) * 100, 100) : 0;
