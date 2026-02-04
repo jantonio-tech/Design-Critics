@@ -245,6 +245,15 @@ function CreateCriticsSession({
                         <p className="text-xs text-muted-foreground">
                             Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
                         </p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            className="mt-2 h-7 bg-background text-xs"
+                            onClick={() => window.open(`https://prestamype.atlassian.net/browse/${watchedTicket}`, '_blank')}
+                        >
+                            Ir a Jira
+                        </Button>
                     </div>
                 )}
 

@@ -235,15 +235,13 @@ export function TicketAccordion({
                                     <p className="text-xs text-muted-foreground">
                                         Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
                                     </p>
-                                </div>
-
-                                <div className="flex justify-center">
                                     <Button
-                                        variant="secondary"
+                                        variant="outline"
                                         size="sm"
-                                        onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
+                                        className="mt-2 h-7 bg-background text-xs"
+                                        onClick={() => window.open(`https://prestamype.atlassian.net/browse/${ticket.key}`, '_blank')}
                                     >
-                                        Agendar Manualmente
+                                        Ir a Jira
                                     </Button>
                                 </div>
                             </div>
