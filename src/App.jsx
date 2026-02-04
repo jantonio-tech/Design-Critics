@@ -14,6 +14,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -194,6 +195,8 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs }) => {
                             const month = String(targetDate.getMonth() + 1).padStart(2, '0');
                             const dateNum = String(targetDate.getDate()).padStart(2, '0');
                             const finalDateStr = `${year}-${month}-${dateNum}`;
+
+                            console.log('📅 Date Calculation:', { todayStr, day, finalDateStr, TimeZone: 'America/Lima' });
 
                             onQuickAdd({
                                 ...data,
@@ -563,6 +566,9 @@ export default function App() {
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{editingDC?.id ? 'Editar Sesión' : 'Agendar design critics'}</DialogTitle>
+                        <DialogDescription className="hidden">
+                            Formulario para agendar o editar una sesión de Design Critics.
+                        </DialogDescription>
                     </DialogHeader>
                     <CreateCriticsSession
                         sessions={dcs}
