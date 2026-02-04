@@ -55,14 +55,14 @@ export function AgendaCard({ sessions, user, onDelete }) {
                         <p className="text-xs opacity-60">¡Día libre de críticas!</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory -mx-6 px-6 md:grid md:grid-cols-2 lg:grid-cols-3 md:pb-0 md:mx-0 md:px-0 md:overflow-visible">
                         {todaysSessions.map((session) => {
                             const isOwner = user && (session.createdBy === user.email);
 
                             return (
                                 <div
                                     key={session.id}
-                                    className="group flex items-center justify-between gap-4 p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-all hover:border-primary/30"
+                                    className="group flex-shrink-0 min-w-[85%] sm:min-w-[300px] md:min-w-0 snap-center flex items-center justify-between gap-4 p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-all hover:border-primary/30"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-semibold truncate leading-none mb-1.5 flex items-center gap-2">
@@ -82,7 +82,7 @@ export function AgendaCard({ sessions, user, onDelete }) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"
                                             onClick={() => onDelete(session.id)}
                                             title="Eliminar sesión"
                                         >
@@ -95,6 +95,6 @@ export function AgendaCard({ sessions, user, onDelete }) {
                     </div>
                 )}
             </CardContent>
-        </Card>
+        </Card >
     );
 }
