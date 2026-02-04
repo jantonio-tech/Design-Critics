@@ -243,7 +243,7 @@ function CreateCriticsSession({
                             Falta el link de Figma
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Agrégalo en el campo "Solución" o "Descripción" del ticket en Jira y vuelve a seleccionarlo.
+                            Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
                         </p>
                     </div>
                 )}
