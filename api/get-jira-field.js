@@ -72,12 +72,16 @@ export default async function handler(req, res) {
             // Simplified extraction: assume string or simple object structure for now
             if (typeof fieldValue === 'string') {
                 figmaLink = fieldValue;
+                console.log(`📋 Figma link found in Solución field (string) for ${ticketKey}`);
             } else if (fieldValue?.content) {
                 // Try to extract URL from ADF
                 // This is complex, but let's try a simple JSON stringify and regex search for figma.com
                 const raw = JSON.stringify(fieldValue);
                 const match = raw.match(/https?:\/\/(www\.)?figma\.com\/[^"\s]*/);
-                if (match) figmaLink = match[0];
+                if (match) {
+                    figmaLink = match[0];
+                    console.log(`📋 Figma link found in Solución field (ADF) for ${ticketKey}`);
+                }
             }
         }
 
@@ -85,7 +89,17 @@ export default async function handler(req, res) {
         if (!figmaLink && data.fields.description) {
             const raw = JSON.stringify(data.fields.description);
             const match = raw.match(/https?:\/\/(www\.)?figma\.com\/[^"\s]*/);
-            if (match) figmaLink = match[0];
+            if (match) {
+                figmaLink = match[0];
+                console.log(`📝 Figma link found in Description field for ${ticketKey}`);
+            }
+        }
+
+        // Debug logging
+        if (figmaLink) {
+            console.log(`✅ Figma link for ${ticketKey}:`, figmaLink);
+        } else {
+            console.log(`⚠️ No Figma link found for ${ticketKey}`);
         }
 
         return res.status(200).json({

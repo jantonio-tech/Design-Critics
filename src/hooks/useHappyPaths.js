@@ -54,10 +54,14 @@ export function useHappyPaths(figmaLink) {
 
         } catch (err) {
             console.error('Error loading happy paths:', err);
-            // Si ya mostramos caché, el error de red es menos crítico para el usuario,
-            // pero igual lo guardamos por si queremos mostrar un warning.
-            // Si NO mostramos caché, esto mostrará el error en la UI.
-            setError(err.message);
+            // Create structured error with type for UI handling
+            const errorInfo = {
+                message: err.message,
+                type: err.type || 'UNKNOWN',
+                figmaLink: err.figmaLink || figmaLink,
+                fileKey: err.fileKey || null
+            };
+            setError(errorInfo);
             if (!loadedFromCache && happyPaths.length === 0) {
                 setHappyPaths([]);
             }

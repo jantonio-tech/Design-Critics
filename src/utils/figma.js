@@ -319,14 +319,23 @@ export async function getCachedHappyPaths(figmaLink) {
  * Obtiene Happy Paths usando una URL de Figma Directamente
  */
 export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
+    // Debug logging for troubleshooting
+    console.log('🔗 Figma URL received:', figmaLink);
+
     const fileKey = extractFileKey(figmaLink);
     const nodeId = extractNodeId(figmaLink);
 
+    console.log('🔑 Extracted file key:', fileKey);
+    console.log('📍 Extracted node ID:', nodeId || 'N/A');
+
     if (!fileKey) {
-        throw new Error(
+        const error = new Error(
             'El link de Figma no es válido. ' +
             'Debe ser del formato: https://figma.com/file/ABC123/nombre'
         );
+        error.type = 'INVALID_URL';
+        error.figmaLink = figmaLink;
+        throw error;
     }
 
     // 2. Si no es refresh forzado, verificar caché
@@ -360,10 +369,15 @@ export async function getHappyPathsFromUrl(figmaLink, forceRefresh = false) {
             // Si es un error 404, significa que el archivo no existe - lanzar inmediatamente
             if (metadataError.message.includes('404')) {
                 console.error('❌ Archivo de Figma no encontrado (404):', fileKey);
-                throw new Error(
-                    'El archivo de Figma no existe o ha sido eliminado. ' +
+                console.error('   Link original:', figmaLink);
+                const error = new Error(
+                    `El archivo de Figma no existe o ha sido eliminado (Key: ${fileKey}). ` +
                     'Por favor, verifica que el link de Figma sea correcto.'
                 );
+                error.type = 'FILE_NOT_FOUND';
+                error.fileKey = fileKey;
+                error.figmaLink = figmaLink;
+                throw error;
             }
 
             // Para otros errores, intentar usar caché si existe

@@ -179,7 +179,54 @@ export function TicketAccordion({
                             </div>
                         )}
 
-                        {!loadingHPs && happyPaths.length === 0 && (
+                        {!loadingHPs && errorHPs && (
+                            <div className="text-center py-4 space-y-3">
+                                <div className="flex items-center justify-center gap-2 text-destructive">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-semibold">
+                                        {errorHPs.type === 'FILE_NOT_FOUND' ? 'Archivo de Figma no encontrado' : 'Error al cargar Happy Paths'}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {typeof errorHPs === 'string' ? errorHPs : errorHPs.message}
+                                </p>
+                                {(errorHPs.figmaLink || figmaLink) && (
+                                    <div className="text-xs text-muted-foreground bg-muted px-3 py-2 rounded-md break-all">
+                                        <span className="font-medium">Link:</span>{' '}
+                                        {(errorHPs.figmaLink || figmaLink).substring(0, 60)}...
+                                    </div>
+                                )}
+                                <div className="flex gap-2 justify-center flex-wrap">
+                                    {(errorHPs.figmaLink || figmaLink) && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.open(errorHPs.figmaLink || figmaLink, '_blank')}
+                                        >
+                                            Abrir en Figma
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => window.open(`https://prestamype.atlassian.net/browse/${ticket.key}`, '_blank')}
+                                    >
+                                        Verificar en Jira
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
+                                    >
+                                        Agendar Manualmente
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {!loadingHPs && !errorHPs && happyPaths.length === 0 && (
                             <div className="text-center py-4">
                                 <p className="text-sm text-muted-foreground mb-3">
                                     No se detectaron frames "HP-" en el archivo de Figma asociado.
