@@ -141,7 +141,7 @@ export class FirestoreDataService {
 
             // Si es tipo Nuevo scope (o legacy Cambio de alcance), marcar TODOS los DCs anteriores de este ticket como descartados
             // (excluyendo el recién creado)
-            if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance') {
+            if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance' || dcData.type === 'Nuevo alcance') {
                 await this.archiveAllPrevious(dcData.ticket, docRef.id);
             }
 
@@ -175,7 +175,7 @@ export class FirestoreDataService {
 
             await this.db.collection(this.collection).doc(dcData.id).update(updateFields);
 
-            if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance') {
+            if (dcData.type === 'Nuevo scope' || dcData.type === 'Cambio de alcance' || dcData.type === 'Nuevo alcance') {
                 await this.archiveAllPrevious(dcData.ticket, dcData.id);
             }
 
