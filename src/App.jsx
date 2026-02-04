@@ -53,10 +53,10 @@ function Navbar({ user, onLogout, darkMode, toggleDarkMode }) {
                 </div>
                 <div className="user-info">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={toggleDarkMode}
-                        className="theme-toggle-btn rounded-full w-9 h-9"
+                        className="theme-toggle-btn rounded-full w-9 h-9 border-input"
                     >
                         {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                     </Button>
@@ -84,7 +84,7 @@ function Navbar({ user, onLogout, darkMode, toggleDarkMode }) {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onClick={onLogout}
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/20 cursor-pointer"
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
                                 <span>Cerrar sesión</span>
