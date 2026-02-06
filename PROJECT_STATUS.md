@@ -4,7 +4,7 @@
 Herramienta web profesional para gestionar, agendar y realizar seguimiento de "Design Critics" (revisiones de diseño de producto) en Prestamype. Diseñada para coordinar los flujos de trabajo entre diseñadores, integrándose directamente con **Jira Software** y **Figma**.
 
 ## 📅 Estado Actual (Febrero 2026)
-**Versión:** 2.4.0 (Refinamientos de UX & Figma Integration)
+**Versión:** 2.5.0 (Migración Shadcn UI & Validaciones)
 
 ### ✅ Funcionalidades Principales
 1.  **Dashboard Personal**: Muestra los tickets activos asignados al usuario en Jira.
@@ -12,6 +12,8 @@ Herramienta web profesional para gestionar, agendar y realizar seguimiento de "D
 3.  **Calendario Interactivo**: Vista semanal/mensual para agendar sesiones.
 4.  **Sistema de Permisos**: Modelo de seguridad basado en propiedad (Owner-based).
 5.  **Alertas Inteligentes**: Notificaciones contextuales para errores de configuración (e.g., falta de link en Figma).
+6.  **Agenda del Día**: Tarjeta destacada que muestra las sesiones programadas para hoy con indicador de estado "En curso".
+7.  **Validación de Formularios**: Validación robusta con React Hook Form + Zod en todos los formularios.
 
 ---
 
@@ -89,8 +91,9 @@ La aplicación es totalmente **Responsive**.
 ## 🛠️ Stack Tecnológico & Arquitectura
 
 -   **Frontend**: React 18 + Vite.
-    -   *UI Components*: Shadcn UI (basado en Radix).
-    -   *Estilos*: Tailwind CSS v4 + Módulos CSS.
+    -   *UI Components*: Shadcn UI (15 componentes: Accordion, Alert Dialog, Avatar, Badge, Button, Card, Dialog, Dropdown Menu, Input, Label, Select, Skeleton, Sonner, Tabs, Textarea).
+    -   *Form Validation*: React Hook Form + Zod para validaciones.
+    -   *Estilos*: Tailwind CSS v4.
     -   *State*: React Hooks + Context Pattern local.
 -   **Backend**:
     -   *Database*: Firebase Firestore (`dc_registrations`).
@@ -99,8 +102,11 @@ La aplicación es totalmente **Responsive**.
     -   Deploy automático en **Vercel** desde rama `main`.
 
 ## 📂 Directorio de Archivos Clave
--   `src/App.jsx`: Orquestador principal y enrutamiento por Tabs.
+-   `src/App.jsx`: Orquestador principal (718 líneas) con enrutamiento por Tabs, Navbar, DashboardPage y CalendarPage.
 -   `src/components/TicketAccordion.jsx`: Lógica de visualización de tickets y integración Figma.
--   `src/components/CreateCriticsSession.jsx`: Formulario complejo con validaciones Zod.
--   `src/hooks/useHappyPaths.js`: Hook personalizado para caching y fetch de Figma data.
--   `src/services/data.js`: Capa de abstracción para Firestore (CRUD + Lógica de Archivo).
+-   `src/components/CreateCriticsSession.jsx`: Formulario complejo (~780 líneas) con validaciones React Hook Form + Zod.
+-   `src/components/AgendaCard.jsx`: Tarjeta que muestra sesiones programadas para hoy con estado "En curso".
+-   `src/components/ui/`: 15 componentes Shadcn UI reutilizables (accordion, alert-dialog, avatar, badge, button, card, dialog, dropdown-menu, input, label, select, skeleton, sonner, tabs, textarea).
+-   `src/hooks/useHappyPaths.js`: Hook personalizado con estrategia Stale-While-Revalidate para caching y fetch de Figma.
+-   `src/services/data.js`: Capa de abstracción para Firestore (CRUD + Lógica de Archivo + Suscripciones Realtime).
+-   `api/`: Serverless Functions (Figma proxy, Jira search, Jira field getter).
