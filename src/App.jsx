@@ -406,16 +406,21 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
 
 // --- Main App ---
 
-export default function App() {
-    // Detectar si es ruta /live/:sessionCode
+// Wrapper para detectar ruta /live/:sessionCode sin violar Rules of Hooks
+function AppRouter() {
     const pathMatch = window.location.pathname.match(/^\/live\/([A-Za-z0-9]+)$/);
     const liveSessionCode = pathMatch ? pathMatch[1] : null;
 
-    // Si es ruta /live, renderizar LiveVotingPage directamente
     if (liveSessionCode) {
         return <LiveVotingPage sessionCode={liveSessionCode} />;
     }
 
+    return <App />;
+}
+
+export default AppRouter;
+
+function App() {
     const [user, setUser] = useState(null);
     const [loginError, setLoginError] = useState(null);
     const [dataService, setDataService] = useState(null);

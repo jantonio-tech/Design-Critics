@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { VotingService } from '../services/voting';
 import { LiveVoteResults } from './LiveVoteResults';
 import { SessionSummaryModal } from './SessionSummaryModal';
@@ -17,10 +17,110 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-    Users, Vote, Play, X, ChevronUp, ChevronDown,
-    ArrowLeft, Loader2, CheckCircle2, CircleDot, SkipForward
+    Users, Play,
+    ArrowLeft, Loader2, CircleDot, GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+/**
+ * Tarjeta de presentación arrastrable (drag & drop)
+ */
+function SortablePresentationCard({ presentation: p, index, onLaunch, disabled, launching }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: p.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+        opacity: isDragging ? 0.8 : 1,
+    };
+
+    return (
+        <Card
+            ref={setNodeRef}
+            style={style}
+            className={cn(
+                "hover:border-primary/30 transition-colors",
+                isDragging && "shadow-lg ring-1 ring-primary/30"
+            )}
+        >
+            <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Drag handle */}
+                        <button
+                            {...attributes}
+                            {...listeners}
+                            className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing touch-none"
+                        >
+                            <GripVertical className="w-4 h-4 text-muted-foreground" />
+                        </button>
+
+                        {/* Info de la presentación */}
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-muted-foreground">
+                                    {index + 1}.
+                                </span>
+                                <h3 className="text-sm font-semibold truncate">
+                                    {p.flow || p.flujo || 'Sin título'}
+                                </h3>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {p.presenter || p.presentador} · {p.ticket}
+                            </p>
+                            {p.product || p.producto ? (
+                                <Badge variant="secondary" className="text-[10px] mt-1">
+                                    {p.product || p.producto}
+                                </Badge>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    {/* Botón lanzar */}
+                    <Button
+                        size="sm"
+                        onClick={() => onLaunch(p)}
+                        disabled={disabled}
+                        className="flex-shrink-0 ml-3"
+                    >
+                        {launching ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <>
+                                <Play className="w-3.5 h-3.5 mr-1" />
+                                Lanzar
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
 
 /**
  * Panel de Control del Facilitador.
@@ -119,20 +219,24 @@ export function VotingControlPanel({ sessionCode, user, onClose }) {
         }
     };
 
-    // Mover presentación (botones arriba/abajo - Fase 1 sin drag & drop)
-    const handleMoveUp = (index) => {
-        if (index <= 0) return;
-        const reordered = [...pendingPresentations];
-        [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    // Drag & drop sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
 
-        VotingService.reorderPresentations(reordered);
-    };
+    const pendingIds = useMemo(() => pendingPresentations.map(p => p.id), [pendingPresentations]);
 
-    const handleMoveDown = (index) => {
-        if (index >= pendingPresentations.length - 1) return;
-        const reordered = [...pendingPresentations];
-        [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
 
+        const oldIndex = pendingPresentations.findIndex(p => p.id === active.id);
+        const newIndex = pendingPresentations.findIndex(p => p.id === over.id);
+
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        const reordered = arrayMove(pendingPresentations, oldIndex, newIndex);
         VotingService.reorderPresentations(reordered);
     };
 
@@ -236,70 +340,24 @@ export function VotingControlPanel({ sessionCode, user, onClose }) {
                         </CardContent>
                     </Card>
                 ) : (
-                    pendingPresentations.map((p, index) => (
-                        <Card key={p.id} className="hover:border-primary/30 transition-colors">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        {/* Botones de reordenamiento */}
-                                        <div className="flex flex-col gap-0.5">
-                                            <button
-                                                onClick={() => handleMoveUp(index)}
-                                                disabled={index === 0}
-                                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleMoveDown(index)}
-                                                disabled={index === pendingPresentations.length - 1}
-                                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                                            >
-                                                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-                                            </button>
-                                        </div>
-
-                                        {/* Info de la presentación */}
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-muted-foreground">
-                                                    {index + 1}.
-                                                </span>
-                                                <h3 className="text-sm font-semibold truncate">
-                                                    {p.flow || p.flujo || 'Sin título'}
-                                                </h3>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                {p.presenter || p.presentador} · {p.ticket}
-                                            </p>
-                                            {p.product || p.producto ? (
-                                                <Badge variant="secondary" className="text-[10px] mt-1">
-                                                    {p.product || p.producto}
-                                                </Badge>
-                                            ) : null}
-                                        </div>
-                                    </div>
-
-                                    {/* Botón lanzar */}
-                                    <Button
-                                        size="sm"
-                                        onClick={() => handleLaunchVote(p)}
-                                        disabled={!!activeVote || launching}
-                                        className="flex-shrink-0 ml-3"
-                                    >
-                                        {launching ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <>
-                                                <Play className="w-3.5 h-3.5 mr-1" />
-                                                Lanzar
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext items={pendingIds} strategy={verticalListSortingStrategy}>
+                            {pendingPresentations.map((p, index) => (
+                                <SortablePresentationCard
+                                    key={p.id}
+                                    presentation={p}
+                                    index={index}
+                                    onLaunch={handleLaunchVote}
+                                    disabled={!!activeVote || launching}
+                                    launching={launching}
+                                />
+                            ))}
+                        </SortableContext>
+                    </DndContext>
                 )}
             </div>
 
