@@ -1,56 +1,99 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // ========== FUNCIONES HELPER ==========
+
     // Función helper: usuario está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     // Función helper: es usuario de Prestamype
     function isPrestamypeUser() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
              request.auth.token.email != null &&
              request.auth.token.email.matches('.*@prestamype.com$');
     }
-    
+
     // Función helper: es usuario anónimo (para demo/pruebas)
     function isAnonymousUser() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
              request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
-    
+
     // Función helper: usuario autorizado (Prestamype O anónimo)
     function isAuthorizedUser() {
       return isPrestamypeUser() || isAnonymousUser();
     }
-    
+
     // Función helper: es el creador del documento
     function isOwner(resource) {
-      return isPrestamypeUser() && 
+      return isPrestamypeUser() &&
              resource.data.presentador_email == request.auth.token.email;
     }
-    
-    // Reglas para critics_sessions (adaptado de dc_registrations)
+
+    // Función helper: es el facilitador de votaciones
+    function isFacilitator() {
+      return isPrestamypeUser() &&
+             request.auth.token.email == 'jantonio@prestamype.com';
+    }
+
+    // ========== CRITICS_SESSIONS ==========
+
     match /critics_sessions/{docId} {
       // Usuarios autorizados pueden leer:
       // 1. DC activos (para todos)
       // 2. Sus propios DC (para historial personal)
-      allow read: if isAuthorizedUser() && 
+      allow read: if isAuthorizedUser() &&
                      (resource.data.estado == 'activo' || isOwner(resource));
-      
+
       // Solo usuarios Prestamype pueden crear DC
       allow create: if isPrestamypeUser() &&
                        request.resource.data.presentador_email == request.auth.token.email;
-      
-      // Solo el creador puede actualizar su DC
-      allow update: if isOwner(resource);
-      
+
+      // Puede actualizar si:
+      // 1. Es el dueño (jantonio puede editar sus propias sesiones)
+      // 2. Es facilitador Y solo modifica presentationOrder o voteResult
+      allow update: if isOwner(resource) ||
+                       (isFacilitator() && onlyFacilitatorFields());
+
       // Solo el creador puede eliminar (cambiar estado)
       allow delete: if isOwner(resource);
+
+      function onlyFacilitatorFields() {
+        let changedKeys = request.resource.data.diff(resource.data)
+                           .affectedKeys();
+        return changedKeys.hasOnly(['presentationOrder', 'updatedAt', 'voteResult']);
+      }
     }
-    
-    // Reglas para user_settings
+
+    // ========== LIVE_SESSIONS (Votaciones en vivo) ==========
+
+    match /live_sessions/{sessionCode} {
+      // Cualquier usuario autorizado puede leer sesiones activas
+      allow read: if isAuthorizedUser();
+
+      // Solo facilitador puede crear sesiones de votación
+      allow create: if isFacilitator();
+
+      // Facilitador puede actualizar completamente
+      // Usuarios pueden actualizar solo su conexión y votos
+      allow update: if isFacilitator() ||
+                       (isPrestamypeUser() && isValidUserUpdate());
+
+      // Solo facilitador puede cerrar/eliminar sesiones
+      allow delete: if isFacilitator();
+
+      function isValidUserUpdate() {
+        let affectedKeys = request.resource.data.diff(resource.data)
+                            .affectedKeys();
+        return affectedKeys.hasOnly(['connectedUsers', 'votes']);
+      }
+    }
+
+    // ========== USER_SETTINGS ==========
+
     match /user_settings/{email} {
       // Usuarios Prestamype pueden leer/escribir su propia config
       // Usuarios anónimos pueden leer cualquier config (para demo)
@@ -59,7 +102,8 @@ service cloud.firestore {
       allow write: if isPrestamypeUser() && email == request.auth.token.email;
     }
 
-    // Reglas para figma_cache
+    // ========== FIGMA_CACHE ==========
+
     // Cache de Happy Paths para evitar llamadas excesivas a Figma API
     match /figma_cache/{fileKey} {
       // Todos los usuarios autorizados pueden leer y crear/actualizar el caché

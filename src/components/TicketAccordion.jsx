@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHappyPaths } from '../hooks/useHappyPaths';
+import { useTodaySessionStatus } from '../hooks/useTodaySessionStatus';
+import { getNextAvailableDate } from '../utils/votingHelpers';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +22,10 @@ export function TicketAccordion({
     const [value, setValue] = useState("");
     const [figmaLink, setFigmaLink] = useState(null);
     const isOpen = value === "item-1";
+
+    // Determinar texto dinámico del botón de agendar
+    const { closed: sessionClosed } = useTodaySessionStatus();
+    const scheduleInfo = getNextAvailableDate(sessionClosed);
 
     const { happyPaths, loading: loadingHPs, error: errorHPs, hasLoaded, refresh } = useHappyPaths(figmaLink);
 
@@ -117,9 +123,9 @@ export function TicketAccordion({
     const getHpStatus = (hpName) => {
         const count = validFlowCounts[hpName] || 0;
 
-        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: 'Agendar Hoy' };
-        if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics (Límite)`, action: 'Agendar Hoy' };
-        return { status: 'good', count, label: `${count}/2 Critics`, action: 'Agendar Hoy' };
+        if (count >= 3) return { status: 'danger', count, label: `${count}/2 Critics (Excedido)`, action: scheduleInfo.label };
+        if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics (Límite)`, action: scheduleInfo.label };
+        return { status: 'good', count, label: `${count}/2 Critics`, action: scheduleInfo.label };
     };
 
     return (

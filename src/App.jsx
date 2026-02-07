@@ -5,6 +5,11 @@ import CreateCriticsSession from './components/CreateCriticsSession';
 import { TicketAccordion } from './components/TicketAccordion';
 import { toast, Toaster } from 'sonner';
 import { AgendaCard } from './components/AgendaCard';
+import { LiveVotingPage } from './components/LiveVotingPage';
+import { VotingControlPanel } from './components/VotingControlPanel';
+import { StartVotingSessionModal } from './components/StartVotingSessionModal';
+import { isFacilitator, getNextAvailableDate } from './utils/votingHelpers';
+import { useTodaySessionStatus } from './hooks/useTodaySessionStatus';
 
 // Shadcn UI Components
 import { Button } from '@/components/ui/button';
@@ -36,7 +41,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Sun, Moon, LogOut, Sparkles, User } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, User, Vote } from 'lucide-react';
 
 import './index.css';
 
@@ -169,17 +174,8 @@ function LoginPage({ onLogin, error }) {
 // --- Page Components ---
 
 const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete }) => {
-    const today = new Date();
-    const day = today.getDay();
-    let targetDate = new Date(today);
-
-    if (day === 6) {
-        targetDate.setDate(today.getDate() + 2);
-    } else if (day === 0) {
-        targetDate.setDate(today.getDate() + 1);
-    }
-
-    const dateStr = targetDate.toLocaleDateString('en-CA');
+    const { closed: sessionClosed } = useTodaySessionStatus();
+    const scheduleInfo = getNextAvailableDate(sessionClosed);
 
     return (
         <div>
@@ -203,41 +199,9 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete }) => {
                         ticket={ticket}
                         sessions={dcs}
                         onSchedule={(data) => {
-                            const getPeruDate = () => {
-                                const now = new Date();
-                                const options = { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' };
-                                const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
-                                return formatter.format(now);
-                            };
-
-                            const todayStr = getPeruDate();
-                            // Parse todayStr back to Date object for day-of-week logic if needed, 
-                            // but simply using today's date for 'Agendar Hoy' is usually correct unless weekend logic is strict.
-                            // The previous logic added days for weekends. Let's keep that but base it on Peru time.
-
-                            const todayParts = todayStr.split('-');
-                            const todayDate = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
-                            const day = todayDate.getDay();
-
-                            let targetDate = new Date(todayDate);
-
-                            if (day === 6) { // Saturday -> Monday
-                                targetDate.setDate(todayDate.getDate() + 2);
-                            } else if (day === 0) { // Sunday -> Monday
-                                targetDate.setDate(todayDate.getDate() + 1);
-                            }
-
-                            // Format targetDate back to YYYY-MM-DD
-                            const year = targetDate.getFullYear();
-                            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-                            const dateNum = String(targetDate.getDate()).padStart(2, '0');
-                            const finalDateStr = `${year}-${month}-${dateNum}`;
-
-                            console.log('📅 Date Calculation:', { todayStr, day, finalDateStr, TimeZone: 'America/Lima' });
-
                             onQuickAdd({
                                 ...data,
-                                date: finalDateStr,
+                                date: scheduleInfo.date,
                                 simplifiedMode: true,
                                 excludeTypes: ['Iteración DS']
                             });
@@ -443,6 +407,15 @@ function CalendarPage({ dcs, user, activeTickets, onAddDC, onEditDC, onDeleteDC 
 // --- Main App ---
 
 export default function App() {
+    // Detectar si es ruta /live/:sessionCode
+    const pathMatch = window.location.pathname.match(/^\/live\/([A-Za-z0-9]+)$/);
+    const liveSessionCode = pathMatch ? pathMatch[1] : null;
+
+    // Si es ruta /live, renderizar LiveVotingPage directamente
+    if (liveSessionCode) {
+        return <LiveVotingPage sessionCode={liveSessionCode} />;
+    }
+
     const [user, setUser] = useState(null);
     const [loginError, setLoginError] = useState(null);
     const [dataService, setDataService] = useState(null);
@@ -453,6 +426,11 @@ export default function App() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDC, setEditingDC] = useState(null);
+
+    // Estado para votaciones
+    const [votingModalOpen, setVotingModalOpen] = useState(false);
+    const [activeVotingCode, setActiveVotingCode] = useState(null);
+    const [showVotingPanel, setShowVotingPanel] = useState(false);
 
     const handleOpenModal = (data) => {
         setEditingDC(data);
@@ -642,33 +620,57 @@ export default function App() {
             />
 
             <div className="container">
-                <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                    <TabsList variant="line" className="mb-6">
-                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                        <TabsTrigger value="calendar">Calendario</TabsTrigger>
-                    </TabsList>
+                {showVotingPanel && activeVotingCode ? (
+                    <VotingControlPanel
+                        sessionCode={activeVotingCode}
+                        user={user}
+                        onClose={() => {
+                            setShowVotingPanel(false);
+                            setActiveVotingCode(null);
+                        }}
+                    />
+                ) : (
+                    <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+                        <div className="flex items-center justify-between mb-6">
+                            <TabsList variant="line">
+                                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                                <TabsTrigger value="calendar">Calendario</TabsTrigger>
+                            </TabsList>
 
-                    <TabsContent value="dashboard" className="mt-0">
-                        <DashboardPage
-                            activeTickets={activeTickets}
-                            dcs={dcs}
-                            user={user}
-                            onDelete={handleDeleteDC}
-                            onQuickAdd={handleQuickAdd}
-                        />
-                    </TabsContent>
+                            {isFacilitator(user.email) && (
+                                <Button
+                                    onClick={() => setVotingModalOpen(true)}
+                                    className="flex items-center gap-2"
+                                    size="sm"
+                                >
+                                    <Vote className="w-4 h-4" />
+                                    Votaciones
+                                </Button>
+                            )}
+                        </div>
 
-                    <TabsContent value="calendar" className="mt-0">
-                        <CalendarPage
-                            dcs={dcs}
-                            user={user}
-                            activeTickets={activeTickets}
-                            onAddDC={handleAddDC}
-                            onEditDC={handleEditDC}
-                            onDeleteDC={handleDeleteDC}
-                        />
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="dashboard" className="mt-0">
+                            <DashboardPage
+                                activeTickets={activeTickets}
+                                dcs={dcs}
+                                user={user}
+                                onDelete={handleDeleteDC}
+                                onQuickAdd={handleQuickAdd}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="calendar" className="mt-0">
+                            <CalendarPage
+                                dcs={dcs}
+                                user={user}
+                                activeTickets={activeTickets}
+                                onAddDC={handleAddDC}
+                                onEditDC={handleEditDC}
+                                onDeleteDC={handleDeleteDC}
+                            />
+                        </TabsContent>
+                    </Tabs>
+                )}
             </div>
 
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -712,6 +714,17 @@ export default function App() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <StartVotingSessionModal
+                open={votingModalOpen}
+                onClose={() => setVotingModalOpen(false)}
+                user={user}
+                onSessionReady={(code) => {
+                    setVotingModalOpen(false);
+                    setActiveVotingCode(code);
+                    setShowVotingPanel(true);
+                }}
+            />
         </>
     );
 }
