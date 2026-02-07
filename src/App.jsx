@@ -724,7 +724,7 @@ function App() {
                 open={votingModalOpen}
                 onClose={() => setVotingModalOpen(false)}
                 user={user}
-                onSessionReady={(code) => {
+                onSessionCreated={(code) => {
                     setVotingModalOpen(false);
                     setActiveVotingCode(code);
                     setShowVotingPanel(true);
