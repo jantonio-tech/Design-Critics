@@ -114,7 +114,7 @@ export class VotingService {
             users[existingIndex] = {
                 ...users[existingIndex],
                 online: true,
-                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastSeenAt: new Date(),
                 disconnectedAt: null
             };
         } else {
@@ -122,8 +122,8 @@ export class VotingService {
             users.push({
                 email: userEmail,
                 name: userName,
-                connectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+                connectedAt: new Date(),
+                lastSeenAt: new Date(),
                 online: true,
                 disconnectedAt: null
             });
@@ -144,7 +144,7 @@ export class VotingService {
         const users = sessionDoc.data().connectedUsers || [];
         const updatedUsers = users.map(u =>
             u.email === userEmail
-                ? { ...u, online: false, disconnectedAt: firebase.firestore.FieldValue.serverTimestamp() }
+                ? { ...u, online: false, disconnectedAt: new Date() }
                 : u
         );
 
@@ -163,7 +163,7 @@ export class VotingService {
         const users = sessionDoc.data().connectedUsers || [];
         const updatedUsers = users.map(u =>
             u.email === userEmail
-                ? { ...u, lastSeenAt: firebase.firestore.FieldValue.serverTimestamp(), online: true }
+                ? { ...u, lastSeenAt: new Date(), online: true }
                 : u
         );
 
@@ -201,7 +201,7 @@ export class VotingService {
             presenterName: criticsSession.presentador || criticsSession.presenter || 'Usuario',
             presentationOrder: criticsSession.presentationOrder || 0,
             status: 'active',
-            launchedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            launchedAt: new Date(),
             completedAt: null,
             eligibleVoters,
             expectedVotes: eligibleVoters.length,
@@ -259,7 +259,7 @@ export class VotingService {
             name: userName,
             decision,
             comment,
-            votedAt: firebase.firestore.FieldValue.serverTimestamp()
+            votedAt: new Date()
         });
 
         // Verificar si se completó
@@ -268,13 +268,13 @@ export class VotingService {
             const needsCriticCount = vote.votes.filter(v => v.decision === 'needs_critic').length;
 
             vote.status = 'completed';
-            vote.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+            vote.completedAt = new Date();
             vote.result = {
                 decision: approvedCount > needsCriticCount ? 'approved' : 'needs_critic',
                 approvedCount,
                 needsCriticCount,
                 totalVotes: vote.votes.length,
-                completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                completedAt: new Date(),
                 approvedBy: vote.votes.filter(v => v.decision === 'approved').map(v => v.email),
                 needsCriticBy: vote.votes.filter(v => v.decision === 'needs_critic').map(v => v.email)
             };
@@ -310,13 +310,13 @@ export class VotingService {
             const needsCriticCount = vote.votes.filter(v => v.decision === 'needs_critic').length;
 
             vote.status = 'completed';
-            vote.completedAt = firebase.firestore.FieldValue.serverTimestamp();
+            vote.completedAt = new Date();
             vote.result = {
                 decision: approvedCount > needsCriticCount ? 'approved' : 'needs_critic',
                 approvedCount,
                 needsCriticCount,
                 totalVotes: vote.votes.length,
-                completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                completedAt: new Date(),
                 approvedBy: vote.votes.filter(v => v.decision === 'approved').map(v => v.email),
                 needsCriticBy: vote.votes.filter(v => v.decision === 'needs_critic').map(v => v.email)
             };
