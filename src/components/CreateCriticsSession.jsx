@@ -3,6 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useHappyPaths } from '../hooks/useHappyPaths';
+import { useTodaySessionStatus } from '../hooks/useTodaySessionStatus';
+import { getNextAvailableDate, getPeruDateStr } from '../utils/votingHelpers';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SESSION_TYPES = ['Design Critic', 'Iteración DS', 'Nuevo alcance'];
@@ -37,6 +39,11 @@ function CreateCriticsSession({
     excludeTypes = []
 }) {
     const isReadOnly = (field) => readOnlyFields.includes(field);
+
+    // Detectar si la sesión de votaciones ya cerró
+    const { closed: sessionClosed } = useTodaySessionStatus();
+    const scheduleInfo = getNextAvailableDate(sessionClosed);
+    const todayStr = getPeruDateStr();
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -187,11 +194,25 @@ function CreateCriticsSession({
     });
 
     const onSubmitForm = (data) => {
+        // Bloquear si la sesión cerró y la fecha es hoy
+        if (sessionClosed && initialData?.date === todayStr) {
+            return; // No debería llegar aquí gracias al warning, pero por seguridad
+        }
         onSubmit(data);
     };
 
     return (
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 w-full max-w-full min-w-0">
+            {/* Advertencia si la sesión de votaciones ya cerró */}
+            {sessionClosed && initialData?.date === todayStr && (
+                <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                        La sesión de votaciones de hoy ya finalizó. Por favor agenda para <strong>{scheduleInfo.labelShort.toLowerCase()}</strong>.
+                    </p>
+                </div>
+            )}
+
             {/* Ticket Jira */}
             <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -412,7 +433,7 @@ function CreateCriticsSession({
                 </Button>
                 <Button
                     type="submit"
-                    disabled={detectingLink || !isValid}
+                    disabled={detectingLink || !isValid || (sessionClosed && initialData?.date === todayStr)}
                 >
                     {initialData?.id ? 'Guardar Cambios' : 'Agendar'}
                 </Button>

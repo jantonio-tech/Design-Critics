@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, User, Trash2 } from 'lucide-react';
+import { CalendarDays, User, Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function AgendaCard({ sessions, user, onDelete }) {
@@ -76,6 +76,22 @@ export function AgendaCard({ sessions, user, onDelete }) {
                                             <User className="h-3 w-3" />
                                             <span className="truncate max-w-[150px] font-medium">{session.presenter || 'Usuario'}</span>
                                         </div>
+
+                                        {session.voteResult?.voted && (
+                                            <div className="mt-1.5">
+                                                {session.voteResult.result === 'approved' ? (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-400">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        Aprobado
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                                                        <RotateCcw className="h-3 w-3" />
+                                                        Requiere nuevo
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {isOwner && (
