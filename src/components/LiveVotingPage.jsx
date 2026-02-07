@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import firebase from '../utils/firebase';
 import { VotingService } from '../services/voting';
 import { playNotificationSound } from '../utils/votingHelpers';
 import { toast, Toaster } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
     Vote, Loader2, CheckCircle2, Clock, Wifi, WifiOff,
-    Sparkles, CircleDot, Send
+    Sparkles, CircleDot, Send, LogIn
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,11 +16,17 @@ import { cn } from '@/lib/utils';
  * Página de votación en vivo para asistentes.
  * Se accede vía /live/:sessionCode
  * Los asistentes abren este link al inicio y lo mantienen abierto.
+ * 
+ * IMPORTANTE: Requiere autenticación con Firebase (Google @prestamype.com)
  */
 export function LiveVotingPage({ sessionCode }) {
-    // Estado de conexión
-    const [email, setEmail] = useState(() => localStorage.getItem('dc_live_email') || '');
-    const [userName, setUserName] = useState(() => localStorage.getItem('dc_live_name') || '');
+    // Estado de autenticación
+    const [authUser, setAuthUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+    const [authError, setAuthError] = useState(null);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+    // Estado de conexión a la sesión
     const [connected, setConnected] = useState(false);
     const [connecting, setConnecting] = useState(false);
 
@@ -38,15 +44,39 @@ export function LiveVotingPage({ sessionCode }) {
     const heartbeatRef = useRef(null);
     const previousActiveVoteRef = useRef(null);
 
-    // Auto-reconexión
-    useEffect(() => {
-        const savedEmail = localStorage.getItem('dc_live_email');
-        const savedName = localStorage.getItem('dc_live_name');
+    // Derived values from auth
+    const email = authUser?.email || '';
+    const userName = authUser?.displayName || '';
 
-        if (savedEmail && savedName && sessionCode) {
-            handleConnect(savedEmail, savedName, true);
+    // Escuchar estado de autenticación de Firebase
+    useEffect(() => {
+        const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // Validar dominio
+                if (user.email?.endsWith('@prestamype.com')) {
+                    setAuthUser(user);
+                    setAuthError(null);
+                } else {
+                    // Dominio inválido - cerrar sesión
+                    firebase.auth().signOut();
+                    setAuthUser(null);
+                    setAuthError('Debes usar un correo @prestamype.com');
+                }
+            } else {
+                setAuthUser(null);
+            }
+            setAuthLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Auto-conectar cuando el usuario está autenticado
+    useEffect(() => {
+        if (authUser && sessionCode && !connected && !connecting) {
+            handleConnect();
         }
-    }, [sessionCode]);
+    }, [authUser, sessionCode]);
 
     // Suscribirse a la sesión en tiempo real
     useEffect(() => {
@@ -101,12 +131,6 @@ export function LiveVotingPage({ sessionCode }) {
     useEffect(() => {
         const handleBeforeUnload = () => {
             if (connected && sessionCode && email) {
-                // Usar sendBeacon para mayor fiabilidad
-                const data = JSON.stringify({
-                    sessionCode,
-                    email
-                });
-                // Fallback: marcar desconexión
                 VotingService.disconnectUser(sessionCode, email).catch(() => { });
             }
             stopHeartbeat();
@@ -119,45 +143,44 @@ export function LiveVotingPage({ sessionCode }) {
         };
     }, [connected, sessionCode, email]);
 
-    // Conectar
-    const handleConnect = async (overrideEmail, overrideName, isAutoReconnect = false) => {
-        const userEmail = overrideEmail || email.trim();
-        const name = overrideName || userName.trim();
-
-        if (!userEmail || !userEmail.includes('@prestamype.com')) {
-            toast.error('Ingresa un correo @prestamype.com válido');
-            return;
+    // Login con Google
+    const handleGoogleLogin = async () => {
+        setIsLoggingIn(true);
+        setAuthError(null);
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await firebase.auth().signInWithPopup(provider);
+            // onAuthStateChanged se encargará del resto
+        } catch (error) {
+            console.error('Auth error:', error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                // Usuario cerró el popup, no mostrar error
+            } else if (error.code === 'auth/popup-blocked') {
+                setAuthError('Popup bloqueado. Por favor permite ventanas emergentes.');
+            } else {
+                setAuthError('Error de autenticación: ' + error.message);
+            }
+        } finally {
+            setIsLoggingIn(false);
         }
+    };
 
-        if (!name) {
-            toast.error('Ingresa tu nombre');
-            return;
-        }
+    // Conectar a la sesión de votación
+    const handleConnect = async () => {
+        if (!authUser) return;
 
         setConnecting(true);
         setError(null);
 
         try {
-            await VotingService.connectUser(sessionCode, userEmail, name);
-
-            setEmail(userEmail);
-            setUserName(name);
+            await VotingService.connectUser(sessionCode, authUser.email, authUser.displayName);
             setConnected(true);
-
-            localStorage.setItem('dc_live_email', userEmail);
-            localStorage.setItem('dc_live_name', name);
-
-            startHeartbeat(sessionCode, userEmail);
-
-            if (!isAutoReconnect) {
-                toast.success('Conectado a la sesión');
-            }
+            startHeartbeat(sessionCode, authUser.email);
+            toast.success('Conectado a la sesión');
         } catch (error) {
             console.error('Error conectando:', error);
             setError(error.message);
-            if (!isAutoReconnect) {
-                toast.error(error.message || 'Error al conectar');
-            }
+            toast.error(error.message || 'Error al conectar');
         } finally {
             setConnecting(false);
         }
@@ -260,8 +283,71 @@ export function LiveVotingPage({ sessionCode }) {
         );
     }
 
-    // Pantalla de conexión
+    // Pantalla de conexión / autenticación
     if (!connected) {
+        // Loading inicial de auth
+        if (authLoading) {
+            return (
+                <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                    <Toaster position="top-center" richColors />
+                    <div className="text-center space-y-4">
+                        <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Cargando...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // No autenticado - mostrar login
+        if (!authUser) {
+            return (
+                <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                    <Toaster position="top-center" richColors />
+                    <Card className="w-full max-w-md">
+                        <CardContent className="p-8 space-y-6">
+                            <div className="text-center space-y-2">
+                                <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                                    <Sparkles className="w-7 h-7 text-primary" />
+                                </div>
+                                <h1 className="text-xl font-semibold">Design Critics</h1>
+                                <p className="text-sm text-muted-foreground">Votación en Vivo</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <p className="text-sm text-center text-muted-foreground">
+                                    Inicia sesión con tu cuenta @prestamype.com para votar
+                                </p>
+
+                                <Button
+                                    onClick={handleGoogleLogin}
+                                    disabled={isLoggingIn}
+                                    className="w-full"
+                                    size="lg"
+                                >
+                                    {isLoggingIn ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Iniciando sesión...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <LogIn className="w-4 h-4 mr-2" />
+                                            Continuar con Google
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {authError && (
+                                <p className="text-sm text-center text-destructive">{authError}</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            );
+        }
+
+        // Autenticado pero conectando a la sesión
         return (
             <div className="min-h-screen bg-background flex items-center justify-center p-4">
                 <Toaster position="top-center" richColors />
@@ -275,49 +361,29 @@ export function LiveVotingPage({ sessionCode }) {
                             <p className="text-sm text-muted-foreground">Votación en Vivo</p>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Tu nombre</label>
-                                <Input
-                                    value={userName}
-                                    onChange={(e) => setUserName(e.target.value)}
-                                    placeholder="Juan Pérez"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Correo @prestamype.com</label>
-                                <Input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="nombre@prestamype.com"
-                                />
-                            </div>
-
-                            <Button
-                                onClick={() => handleConnect()}
-                                disabled={connecting}
-                                className="w-full"
-                                size="lg"
-                            >
-                                {connecting ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Conectando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Wifi className="w-4 h-4 mr-2" />
-                                        Conectar
-                                    </>
-                                )}
-                            </Button>
+                        <div className="text-center space-y-3">
+                            <p className="text-sm">
+                                Hola, <span className="font-medium">{userName}</span>
+                            </p>
+                            {connecting ? (
+                                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Conectando a la sesión...
+                                </div>
+                            ) : error ? (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-destructive">{error}</p>
+                                    <Button onClick={handleConnect} size="sm">
+                                        Reintentar
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Conectando...
+                                </div>
+                            )}
                         </div>
-
-                        {error && (
-                            <p className="text-sm text-center text-destructive">{error}</p>
-                        )}
                     </CardContent>
                 </Card>
             </div>
