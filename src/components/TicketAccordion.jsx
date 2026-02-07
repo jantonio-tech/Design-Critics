@@ -220,13 +220,6 @@ export function TicketAccordion({
                                     >
                                         Verificar en Jira
                                     </Button>
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={() => onSchedule({ ticket: ticket.key, product, type: 'Design Critic' })}
-                                    >
-                                        Agendar Manualmente
-                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -240,7 +233,7 @@ export function TicketAccordion({
                                             Falta el link de Figma
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Agrégalo en el campo "Solución" del ticket en Jira y actualiza la página.
+                                            Agrégalo en la descripción del ticket después de "✅ Solución:" en Jira.
                                         </p>
                                         <Button
                                             variant="outline"

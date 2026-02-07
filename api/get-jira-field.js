@@ -63,35 +63,68 @@ export default async function handler(req, res) {
         }
 
         let figmaLink = '';
-        if (solutionFieldId && data.fields[solutionFieldId]) {
-            // It could be a string or rich text?
-            // Usually custom text field.
-            const fieldValue = data.fields[solutionFieldId];
 
-            // If it's ADF (Atlassian Document Format), we need to extract text.
-            // Simplified extraction: assume string or simple object structure for now
-            if (typeof fieldValue === 'string') {
-                figmaLink = fieldValue;
-                console.log(`📋 Figma link found in Solución field (string) for ${ticketKey}`);
-            } else if (fieldValue?.content) {
-                // Try to extract URL from ADF
-                // This is complex, but let's try a simple JSON stringify and regex search for figma.com
-                const raw = JSON.stringify(fieldValue);
-                const match = raw.match(/https?:\/\/(www\.)?figma\.com\/[^"\s]*/);
-                if (match) {
-                    figmaLink = match[0];
-                    console.log(`📋 Figma link found in Solución field (ADF) for ${ticketKey}`);
+        // Extract Figma link ONLY from description field, after "✅ Solución:" prefix
+        if (data.fields.description) {
+            // Convert ADF (Atlassian Document Format) to plain text for easier parsing
+            const extractTextFromADF = (node) => {
+                if (!node) return '';
+                if (typeof node === 'string') return node;
+                if (node.text) return node.text;
+                if (node.content) {
+                    return node.content.map(extractTextFromADF).join('\n');
+                }
+                return '';
+            };
+
+            const descriptionText = extractTextFromADF(data.fields.description);
+
+            // Look for links ONLY after "✅ Solución:"
+            // Split by lines and find the "✅ Solución:" line
+            const lines = descriptionText.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // Check if this line contains "✅ Solución:" (with or without emoji variations)
+                if (line.includes('✅ Solución:') || line.includes('✅Solución:') ||
+                    line.toLowerCase().includes('✅ solucion:') || line.toLowerCase().includes('✅solucion:')) {
+
+                    // Extract URL from this line or the raw JSON (for ADF inline links)
+                    const raw = JSON.stringify(data.fields.description);
+
+                    // Find the "Solución" section in the ADF and extract its link
+                    // Look for pattern where ✅ Solución: is followed by a link
+                    const solucionPattern = /✅\s*Soluci[oó]n[:\s]*.*?(https?:\/\/(www\.)?figma\.com\/[^"\s<>]*)/i;
+                    const match = raw.match(solucionPattern);
+
+                    if (match) {
+                        figmaLink = match[1];
+                        console.log(`✅ Figma link found after "✅ Solución:" for ${ticketKey}`);
+                    }
+                    break;
                 }
             }
-        }
 
-        // Fallback: Check Description
-        if (!figmaLink && data.fields.description) {
-            const raw = JSON.stringify(data.fields.description);
-            const match = raw.match(/https?:\/\/(www\.)?figma\.com\/[^"\s]*/);
-            if (match) {
-                figmaLink = match[0];
-                console.log(`📝 Figma link found in Description field for ${ticketKey}`);
+            // Alternative: search for "Solución" section in raw JSON structure
+            if (!figmaLink) {
+                const raw = JSON.stringify(data.fields.description);
+
+                // Pattern to find ✅ Solución: followed by a figma link (handles ADF structure)
+                const patterns = [
+                    /✅\s*Soluci[oó]n[:\s]*[^"]*"text":"([^"]*figma\.com[^"]*)"/i,
+                    /"text":"✅\s*Soluci[oó]n[:\s]*"[^}]*"url":"(https?:\/\/[^"]*figma\.com[^"]*)"/i,
+                    /✅\s*Soluci[oó]n.*?"url":"(https?:\/\/[^"]*figma\.com[^"]*)"/i
+                ];
+
+                for (const pattern of patterns) {
+                    const match = raw.match(pattern);
+                    if (match) {
+                        figmaLink = match[1];
+                        console.log(`✅ Figma link found in ADF structure after "✅ Solución:" for ${ticketKey}`);
+                        break;
+                    }
+                }
             }
         }
 
@@ -99,7 +132,7 @@ export default async function handler(req, res) {
         if (figmaLink) {
             console.log(`✅ Figma link for ${ticketKey}:`, figmaLink);
         } else {
-            console.log(`⚠️ No Figma link found for ${ticketKey}`);
+            console.log(`⚠️ No Figma link found after "✅ Solución:" for ${ticketKey}`);
         }
 
         return res.status(200).json({
