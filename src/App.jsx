@@ -173,7 +173,7 @@ function LoginPage({ onLogin, error }) {
 
 // --- Page Components ---
 
-const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete }) => {
+const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete, figmaLinksCache = {} }) => {
     const { closed: sessionClosed } = useTodaySessionStatus();
     const scheduleInfo = getNextAvailableDate(sessionClosed);
 
@@ -198,6 +198,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete }) => {
                         key={ticket.key}
                         ticket={ticket}
                         sessions={dcs}
+                        cachedFigmaLink={figmaLinksCache[ticket.key] || null}
                         onSchedule={(data) => {
                             onQuickAdd({
                                 ...data,
@@ -432,6 +433,9 @@ function App() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDC, setEditingDC] = useState(null);
 
+    // Cache de Figma links por ticket key
+    const [figmaLinksCache, setFigmaLinksCache] = useState({});
+
     // Estado para votaciones
     const [votingModalOpen, setVotingModalOpen] = useState(false);
     const [activeVotingCode, setActiveVotingCode] = useState(null);
@@ -487,9 +491,29 @@ function App() {
         localStorage.setItem('darkMode', darkMode);
     }, [darkMode]);
 
-    // Auth & Data Load
+    // Auth & Real-time Data Subscriptions
     useEffect(() => {
-        firebase.auth().onAuthStateChanged(async (u) => {
+        let unsubAll = null;
+        let unsubHistory = null;
+
+        // Refs para merge en tiempo real
+        const allSessions = { current: [] };
+        const historySessions = { current: [] };
+
+        const mergeSessions = () => {
+            const merged = [...allSessions.current];
+            const allIds = new Set(merged.map(d => d.id));
+            historySessions.current.forEach(d => {
+                if (!allIds.has(d.id)) merged.push(d);
+            });
+            setDcs(merged);
+        };
+
+        const unsubAuth = firebase.auth().onAuthStateChanged(async (u) => {
+            // Limpiar suscripciones anteriores si cambia el usuario
+            if (unsubAll) { unsubAll(); unsubAll = null; }
+            if (unsubHistory) { unsubHistory(); unsubHistory = null; }
+
             if (u) {
                 if (u.email?.endsWith('@prestamype.com')) {
                     const userData = {
@@ -500,18 +524,25 @@ function App() {
                         uid: u.uid
                     };
                     const service = new FirestoreDataService(u.email);
-                    const [all, history] = await Promise.all([service.readAll(), service.readUserHistory()]);
-
-                    const merged = [...all];
-                    const allIds = new Set(all.map(d => d.id));
-                    history.forEach(d => { if (!allIds.has(d.id)) merged.push(d); });
 
                     setUser(userData);
                     setDataService(service);
-                    setDcs(merged);
                     setLoginError(null);
-                    setIsLoading(false);
 
+                    // Suscripción real-time: sesiones activas (todos los usuarios)
+                    unsubAll = service.subscribeAll((sessions) => {
+                        allSessions.current = sessions;
+                        mergeSessions();
+                        setIsLoading(false);
+                    });
+
+                    // Suscripción real-time: historial del usuario
+                    unsubHistory = service.subscribeUserHistory((sessions) => {
+                        historySessions.current = sessions;
+                        mergeSessions();
+                    });
+
+                    // Jira tickets + batch Figma links (background, no bloquea UI)
                     fetch('/api/search-jira', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -519,11 +550,30 @@ function App() {
                     })
                         .then(res => res.json())
                         .then(data => {
-                            if (data.success) setActiveTickets(data.tickets || []);
+                            if (data.success) {
+                                const tickets = data.tickets || [];
+                                setActiveTickets(tickets);
+
+                                // Batch fetch de Figma links para todos los tickets
+                                if (tickets.length > 0) {
+                                    const ticketKeys = tickets.map(t => t.key);
+                                    fetch('/api/batch-jira-fields', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ ticketKeys })
+                                    })
+                                        .then(r => r.json())
+                                        .then(batchData => {
+                                            if (batchData.success) {
+                                                setFigmaLinksCache(batchData.results);
+                                            }
+                                        })
+                                        .catch(console.error);
+                                }
+                            }
                         })
                         .catch(console.error);
                 } else {
-                    // Invalid domain
                     console.warn('Unauthorized domain:', u.email);
                     await firebase.auth().signOut();
                     setUser(null);
@@ -535,17 +585,23 @@ function App() {
                 setIsLoading(false);
             }
         });
+
+        return () => {
+            unsubAuth();
+            if (unsubAll) unsubAll();
+            if (unsubHistory) unsubHistory();
+        };
     }, []);
 
     const handleAddDC = async (data) => {
-        const newDc = await dataService.create(data);
-        setDcs(prev => [...prev, newDc]);
+        await dataService.create(data);
+        // onSnapshot actualizará dcs automáticamente
         toast.success('Sesión agendada correctamente');
     };
 
     const handleEditDC = async (data) => {
-        const updated = await dataService.update(data);
-        setDcs(prev => prev.map(d => d.id === data.id ? updated : d));
+        await dataService.update(data);
+        // onSnapshot actualizará dcs automáticamente
         toast.success('Sesión actualizada correctamente');
     };
 
@@ -561,7 +617,7 @@ function App() {
         setIsDeleting(true);
         try {
             await dataService.delete(deletingId);
-            setDcs(prev => prev.filter(d => d.id !== deletingId));
+            // onSnapshot actualizará dcs automáticamente
             setDeletingId(null);
             toast.success('Sesión eliminada correctamente');
         } catch (error) {
@@ -661,6 +717,7 @@ function App() {
                                 user={user}
                                 onDelete={handleDeleteDC}
                                 onQuickAdd={handleQuickAdd}
+                                figmaLinksCache={figmaLinksCache}
                             />
                         </TabsContent>
 

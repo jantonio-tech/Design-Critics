@@ -232,7 +232,72 @@ export class FirestoreDataService {
         }
     }
 
-    // Realtime capabilities
+    /**
+     * Suscripción en tiempo real a todas las sesiones activas.
+     * Reemplaza readAll() con actualizaciones automáticas.
+     * @param {function} onData - Recibe array completo de sesiones cada vez que hay cambios
+     * @returns {function} unsubscribe
+     */
+    subscribeAll(onData) {
+        return this.db.collection(this.collection)
+            .where('estado', '==', 'activo')
+            .limit(200)
+            .onSnapshot(snapshot => {
+                const sessions = snapshot.docs.map(doc => this._mapDoc(doc))
+                    .sort((a, b) => {
+                        const timeA = a.timestamp && a.timestamp.seconds ? a.timestamp.seconds : 0;
+                        const timeB = b.timestamp && b.timestamp.seconds ? b.timestamp.seconds : 0;
+                        return timeA - timeB;
+                    });
+                onData(sessions);
+            }, error => {
+                console.error('Error en subscribeAll:', error);
+            });
+    }
+
+    /**
+     * Suscripción en tiempo real al historial del usuario (incluye descartados, excluye eliminados).
+     * Reemplaza readUserHistory() con actualizaciones automáticas.
+     * @param {function} onData - Recibe array de sesiones del usuario
+     * @returns {function} unsubscribe
+     */
+    subscribeUserHistory(onData) {
+        return this.db.collection(this.collection)
+            .where('presentador_email', '==', this.userEmail)
+            .orderBy('fecha_dc', 'desc')
+            .limit(100)
+            .onSnapshot(snapshot => {
+                const sessions = snapshot.docs
+                    .map(doc => this._mapDoc(doc))
+                    .filter(item => item.status !== 'eliminado');
+                onData(sessions);
+            }, error => {
+                console.error('Error en subscribeUserHistory:', error);
+            });
+    }
+
+    /** Mapea un doc de Firestore al formato UI */
+    _mapDoc(doc) {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            timestamp: data.created_at,
+            date: data.fecha_dc,
+            presenter: data.presentador,
+            product: data.producto,
+            ticket: data.ticket,
+            flow: data.flujo,
+            type: data.tipo,
+            descartaDate: data.descarta_fecha || '',
+            notes: data.notas || '',
+            status: data.estado,
+            createdBy: data.presentador_email,
+            voteResult: data.voteResult || null,
+            presentationOrder: data.presentationOrder || null
+        };
+    }
+
+    // Legacy realtime capabilities
     subscribeToChanges(callback) {
         // Basic implementation for Firestore
         // Note: Firestore onSnapshot returns ALL data or changes depending on query

@@ -17,10 +17,11 @@ import {
 export function TicketAccordion({
     ticket,
     sessions = [],
-    onSchedule
+    onSchedule,
+    cachedFigmaLink = null
 }) {
     const [value, setValue] = useState("");
-    const [figmaLink, setFigmaLink] = useState(null);
+    const [figmaLink, setFigmaLink] = useState(cachedFigmaLink);
     const isOpen = value === "item-1";
 
     // Determinar texto dinámico del botón de agendar
@@ -95,6 +96,14 @@ export function TicketAccordion({
     };
     const product = getProductBadge(ticket);
 
+    // Usar cache del batch si está disponible
+    useEffect(() => {
+        if (cachedFigmaLink && !figmaLink) {
+            setFigmaLink(cachedFigmaLink);
+        }
+    }, [cachedFigmaLink]);
+
+    // Fallback: fetch individual solo si no hay cache
     useEffect(() => {
         const fetchFigmaLink = async () => {
             try {
@@ -117,8 +126,11 @@ export function TicketAccordion({
             }
         };
 
-        fetchFigmaLink();
-    }, [ticket.key]);
+        // Solo fetch si no tenemos link del cache ni local
+        if (!figmaLink && !cachedFigmaLink) {
+            fetchFigmaLink();
+        }
+    }, [ticket.key, cachedFigmaLink]);
 
     const getHpStatus = (hpName) => {
         const count = validFlowCounts[hpName] || 0;
