@@ -638,19 +638,35 @@ function App() {
     if (!user) return <LoginPage onLogin={() => { }} error={loginError} />;
 
     const handleQuickAdd = async (data) => {
-        // 1. Check history specific to this flow
+        // 1. Verificar si este flujo ya fue evaluado (prevenir re-agendar critics votados)
+        const votedCritic = dcs.find(dc =>
+            dc.ticket === data.ticket &&
+            dc.flow === data.flow &&
+            dc.status === 'activo' &&
+            dc.voteResult?.voted === true
+        );
+
+        if (votedCritic) {
+            if (votedCritic.voteResult.result === 'approved') {
+                toast.info('Este flujo ya fue aprobado en la sesión de votaciones');
+                return;
+            }
+            // Si requiere nuevo critic, permitir a través del modal
+        }
+
+        // 2. Verificar historial del flujo
         const existingCritics = dcs.filter(dc =>
             dc.ticket === data.ticket &&
             dc.flow === data.flow &&
             dc.type === 'Design Critic' &&
-            dc.estado === 'activo'
+            dc.status === 'activo'
         );
 
         if (existingCritics.length === 0) {
-            // 2. Auto-create if 0 critics (Instant One-Click)
+            // 3. Auto-crear si 0 critics (One-Click)
             const autoSession = {
-                ...data, // Contains ticket, flow, product, date, figmaLink
-                type: 'Design Critic', // Force default type
+                ...data,
+                type: 'Design Critic',
                 notes: '',
                 presenter: user.name,
                 presenter_email: user.email,
@@ -658,14 +674,13 @@ function App() {
             };
 
             try {
-                // handleAddDC handles the API call, state update, and toast
                 await handleAddDC(autoSession);
             } catch (e) {
                 console.error("Auto-add failed", e);
                 toast.error("Error al agendar automáticamente");
             }
         } else {
-            // 3. Open modal if history exists (to allow New Scope selection)
+            // 4. Abrir modal si hay historial (para seleccionar Nuevo alcance)
             handleOpenModal(data);
         }
     };

@@ -76,7 +76,7 @@ export function StartVotingSessionModal({ open, onClose, user, onSessionCreated 
     };
 
     const handleCopy = async () => {
-        const message = `🗳️ Votación de Design Critics\n${voteLink}\nCódigo: ${sessionCode}`;
+        const message = `🗳️ Votación de Design Critics\n${voteLink}`;
 
         try {
             await navigator.clipboard.writeText(message);
@@ -154,8 +154,14 @@ export function StartVotingSessionModal({ open, onClose, user, onSessionCreated 
 
                                 <div className="bg-background rounded-md p-3 border text-sm font-mono break-all">
                                     <p>🗳️ Votación de Design Critics</p>
-                                    <p className="text-primary font-semibold">{voteLink}</p>
-                                    <p className="text-muted-foreground">Código: {sessionCode}</p>
+                                    <a
+                                        href={voteLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary font-semibold underline hover:text-primary/80 transition-colors"
+                                    >
+                                        {voteLink}
+                                    </a>
                                 </div>
 
                                 <Button

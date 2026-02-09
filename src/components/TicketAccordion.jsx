@@ -3,9 +3,9 @@ import { useHappyPaths } from '../hooks/useHappyPaths';
 import { useTodaySessionStatus } from '../hooks/useTodaySessionStatus';
 import { getNextAvailableDate } from '../utils/votingHelpers';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     Accordion,
@@ -131,6 +131,19 @@ export function TicketAccordion({
             fetchFigmaLink();
         }
     }, [ticket.key, cachedFigmaLink]);
+
+    // Verificar si un HP fue evaluado en la sesión de votaciones
+    const getVoteStatus = (hpName) => {
+        const ticketSessions = sessions.filter(s =>
+            s.ticket === ticket.key &&
+            s.flow === hpName &&
+            s.status === 'activo' &&
+            s.voteResult?.voted === true
+        );
+        if (ticketSessions.length === 0) return null;
+        // Tomar el más reciente con voto
+        return ticketSessions[ticketSessions.length - 1].voteResult;
+    };
 
     const getHpStatus = (hpName) => {
         const count = validFlowCounts[hpName] || 0;
@@ -281,13 +294,31 @@ export function TicketAccordion({
                         <div className="space-y-0">
                             {happyPaths.map(hp => {
                                 const status = getHpStatus(hp.name);
+                                const voteResult = getVoteStatus(hp.name);
+                                const isApproved = voteResult?.result === 'approved';
+                                const needsNewCritic = voteResult?.requiresNewCritic === true;
+
                                 return (
                                     <div
                                         key={hp.id}
                                         className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
                                     >
                                         <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm font-medium">{hp.name}</span>
+                                            <span className="text-sm font-medium flex items-center gap-1.5">
+                                                {hp.name}
+                                                {isApproved && (
+                                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-400">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                        Aprobado
+                                                    </span>
+                                                )}
+                                                {needsNewCritic && (
+                                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                                                        <RotateCcw className="h-3 w-3" />
+                                                        Requiere nuevo
+                                                    </span>
+                                                )}
+                                            </span>
                                             <span className={cn(
                                                 "text-xs font-semibold",
                                                 status.status === 'good' && "text-green-600 dark:text-green-400",
@@ -297,7 +328,9 @@ export function TicketAccordion({
                                                 {status.label}
                                             </span>
                                         </div>
-                                        {status.action && (
+                                        {isApproved ? (
+                                            <span className="text-xs text-muted-foreground italic">Evaluado</span>
+                                        ) : status.action && (
                                             <Button
                                                 size="sm"
                                                 onClick={() => onSchedule({
@@ -324,6 +357,3 @@ export function TicketAccordion({
     );
 }
 
-function activeHPsCount(hps) {
-    return hps ? hps.length : 0;
-}
