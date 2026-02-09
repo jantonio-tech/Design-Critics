@@ -576,15 +576,23 @@ export function LiveVotingPage({ sessionCode }) {
                                 <p className="text-xs text-muted-foreground">Último resultado</p>
                                 <h3 className="font-semibold">{lastVote.happyPath}</h3>
                                 <div className={cn(
-                                    "text-sm font-semibold py-2 rounded-lg",
+                                    "text-sm font-semibold py-2 rounded-lg flex flex-col items-center gap-1",
                                     lastVote.result?.decision === 'approved'
                                         ? "bg-green-500/10 text-green-700 dark:text-green-400"
                                         : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                                 )}>
-                                    {lastVote.result?.decision === 'approved'
-                                        ? '✅ APROBADO'
-                                        : '🔄 REQUIERE NUEVO CRITICS'
-                                    }
+                                    <span>
+                                        {lastVote.result?.decision === 'approved'
+                                            ? '✅ APROBADO'
+                                            : '🔄 REQUIERE NUEVO CRITICS'
+                                        }
+                                    </span>
+                                    <span className="text-xs font-normal opacity-90">
+                                        {lastVote.result?.decision === 'approved'
+                                            ? 'Listo para Handoff / Desarrollo'
+                                            : 'Se requiere agendar una nueva sesión'
+                                        }
+                                    </span>
                                 </div>
                             </CardContent>
                         </Card>
@@ -607,14 +615,21 @@ export function LiveVotingPage({ sessionCode }) {
                                                 {vote.presenterName} · {vote.ticket}
                                             </p>
                                         </div>
-                                        <span className={cn(
-                                            "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                                            vote.result?.decision === 'approved'
-                                                ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                        )}>
-                                            {vote.result?.decision === 'approved' ? 'Aprobado' : 'Requiere nuevo'}
-                                        </span>
+                                        <div className="text-right">
+                                            <span className={cn(
+                                                "text-[10px] font-semibold px-2 py-0.5 rounded-full block w-fit ml-auto mb-1",
+                                                vote.result?.decision === 'approved'
+                                                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                            )}>
+                                                {vote.result?.decision === 'approved' ? 'Aprobado' : 'Requiere nuevo'}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                {vote.result?.decision === 'approved'
+                                                    ? 'Listo para Handoff'
+                                                    : 'Reprogramar'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>

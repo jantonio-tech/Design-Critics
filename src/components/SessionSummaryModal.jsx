@@ -126,17 +126,25 @@ export function SessionSummaryModal({ open, onClose, summary, votes = [] }) {
                                         <h4 className="text-sm font-semibold">
                                             {vote.happyPath}
                                         </h4>
-                                        <span className={cn(
-                                            "text-xs font-semibold px-2 py-0.5 rounded-full",
-                                            vote.result?.decision === 'approved'
-                                                ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                        )}>
-                                            {vote.result?.decision === 'approved'
-                                                ? 'APROBADO'
-                                                : 'REQUIERE NUEVO CRITICS'
-                                            }
-                                        </span>
+                                        <div className="text-right">
+                                            <span className={cn(
+                                                "text-xs font-semibold px-2 py-0.5 rounded-full block w-fit ml-auto mb-1",
+                                                vote.result?.decision === 'approved'
+                                                    ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                            )}>
+                                                {vote.result?.decision === 'approved'
+                                                    ? 'APROBADO'
+                                                    : 'REQUIERE NUEVO CRITICS'
+                                                }
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground block">
+                                                {vote.result?.decision === 'approved'
+                                                    ? 'Listo para Handoff'
+                                                    : 'Se debe reprogramar'
+                                                }
+                                            </span>
+                                        </div>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         {vote.presenterName} · {vote.ticket}

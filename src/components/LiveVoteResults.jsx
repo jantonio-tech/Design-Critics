@@ -90,15 +90,23 @@ export function LiveVoteResults({ vote, isFacilitator = false }) {
             {isCompleted && vote.result && (
                 <div className="space-y-3">
                     <div className={cn(
-                        "text-center py-3 rounded-lg font-semibold",
+                        "text-center py-3 rounded-lg font-semibold flex flex-col gap-1",
                         vote.result.decision === 'approved'
                             ? "bg-green-500/10 text-green-700 dark:text-green-400"
                             : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                     )}>
-                        {vote.result.decision === 'approved'
-                            ? '✅ APROBADO'
-                            : '🔄 REQUIERE NUEVO CRITICS'
-                        }
+                        <span>
+                            {vote.result.decision === 'approved'
+                                ? '✅ APROBADO'
+                                : '🔄 REQUIERE NUEVO CRITICS'
+                            }
+                        </span>
+                        <span className="text-xs font-normal opacity-90">
+                            {vote.result.decision === 'approved'
+                                ? 'El diseño está listo para Handoff / Desarrollo'
+                                : 'Se debe agendar una nueva sesión para revisar cambios'
+                            }
+                        </span>
                     </div>
 
                     {/* Detalle solo para facilitador */}
