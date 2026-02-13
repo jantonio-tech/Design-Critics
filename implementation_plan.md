@@ -147,13 +147,13 @@ Cada presentador inicia su propia votación cuando termina de presentar. Solo pu
 8. Agregar banner/botón de acceso a la sala en la webapp.
 9. Modificar `LiveVotingPage.jsx`: agenda del día en la parte superior.
 
-### Fase 3: Frontend - Control del Presentador
+### Fase 3: Frontend - Control del Presentador (Completado)
 10. Botón "Iniciar Votación" por presentador con lock visual.
 11. Acciones "Cancelar" y "Mover a mañana" por presentador.
 12. Botón "Cancelar votación" para facilitador.
 13. Eliminar drag & drop del `VotingControlPanel`.
 
-### Fase 4: Cleanup
+### Fase 4: Cleanup (Completado)
 14. Evaluar desinstalar @dnd-kit si ya no se usa.
 15. Actualizar `PROJECT_STATUS.md` con los cambios finales.
 
