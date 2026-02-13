@@ -1,19 +1,45 @@
 # 📘 Design Critics Tracker - Project Context & Status
 
 ## 🚀 Descripción del Proyecto
-Herramienta web profesional para gestionar, agendar y realizar seguimiento de "Design Critics" (revisiones de diseño de producto) en Prestamype. Diseñada para coordinar los flujos de trabajo entre diseñadores, integrándose directamente con **Jira Software** y **Figma**.
+Herramienta web profesional para gestionar, agendar y realizar seguimiento de "Design Critics" (revisiones de diseño de producto) en Prestamype. Diseñada para coordinar los flujos de trabajo entre diseñadores, integrándose directamente con **Jira Software** y **Figma**. Incluye un **sistema de votación en tiempo real** para facilitar las sesiones de crítica.
 
 ## 📅 Estado Actual (Febrero 2026)
-**Versión:** 2.5.0 (Migración Shadcn UI & Validaciones)
+**Versión:** 2.5.0 (Migración Shadcn UI, Validaciones & Sistema de Votación)
 
 ### ✅ Funcionalidades Principales
-1.  **Dashboard Personal**: Muestra los tickets activos asignados al usuario en Jira.
+1.  **Dashboard Personal**: Muestra los tickets activos asignados al usuario en Jira (proyecto UX, estado "EN CURSO").
 2.  **Integración Figma (Happy Paths)**: Detecta automáticamente los flujos ("Happy Paths") dentro de los archivos de Figma vinculados a los tickets.
-3.  **Calendario Interactivo**: Vista semanal/mensual para agendar sesiones.
-4.  **Sistema de Permisos**: Modelo de seguridad basado en propiedad (Owner-based).
-5.  **Alertas Inteligentes**: Notificaciones contextuales para errores de configuración (e.g., falta de link en Figma).
-6.  **Agenda del Día**: Tarjeta destacada que muestra las sesiones programadas para hoy con indicador de estado "En curso".
-7.  **Validación de Formularios**: Validación robusta con React Hook Form + Zod en todos los formularios.
+3.  **Calendario Interactivo**: Vista semanal (Lunes a Viernes) para agendar sesiones con navegación por semanas.
+4.  **Sistema de Votación en Vivo**: Sesiones de votación en tiempo real con código de acceso, sincronización instantánea y panel de control para el facilitador.
+5.  **Sistema de Permisos**: Modelo de seguridad basado en propiedad (Owner-based) con rol de Facilitador.
+6.  **Alertas Inteligentes**: Notificaciones contextuales para errores de configuración (e.g., falta de link en Figma).
+7.  **Agenda del Día**: Tarjeta destacada que muestra las sesiones programadas para hoy con indicador de resultado de votación.
+8.  **Validación de Formularios**: Validación robusta con React Hook Form + Zod en todos los formularios.
+9.  **Dark Mode**: Modo oscuro con toggle en la barra de navegación, preferencia guardada en localStorage.
+
+---
+
+## 🗳️ Sistema de Votación en Vivo
+
+### Descripción General
+El sistema permite realizar votaciones en tiempo real durante las sesiones de Design Critic. Un **Facilitador** (actualmente `jantonio@prestamype.com`) crea y controla las sesiones de votación.
+
+### Flujo de Votación
+1.  **Crear sesión**: El facilitador inicia una sesión de votación desde el panel de control (`StartVotingSessionModal`).
+2.  **Código de acceso**: Se genera un código único con formato `DDMMMXXX` (ej: `05FEBA7X`). La sesión expira en 8 horas.
+3.  **Votación en vivo**: Los asistentes acceden a `/live/:sessionCode` (`LiveVotingPage`) para votar.
+4.  **Sincronización**: Votos y usuarios conectados se sincronizan en tiempo real vía Firestore.
+5.  **Resultados**: El facilitador controla el flujo desde `VotingControlPanel` y puede ver resultados en `LiveVoteResults`.
+6.  **Cierre**: Al cerrar la sesión se genera un resumen (`SessionSummaryModal`).
+
+### Decisiones de Votación
+- **Aprobado**: El diseño pasa la revisión.
+- **Requiere nuevo**: El diseño necesita iteración adicional.
+
+### Sugerencia Inteligente de Fecha
+Cuando una sesión de votación se cierra, el sistema sugiere automáticamente la siguiente fecha disponible:
+- **Lunes a Jueves**: Sugiere el día siguiente.
+- **Viernes a Domingo**: Sugiere el próximo lunes.
 
 ---
 
@@ -27,12 +53,13 @@ Existen 3 tipos de sesiones, cada una con un comportamiento específico:
 | Tipo | Propósito | Regla de Negocio |
 | :--- | :--- | :--- |
 | **Design Critic** | Primera revisión de un flujo nuevo o completo. | Es la entrada estándar. Consume 1 slot de "Critic" para el flujo. |
-| **Iteración DS** | Revisión de correcciones menores o ajustes de Design System. | No afecta el conteo principal de criticas del flujo (generalmente). |
+| **Iteración DS** | Revisión de correcciones menores o ajustes de Design System. | No afecta el conteo principal de críticas del flujo. |
 | **Nuevo alcance** | Cambio mayor en los requerimientos que invalida revisiones previas. | **Acción Destructiva:** Al crear una sesión de este tipo, el sistema **archiva automáticamente** todas las sesiones previas ("Design Critic") asociadas al mismo ticket y flujo, reiniciando el contador de progreso. |
 
 ### Lógica de Happy Paths (Figma)
--   **Detección**: El sistema escanea el archivo de Figma vinculado en el campo "Solución" de Jira.
+-   **Detección**: El sistema escanea el archivo de Figma vinculado en el campo "✅ Solución:" de la descripción del ticket en Jira.
 -   **Criterio**: Busca Frames que contengan el componente "Encabezado casuística" o cuyo nombre empiece con "HP-".
+-   **Caché**: Los resultados se almacenan en Firestore (`figma_cache`) con estrategia Stale-While-Revalidate para minimizar llamadas a la API de Figma.
 -   **Errores Manejados**:
     -   *Link Faltante*: Alerta "Falta el link de Figma".
     -   *Link Vacío de HPs*: Alerta "Falta registrar happy paths" con botón para reintentar sin recargar.
@@ -50,15 +77,26 @@ El sistema opera bajo un modelo de **Confianza Zero** respecto a la modificació
 1.  **Autenticación**:
     -   Obligatorio correo corporativo (`@prestamype.com`).
     -   Gestionado vía Firebase Auth (Google Provider).
+    -   Soporte para usuarios anónimos en modo demo.
 
-2.  **Permisos de Acción**:
-    -   **Crear**: Cualquier usuario puede crear sesiones, PERO solo asociado a **sus tickets asignados** en Jira.
+2.  **Roles**:
+    -   **Usuario estándar**: Cualquier usuario `@prestamype.com` autenticado.
+    -   **Facilitador**: `jantonio@prestamype.com` — tiene permisos especiales para crear/cerrar sesiones de votación y modificar `presentationOrder` y `voteResult` de las sesiones.
+
+3.  **Permisos de Acción (Sesiones de Crítica)**:
+    -   **Crear**: Cualquier usuario autenticado, asociado a **sus tickets asignados** en Jira.
     -   **Editar**: Estrictamente restringido al **Creador** de la sesión.
     -   **Eliminar**: Estrictamente restringido al **Creador** de la sesión.
-    -   *Nota*: No existe un "Super Admin" en la interfaz; la moderación se basa en la responsabilidad individual.
+    -   **Modificar orden/resultado**: Solo el Facilitador.
 
-3.  **Visibilidad**:
+4.  **Permisos de Acción (Sesiones de Votación)**:
+    -   **Crear/Cerrar/Eliminar**: Solo el Facilitador.
+    -   **Votar**: Cualquier usuario conectado a la sesión.
+    -   **Ver**: Usuarios autorizados (conectados a la sesión activa).
+
+5.  **Visibilidad**:
     -   **Pública**: Todos los usuarios pueden ver las sesiones de todos en el calendario (transparencia total).
+    -   **Historial**: Cada usuario solo ve su propio historial de sesiones pasadas.
 
 ---
 
@@ -68,7 +106,7 @@ El sistema opera bajo un modelo de **Confianza Zero** respecto a la modificació
 La aplicación es totalmente **Responsive**.
 
 -   **Desktop**:
-    -   Vista de grilla semanal (5 columnas).
+    -   Vista de grilla semanal (5 columnas, Lunes a Viernes).
     -   Tarjetas expandidas con detalles.
     -   Acciones (Editar/Eliminar) visibles dentro de la tarjeta si eres el dueño.
 -   **Mobile**:
@@ -84,29 +122,138 @@ La aplicación es totalmente **Responsive**.
     -   Asume "Design Critic" y usa fecha inteligente.
 3.  **Caso 2: Con Historial (1+ Critics)**:
     -   📋 **Abre Modal**: Muestra el formulario pre-llenado para permitir seleccionar "Nuevo alcance" o "Iteración DS".
-4.  **Smart Date**: Si es Sábado/Domingo, sugiere automáticamente el Lunes.
+4.  **Smart Date**: Si es Sábado/Domingo, sugiere automáticamente el Lunes. Si la sesión de votación se cerró, sugiere la siguiente fecha hábil.
 
 ---
 
 ## 🛠️ Stack Tecnológico & Arquitectura
 
--   **Frontend**: React 18 + Vite.
+-   **Frontend**: React 18.2.0 + Vite 5.0.8.
     -   *UI Components*: Shadcn UI (15 componentes: Accordion, Alert Dialog, Avatar, Badge, Button, Card, Dialog, Dropdown Menu, Input, Label, Select, Skeleton, Sonner, Tabs, Textarea).
-    -   *Form Validation*: React Hook Form + Zod para validaciones.
-    -   *Estilos*: Tailwind CSS v4.
+    -   *Form Validation*: React Hook Form 7.54.2 + Zod 3.24.1.
+    -   *Estilos*: Tailwind CSS v4.1.18 (con @tailwindcss/vite plugin).
+    -   *Icons*: Lucide React 0.563.0.
+    -   *Drag & Drop*: @dnd-kit 6.3.1 (para reordenar sesiones en votación).
+    -   *Notifications*: Sonner 2.0.7 (toast notifications).
     -   *State*: React Hooks + Context Pattern local.
 -   **Backend**:
-    -   *Database*: Firebase Firestore (`dc_registrations`).
-    -   *API Proxy*: Vercel Serverless Functions (Node.js) para comunicación segura con Jira API.
+    -   *Database*: Firebase Firestore (4 colecciones: `critics_sessions`, `live_sessions`, `user_settings`, `figma_cache`).
+    -   *Auth*: Firebase Authentication (Google Provider).
+    -   *API Proxy*: Vercel Serverless Functions (Node.js) para comunicación segura con Jira y Figma API.
 -   **Infraestructura**:
     -   Deploy automático en **Vercel** desde rama `main`.
+    -   Zona horaria: America/Lima para todas las operaciones de fecha.
+
+---
+
+## 🗄️ Base de Datos (Firestore Collections)
+
+### `critics_sessions`
+Sesiones de Design Critic agendadas.
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `presentador` | string | Nombre del presentador |
+| `presentador_email` | string | Email del presentador |
+| `fecha_dc` | string | Fecha de la sesión (YYYY-MM-DD) |
+| `producto` | string | Nombre del producto |
+| `ticket` | string | Jira ticket key (ej: UX-123) |
+| `flujo` | string | Happy Path / flujo de diseño |
+| `tipo` | string | "Design Critic" / "Iteración DS" / "Nuevo alcance" |
+| `notas` | string | Notas opcionales |
+| `estado` | string | "activo" / "archivado" |
+| `voteResult` | string | Resultado de votación ("Aprobado" / "Requiere nuevo") |
+| `presentationOrder` | number | Orden de presentación en sesión de votación |
+| `created_at` | timestamp | Fecha de creación |
+
+**Índice compuesto**: `presentador_email` (ASC) + `fecha_dc` (DESC)
+
+### `live_sessions`
+Sesiones de votación en tiempo real.
+| Campo | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `code` | string | Código de sesión (formato DDMMMXXX) |
+| `date` | string | Fecha de la sesión |
+| `createdAt` | timestamp | Fecha de creación |
+| `expiresAt` | timestamp | Expiración (8 horas después de creación) |
+| `status` | string | "active" / "closed" |
+| `facilitator` | string | Email del facilitador |
+| `connectedUsers` | array | Lista de usuarios conectados |
+| `votes` | array | Votos emitidos |
+| `summary` | object | Resumen de la sesión al cerrar |
+
+### `user_settings`
+Preferencias de usuario (ID del documento = email del usuario).
+
+### `figma_cache`
+Caché de Happy Paths obtenidos de Figma (ID del documento = fileKey del archivo Figma).
+
+---
+
+## 🌐 API Routes (Vercel Serverless Functions)
+
+| Método | Ruta | Descripción |
+| :--- | :--- | :--- |
+| POST | `/api/search-jira` | Busca tickets Jira asignados al usuario (proyecto UX, estado "EN CURSO") |
+| POST | `/api/batch-jira-fields` | Obtiene links de Figma de hasta 20 tickets en lote (busca sección "✅ Solución:" en la descripción) |
+| GET | `/api/get-jira-field` | Obtiene un campo específico de un ticket Jira individual |
+| GET | `/api/figma-proxy` | Proxy seguro para llamadas a Figma API (oculta token del cliente) |
+| POST | `/api/test-jira` | Endpoint de prueba para validar conexión con Jira |
+
+---
 
 ## 📂 Directorio de Archivos Clave
--   `src/App.jsx`: Orquestador principal (718 líneas) con enrutamiento por Tabs, Navbar, DashboardPage y CalendarPage.
--   `src/components/TicketAccordion.jsx`: Lógica de visualización de tickets y integración Figma.
+
+### Componentes Principales
+-   `src/App.jsx`: Orquestador principal (~718 líneas) — routing por Tabs, Navbar, auth state, dark mode, Dashboard y Calendar.
 -   `src/components/CreateCriticsSession.jsx`: Formulario complejo (~780 líneas) con validaciones React Hook Form + Zod.
--   `src/components/AgendaCard.jsx`: Tarjeta que muestra sesiones programadas para hoy con estado "En curso".
+-   `src/components/TicketAccordion.jsx`: Visualización de tickets con Happy Paths y botón de agenda rápida.
+-   `src/components/AgendaCard.jsx`: Tarjeta de sesiones del día con resultado de votación.
+
+### Componentes del Sistema de Votación
+-   `src/components/LiveVotingPage.jsx`: Interfaz de votación para asistentes (ruta `/live/:sessionCode`).
+-   `src/components/LiveVoteResults.jsx`: Visualización de resultados de votación.
+-   `src/components/VotingControlPanel.jsx`: Panel de control del facilitador para gestionar la sesión.
+-   `src/components/StartVotingSessionModal.jsx`: Modal para crear nueva sesión de votación.
+-   `src/components/SessionSummaryModal.jsx`: Modal con resumen al cerrar la sesión de votación.
+
+### UI Components
 -   `src/components/ui/`: 15 componentes Shadcn UI reutilizables (accordion, alert-dialog, avatar, badge, button, card, dialog, dropdown-menu, input, label, select, skeleton, sonner, tabs, textarea).
--   `src/hooks/useHappyPaths.js`: Hook personalizado con estrategia Stale-While-Revalidate para caching y fetch de Figma.
+-   `src/components/skeletons/TicketSkeleton.jsx`: Skeleton de carga para tickets.
+
+### Hooks
+-   `src/hooks/useHappyPaths.js`: Fetch de Happy Paths desde Figma con estrategia Stale-While-Revalidate.
+-   `src/hooks/useTodaySessionStatus.js`: Listener en tiempo real del estado de la sesión de votación del día.
+
+### Servicios
 -   `src/services/data.js`: Capa de abstracción para Firestore (CRUD + Lógica de Archivo + Suscripciones Realtime).
--   `api/`: Serverless Functions (Figma proxy, Jira search, Jira field getter).
+-   `src/services/voting.js`: Servicio de votación (crear sesión, suscribirse, conectar usuario, emitir voto, cerrar sesión).
+
+### Utilidades
+-   `src/utils/firebase.js`: Inicialización de Firebase.
+-   `src/utils/figma.js`: Integración con Figma API (detección de Happy Paths).
+-   `src/utils/votingHelpers.js`: Generación de códigos de sesión, helpers de fecha, efectos de sonido.
+-   `src/lib/utils.js`: Utilidades comunes (cn, clsx).
+
+### API Serverless
+-   `api/search-jira.js`: Búsqueda de tickets Jira.
+-   `api/batch-jira-fields.js`: Obtención en lote de links Figma desde tickets.
+-   `api/get-jira-field.js`: Obtención de campo individual de ticket.
+-   `api/figma-proxy.js`: Proxy seguro para Figma API.
+-   `api/test-jira.js`: Endpoint de testing.
+
+### Configuración
+-   `firestore.rules`: Reglas de seguridad de Firestore.
+-   `firestore.indexes.json`: Índices compuestos de Firestore.
+-   `vercel.json`: Configuración de deploy (SPA rewrite).
+-   `vite.config.js`: Configuración de build (alias @/, chunk size 1600KB).
+-   `components.json`: Configuración de Shadcn UI.
+
+---
+
+## 🔗 Puntos de Integración Críticos
+
+1.  **Jira API**: Fetch tickets → Extraer campo "✅ Solución:" → Parsear URL de Figma.
+2.  **Figma API**: Obtener metadata del archivo + detectar Happy Paths → Cachear en Firestore.
+3.  **Firebase Auth**: Google OAuth con validación de dominio `@prestamype.com`.
+4.  **Firebase Firestore**: Sincronización en tiempo real de sesiones y votaciones.
+5.  **Vercel Functions**: Proxy seguro para llamadas a APIs externas (Jira/Figma) que oculta tokens.
