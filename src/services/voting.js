@@ -481,23 +481,6 @@ export class VotingService {
             });
     }
 
-    /**
-     * Actualizar orden de presentaciones (batch)
-     * @deprecated Se eliminará en v3.0 (ya no hay drag & drop)
-     */
-    static async reorderPresentations(orderedPresentations) {
-        const batch = db.batch();
-
-        orderedPresentations.forEach((p, index) => {
-            const ref = db.collection(CRITICS_COLLECTION).doc(p.id);
-            batch.update(ref, {
-                presentationOrder: index + 1
-            });
-        });
-
-        await batch.commit();
-    }
-
     // ========== v3.0: CONTROL DE VOTACIÓN POR PRESENTADOR ==========
 
     /**

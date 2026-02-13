@@ -4,18 +4,19 @@
 Herramienta web profesional para gestionar, agendar y realizar seguimiento de "Design Critics" (revisiones de diseño de producto) en Prestamype. Diseñada para coordinar los flujos de trabajo entre diseñadores, integrándose directamente con **Jira Software** y **Figma**. Incluye un **sistema de votación en tiempo real** para facilitar las sesiones de crítica.
 
 ## 📅 Estado Actual (Febrero 2026)
-**Versión:** 2.5.0 (Migración Shadcn UI, Validaciones & Sistema de Votación)
+**Versión:** 3.0.0 (Sala de Sesión Autónoma — Control por Presentador)
 
 ### ✅ Funcionalidades Principales
 1.  **Dashboard Personal**: Muestra los tickets activos asignados al usuario en Jira (proyecto UX, estado "EN CURSO").
 2.  **Integración Figma (Happy Paths)**: Detecta automáticamente los flujos ("Happy Paths") dentro de los archivos de Figma vinculados a los tickets.
 3.  **Calendario Interactivo**: Vista semanal (Lunes a Viernes) para agendar sesiones con navegación por semanas.
-4.  **Sistema de Votación en Vivo**: Sesiones de votación en tiempo real con código de acceso, sincronización instantánea y panel de control para el facilitador.
-5.  **Sistema de Permisos**: Modelo de seguridad basado en propiedad (Owner-based) con rol de Facilitador.
-6.  **Alertas Inteligentes**: Notificaciones contextuales para errores de configuración (e.g., falta de link en Figma).
-7.  **Agenda del Día**: Tarjeta destacada que muestra las sesiones programadas para hoy con indicador de resultado de votación.
-8.  **Validación de Formularios**: Validación robusta con React Hook Form + Zod en todos los formularios.
-9.  **Dark Mode**: Modo oscuro con toggle en la barra de navegación, preferencia guardada en localStorage.
+4.  **Sistema de Votación en Vivo**: Sesiones de votación en tiempo real con código de acceso, sincronización instantánea. Cada presentador controla su propia votación (lock de concurrencia). El facilitador conserva poder de cancelación forzada.
+5.  **Sala de Espera Automática**: A las 2:20pm (L-V), el sistema crea automáticamente la sala si hay sesiones agendadas. Acciones del presentador: iniciar votación, cancelar presentación, mover a mañana.
+6.  **Sistema de Permisos**: Modelo de seguridad basado en propiedad (Owner-based) con rol de Facilitador.
+7.  **Alertas Inteligentes**: Notificaciones contextuales para errores de configuración (e.g., falta de link en Figma).
+8.  **Agenda del Día**: Tarjeta destacada que muestra las sesiones programadas para hoy con indicador de resultado de votación.
+9.  **Validación de Formularios**: Validación robusta con React Hook Form + Zod en todos los formularios.
+10. **Dark Mode**: Modo oscuro con toggle en la barra de navegación, preferencia guardada en localStorage.
 
 ---
 
@@ -25,12 +26,13 @@ Herramienta web profesional para gestionar, agendar y realizar seguimiento de "D
 El sistema permite realizar votaciones en tiempo real durante las sesiones de Design Critic. Un **Facilitador** (actualmente `jantonio@prestamype.com`) crea y controla las sesiones de votación.
 
 ### Flujo de Votación
-1.  **Crear sesión**: El facilitador inicia una sesión de votación desde el panel de control (`StartVotingSessionModal`).
+1.  **Crear sesión**: La sala se crea automáticamente a las 2:20pm (cron job) o manualmente por el facilitador.
 2.  **Código de acceso**: Se genera un código único con formato `DDMMMXXX` (ej: `05FEBA7X`). La sesión expira en 8 horas.
-3.  **Votación en vivo**: Los asistentes acceden a `/live/:sessionCode` (`LiveVotingPage`) para votar.
-4.  **Sincronización**: Votos y usuarios conectados se sincronizan en tiempo real vía Firestore.
-5.  **Resultados**: El facilitador controla el flujo desde `VotingControlPanel` y puede ver resultados en `LiveVoteResults`.
-6.  **Cierre**: Al cerrar la sesión se genera un resumen (`SessionSummaryModal`).
+3.  **Sala de espera**: Los asistentes acceden a `/live/:sessionCode` (`LiveVotingPage`) y ven la agenda del día.
+4.  **Control por presentador**: Cada presentador inicia su propia votación cuando termina de presentar (lock de concurrencia: solo una votación activa a la vez).
+5.  **Votación en vivo**: Los asistentes votan en tiempo real. Votos y usuarios conectados se sincronizan vía Firestore.
+6.  **Resultados**: El facilitador supervisa desde `VotingControlPanel` y puede cancelar votaciones forzadamente.
+7.  **Cierre**: Al cerrar la sesión se genera un resumen (`SessionSummaryModal`).
 
 ### Decisiones de Votación
 - **Aprobado**: El diseño pasa la revisión.
@@ -81,7 +83,7 @@ El sistema opera bajo un modelo de **Confianza Zero** respecto a la modificació
 
 2.  **Roles**:
     -   **Usuario estándar**: Cualquier usuario `@prestamype.com` autenticado.
-    -   **Facilitador**: `jantonio@prestamype.com` — tiene permisos especiales para crear/cerrar sesiones de votación y modificar `presentationOrder` y `voteResult` de las sesiones.
+    -   **Facilitador**: `jantonio@prestamype.com` — tiene permisos especiales para crear/cerrar sesiones de votación, cancelar votaciones forzadamente, y modificar `voteResult` de las sesiones.
 
 3.  **Permisos de Acción (Sesiones de Crítica)**:
     -   **Crear**: Cualquier usuario autenticado, asociado a **sus tickets asignados** en Jira.
@@ -90,7 +92,10 @@ El sistema opera bajo un modelo de **Confianza Zero** respecto a la modificació
     -   **Modificar orden/resultado**: Solo el Facilitador.
 
 4.  **Permisos de Acción (Sesiones de Votación)**:
-    -   **Crear/Cerrar/Eliminar**: Solo el Facilitador.
+    -   **Crear/Cerrar/Eliminar sesión**: Solo el Facilitador (o cron job automático).
+    -   **Iniciar votación**: El presentador de su propia sesión de crítica.
+    -   **Cancelar votación forzada**: Solo el Facilitador.
+    -   **Cancelar/Mover presentación**: El presentador de su propia sesión.
     -   **Votar**: Cualquier usuario conectado a la sesión.
     -   **Ver**: Usuarios autorizados (conectados a la sesión activa).
 
@@ -133,7 +138,7 @@ La aplicación es totalmente **Responsive**.
     -   *Form Validation*: React Hook Form 7.54.2 + Zod 3.24.1.
     -   *Estilos*: Tailwind CSS v4.1.18 (con @tailwindcss/vite plugin).
     -   *Icons*: Lucide React 0.563.0.
-    -   *Drag & Drop*: @dnd-kit 6.3.1 (para reordenar sesiones en votación).
+    -   *Nota*: @dnd-kit fue removido en v3.0 (ya no se reordena sesiones manualmente).
     -   *Notifications*: Sonner 2.0.7 (toast notifications).
     -   *State*: React Hooks + Context Pattern local.
 -   **Backend**:
@@ -162,7 +167,8 @@ Sesiones de Design Critic agendadas.
 | `notas` | string | Notas opcionales |
 | `estado` | string | "activo" / "archivado" |
 | `voteResult` | string | Resultado de votación ("Aprobado" / "Requiere nuevo") |
-| `presentationOrder` | number | Orden de presentación en sesión de votación |
+| `votingStatus` | string | Estado dentro de la sesión en vivo: `pending` / `voting` / `voted` / `cancelled` |
+| `presentationOrder` | number | *(Deprecado en v3.0)* Orden de presentación en sesión de votación |
 | `created_at` | timestamp | Fecha de creación |
 
 **Índice compuesto**: `presentador_email` (ASC) + `fecha_dc` (DESC)
@@ -175,10 +181,12 @@ Sesiones de votación en tiempo real.
 | `date` | string | Fecha de la sesión |
 | `createdAt` | timestamp | Fecha de creación |
 | `expiresAt` | timestamp | Expiración (8 horas después de creación) |
-| `status` | string | "active" / "closed" |
+| `status` | string | `waiting` / `active` / `voting` / `closed` / `cancelled` |
 | `facilitator` | string | Email del facilitador |
 | `connectedUsers` | array | Lista de usuarios conectados |
 | `votes` | array | Votos emitidos |
+| `currentVotingCriticId` | string\|null | ID de la sesión de crítica en votación (lock de concurrencia) |
+| `autoCreated` | boolean | `true` si fue creada por el cron job |
 | `summary` | object | Resumen de la sesión al cerrar |
 
 ### `user_settings`
@@ -250,28 +258,29 @@ Caché de Happy Paths obtenidos de Figma (ID del documento = fileKey del archivo
 
 ---
 
-## 🔮 Próxima Versión: v3.0 - Sala de Sesión Autónoma
+## ✅ Versión 3.0 - Sala de Sesión Autónoma (Implementada)
 
 > Documentación detallada en [implementation_plan.md](implementation_plan.md)
 
-### Propuesta 1: Sala de Espera Automática
+### Sala de Espera Automática
 - A las **2:20pm (L-V)**, el sistema crea automáticamente la sala si hay sesiones agendadas para hoy.
 - Si no hay sesiones, muestra "No hay presentaciones para hoy".
 - Si alguien agenda después de las 2:20pm, la sala se crea/actualiza en tiempo real.
 - Implementado con **Vercel Cron Job** (`api/create-daily-session.js`).
 - Acceso desde la webapp con banner/botón "Unirse a la sesión de hoy".
 
-### Propuesta 2: Control de Votación por Presentador
+### Control de Votación por Presentador
 - Cada presentador inicia su propia votación al terminar de presentar.
 - **Lock de concurrencia**: Solo una votación activa a la vez.
-- **Se elimina drag & drop** — la lista de sesiones es informativa.
+- **Se eliminó drag & drop** — la lista de sesiones es informativa.
 - **Facilitador** conserva poder de **cancelación forzada** (estado `cancelled`): la sesión vuelve a "Pendiente" y el presentador puede reiniciar.
 - **Acciones del presentador** en la sala:
   - "Cancelar presentación" — archiva la sesión.
   - "Mover a mañana" — cambia fecha al siguiente día hábil (L-J → día siguiente, V → lunes).
+- Confirmaciones con AlertDialog para todas las acciones destructivas.
 - Estados de sesión en la sala: Pendiente → En votación → Aprobado/Requiere nuevo/Cancelada.
 
-### Nuevos estados de `live_sessions`
+### Estados de `live_sessions`
 `waiting` → `voting` → `closed` / `cancelled`
 
 ---
