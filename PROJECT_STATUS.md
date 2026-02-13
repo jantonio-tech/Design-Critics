@@ -250,6 +250,32 @@ Caché de Happy Paths obtenidos de Figma (ID del documento = fileKey del archivo
 
 ---
 
+## 🔮 Próxima Versión: v3.0 - Sala de Sesión Autónoma
+
+> Documentación detallada en [implementation_plan.md](implementation_plan.md)
+
+### Propuesta 1: Sala de Espera Automática
+- A las **2:20pm (L-V)**, el sistema crea automáticamente la sala si hay sesiones agendadas para hoy.
+- Si no hay sesiones, muestra "No hay presentaciones para hoy".
+- Si alguien agenda después de las 2:20pm, la sala se crea/actualiza en tiempo real.
+- Implementado con **Vercel Cron Job** (`api/create-daily-session.js`).
+- Acceso desde la webapp con banner/botón "Unirse a la sesión de hoy".
+
+### Propuesta 2: Control de Votación por Presentador
+- Cada presentador inicia su propia votación al terminar de presentar.
+- **Lock de concurrencia**: Solo una votación activa a la vez.
+- **Se elimina drag & drop** — la lista de sesiones es informativa.
+- **Facilitador** conserva poder de **cancelación forzada** (estado `cancelled`): la sesión vuelve a "Pendiente" y el presentador puede reiniciar.
+- **Acciones del presentador** en la sala:
+  - "Cancelar presentación" — archiva la sesión.
+  - "Mover a mañana" — cambia fecha al siguiente día hábil (L-J → día siguiente, V → lunes).
+- Estados de sesión en la sala: Pendiente → En votación → Aprobado/Requiere nuevo/Cancelada.
+
+### Nuevos estados de `live_sessions`
+`waiting` → `voting` → `closed` / `cancelled`
+
+---
+
 ## 🔗 Puntos de Integración Críticos
 
 1.  **Jira API**: Fetch tickets → Extraer campo "✅ Solución:" → Parsear URL de Figma.

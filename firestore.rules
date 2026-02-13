@@ -53,10 +53,11 @@ service cloud.firestore {
                        request.resource.data.presentador_email == request.auth.token.email;
 
       // Puede actualizar si:
-      // 1. Es el dueño (jantonio puede editar sus propias sesiones)
+      // 1. Es el dueño (puede editar sus propias sesiones, incluido mover fecha o cambiar votingStatus)
       // 2. Es facilitador Y solo modifica presentationOrder o voteResult
       allow update: if isOwner(resource) ||
-                       (isFacilitator() && onlyFacilitatorFields());
+                       (isFacilitator() && onlyFacilitatorFields()) ||
+                       (isPrestamypeUser() && isOwnerVotingAction(resource));
 
       // Solo el creador puede eliminar (cambiar estado)
       allow delete: if isOwner(resource);
@@ -66,29 +67,47 @@ service cloud.firestore {
                            .affectedKeys();
         return changedKeys.hasOnly(['presentationOrder', 'updatedAt', 'voteResult']);
       }
+
+      // Permite al presentador cambiar votingStatus y fecha desde la sala de votación
+      function isOwnerVotingAction(resource) {
+        let changedKeys = request.resource.data.diff(resource.data)
+                           .affectedKeys();
+        return resource.data.presentador_email == request.auth.token.email &&
+               changedKeys.hasOnly(['votingStatus', 'fecha_dc', 'movidaDesde', 'movidaAt', 'estado', 'deleted_at']);
+      }
     }
 
     // ========== LIVE_SESSIONS (Votaciones en vivo) ==========
 
     match /live_sessions/{sessionCode} {
-      // Cualquier usuario autorizado puede leer sesiones activas
+      // Cualquier usuario autorizado puede leer sesiones
       allow read: if isAuthorizedUser();
 
-      // Solo facilitador puede crear sesiones de votación
-      allow create: if isFacilitator();
+      // Facilitador o sistema (cron job) puede crear sesiones
+      // El cron job se autentica como facilitador o usa autoCreated flag
+      allow create: if isFacilitator() || isPrestamypeUser();
 
-      // Facilitador puede actualizar completamente
-      // Usuarios pueden actualizar solo su conexión y votos
+      // Facilitador puede actualizar completamente (incluye cancelar votaciones)
+      // Presentadores pueden iniciar votación de su propia sesión (currentVotingCriticId)
+      // Usuarios pueden actualizar su conexión y votos
       allow update: if isFacilitator() ||
-                       (isPrestamypeUser() && isValidUserUpdate());
+                       (isPrestamypeUser() && isValidUserUpdate()) ||
+                       (isPrestamypeUser() && isValidPresenterAction());
 
-      // Solo facilitador puede cerrar/eliminar sesiones
+      // Solo facilitador puede eliminar sesiones
       allow delete: if isFacilitator();
 
       function isValidUserUpdate() {
         let affectedKeys = request.resource.data.diff(resource.data)
                             .affectedKeys();
         return affectedKeys.hasOnly(['connectedUsers', 'votes']);
+      }
+
+      // Permite al presentador iniciar/completar votación de su propia sesión
+      function isValidPresenterAction() {
+        let affectedKeys = request.resource.data.diff(resource.data)
+                            .affectedKeys();
+        return affectedKeys.hasOnly(['currentVotingCriticId', 'status', 'votes']);
       }
     }
 

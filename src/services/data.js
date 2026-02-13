@@ -276,6 +276,69 @@ export class FirestoreDataService {
             });
     }
 
+    /**
+     * Mover sesión al siguiente día hábil (L-J → mañana, V → lunes)
+     * Llamado por el presentador desde la sala de espera.
+     */
+    async rescheduleToNextDay(sessionId) {
+        try {
+            const docRef = this.db.collection(this.collection).doc(sessionId);
+            const docSnap = await docRef.get();
+
+            if (!docSnap.exists) {
+                throw new Error('Sesión no encontrada');
+            }
+
+            const data = docSnap.data();
+            const currentDate = data.fecha_dc;
+
+            // Calcular siguiente día hábil
+            const parts = currentDate.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            const dayOfWeek = d.getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
+
+            let daysToAdd;
+            if (dayOfWeek === 5) {
+                daysToAdd = 3; // Viernes → Lunes
+            } else if (dayOfWeek === 6) {
+                daysToAdd = 2; // Sábado → Lunes
+            } else {
+                daysToAdd = 1; // Dom-Jue → día siguiente
+            }
+
+            d.setDate(d.getDate() + daysToAdd);
+            const newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+            await docRef.update({
+                fecha_dc: newDate,
+                movidaDesde: currentDate,
+                movidaAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            return { previousDate: currentDate, newDate };
+        } catch (error) {
+            console.error('Error rescheduling session:', error);
+            throw new Error('Error al mover la sesión');
+        }
+    }
+
+    /**
+     * Cancelar presentación desde la sala de espera.
+     * Archiva la sesión (no la elimina).
+     */
+    async cancelPresentation(sessionId) {
+        try {
+            await this.db.collection(this.collection).doc(sessionId).update({
+                estado: 'cancelado',
+                votingStatus: 'cancelled',
+                cancelled_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            console.error('Error cancelling presentation:', error);
+            throw new Error('Error al cancelar la presentación');
+        }
+    }
+
     /** Mapea un doc de Firestore al formato UI */
     _mapDoc(doc) {
         const data = doc.data();
@@ -293,7 +356,8 @@ export class FirestoreDataService {
             status: data.estado,
             createdBy: data.presentador_email,
             voteResult: data.voteResult || null,
-            presentationOrder: data.presentationOrder || null
+            presentationOrder: data.presentationOrder || null,
+            votingStatus: data.votingStatus || 'pending'
         };
     }
 

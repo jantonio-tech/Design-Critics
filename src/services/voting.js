@@ -25,11 +25,13 @@ export class VotingService {
             date: dateStr,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
-            status: 'active',
+            status: 'waiting',
             facilitator: facilitatorEmail,
             connectedUsers: [],
             votes: [],
-            summary: null
+            summary: null,
+            currentVotingCriticId: null,
+            autoCreated: false
         };
 
         await db.collection(COLLECTION).doc(code).set(sessionData);
@@ -102,7 +104,7 @@ export class VotingService {
 
         const session = sessionDoc.data();
 
-        if (session.status !== 'active') {
+        if (session.status !== 'active' && session.status !== 'waiting' && session.status !== 'voting') {
             throw new Error('La sesión ya no está activa');
         }
 
@@ -281,7 +283,21 @@ export class VotingService {
         }
 
         votes[voteIndex] = vote;
-        await sessionRef.update({ votes });
+
+        // Si la votación se completó, liberar el lock para la siguiente
+        const updateData = { votes };
+        if (vote.status === 'completed') {
+            updateData.currentVotingCriticId = null;
+            updateData.status = 'waiting';
+
+            // Marcar la sesión de crítica como votada
+            if (vote.sessionId) {
+                const criticRef = db.collection(CRITICS_COLLECTION).doc(vote.sessionId);
+                await criticRef.update({ votingStatus: 'voted' });
+            }
+        }
+
+        await sessionRef.update(updateData);
 
         return vote.status === 'completed' ? vote.result : null;
     }
@@ -323,7 +339,19 @@ export class VotingService {
         }
 
         votes[voteIndex] = vote;
-        await sessionRef.update({ votes });
+
+        // Liberar el lock al cerrar votación anticipadamente
+        const updateData = { votes, currentVotingCriticId: null, status: 'waiting' };
+
+        // Marcar la sesión de crítica según resultado
+        if (vote.sessionId) {
+            const criticRef = db.collection(CRITICS_COLLECTION).doc(vote.sessionId);
+            await criticRef.update({
+                votingStatus: vote.status === 'skipped' ? 'pending' : 'voted'
+            });
+        }
+
+        await sessionRef.update(updateData);
     }
 
     // ========== CIERRE DE SESIÓN ==========
@@ -352,6 +380,7 @@ export class VotingService {
         // Actualizar sesión
         await sessionRef.update({
             status: 'closed',
+            currentVotingCriticId: null,
             summary: {
                 totalPresentations: completedVotes.length,
                 totalApproved,
@@ -454,6 +483,7 @@ export class VotingService {
 
     /**
      * Actualizar orden de presentaciones (batch)
+     * @deprecated Se eliminará en v3.0 (ya no hay drag & drop)
      */
     static async reorderPresentations(orderedPresentations) {
         const batch = db.batch();
@@ -466,6 +496,172 @@ export class VotingService {
         });
 
         await batch.commit();
+    }
+
+    // ========== v3.0: CONTROL DE VOTACIÓN POR PRESENTADOR ==========
+
+    /**
+     * Iniciar votación para una sesión de crítica específica (llamado por el presentador)
+     * Implementa lock de concurrencia: solo una votación activa a la vez.
+     */
+    static async startVoteForSession(sessionCode, criticId, presenterEmail) {
+        const sessionRef = db.collection(COLLECTION).doc(sessionCode);
+
+        return db.runTransaction(async (transaction) => {
+            const sessionDoc = await transaction.get(sessionRef);
+
+            if (!sessionDoc.exists) {
+                throw new Error('Sesión no encontrada');
+            }
+
+            const session = sessionDoc.data();
+
+            // Verificar que la sala está en estado válido
+            if (session.status !== 'waiting' && session.status !== 'voting') {
+                throw new Error('La sala no está activa');
+            }
+
+            // Lock de concurrencia: verificar que no haya otra votación en curso
+            if (session.currentVotingCriticId) {
+                throw new Error('Ya hay una votación en curso. Espera a que termine.');
+            }
+
+            // Verificar que el presentador es dueño de esta sesión de crítica
+            const criticRef = db.collection(CRITICS_COLLECTION).doc(criticId);
+            const criticDoc = await transaction.get(criticRef);
+
+            if (!criticDoc.exists) {
+                throw new Error('Sesión de crítica no encontrada');
+            }
+
+            const criticData = criticDoc.data();
+            if (criticData.presentador_email !== presenterEmail) {
+                throw new Error('Solo el presentador puede iniciar la votación de su sesión');
+            }
+
+            // Obtener usuarios online para la votación
+            const onlineUsers = (session.connectedUsers || []).filter(u => u.online === true);
+            if (onlineUsers.length === 0) {
+                throw new Error('No hay usuarios conectados para votar');
+            }
+
+            const eligibleVoters = onlineUsers.map(u => u.email);
+
+            // Crear la votación
+            const newVote = {
+                voteId: `vote-${Date.now()}`,
+                sessionId: criticId,
+                ticket: criticData.ticket,
+                happyPath: criticData.flujo || 'Sin título',
+                presenter: criticData.presentador_email,
+                presenterName: criticData.presentador || 'Usuario',
+                status: 'active',
+                launchedAt: new Date(),
+                completedAt: null,
+                eligibleVoters,
+                expectedVotes: eligibleVoters.length,
+                votes: [],
+                result: null
+            };
+
+            const votes = session.votes || [];
+            votes.push(newVote);
+
+            // Activar lock y cambiar estado de la sala a 'voting'
+            transaction.update(sessionRef, {
+                currentVotingCriticId: criticId,
+                status: 'voting',
+                votes
+            });
+
+            // Marcar la sesión de crítica como "en votación"
+            transaction.update(criticRef, {
+                votingStatus: 'voting'
+            });
+
+            return newVote.voteId;
+        });
+    }
+
+    /**
+     * Cancelar una votación en curso (facilitador o por error)
+     * La sesión de crítica vuelve a "Pendiente" y puede reiniciarse.
+     */
+    static async cancelVote(sessionCode, voteId) {
+        const sessionRef = db.collection(COLLECTION).doc(sessionCode);
+
+        return db.runTransaction(async (transaction) => {
+            const sessionDoc = await transaction.get(sessionRef);
+
+            if (!sessionDoc.exists) {
+                throw new Error('Sesión no encontrada');
+            }
+
+            const session = sessionDoc.data();
+            const votes = session.votes || [];
+            const voteIndex = votes.findIndex(v => v.voteId === voteId);
+
+            if (voteIndex === -1) {
+                throw new Error('Votación no encontrada');
+            }
+
+            const vote = votes[voteIndex];
+            const criticId = vote.sessionId;
+
+            // Marcar la votación como cancelada
+            votes[voteIndex] = {
+                ...vote,
+                status: 'cancelled',
+                completedAt: new Date(),
+                result: null
+            };
+
+            // Liberar el lock y volver a estado 'waiting'
+            transaction.update(sessionRef, {
+                currentVotingCriticId: null,
+                status: 'waiting',
+                votes
+            });
+
+            // Resetear la sesión de crítica a pendiente
+            if (criticId) {
+                const criticRef = db.collection(CRITICS_COLLECTION).doc(criticId);
+                transaction.update(criticRef, {
+                    votingStatus: 'pending'
+                });
+            }
+        });
+    }
+
+    /**
+     * Crear sesión de sala automáticamente si no existe (para agendamiento tardío post 2:20pm)
+     * Llamado desde el frontend cuando alguien agenda después de la hora del cron.
+     */
+    static async createSessionIfNeeded(facilitatorEmail) {
+        const todayStr = getPeruDateStr();
+
+        // Verificar si ya existe
+        const existing = await db.collection(COLLECTION)
+            .where('date', '==', todayStr)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            return existing.docs[0].data().code;
+        }
+
+        // Verificar si hay sesiones agendadas
+        const todaySessions = await db.collection(CRITICS_COLLECTION)
+            .where('fecha_dc', '==', todayStr)
+            .where('estado', '==', 'activo')
+            .get();
+
+        if (todaySessions.empty) {
+            return null; // No hay sesiones, no crear sala
+        }
+
+        // Crear la sesión
+        return this.createLiveSession(todayStr, facilitatorEmail);
     }
 
     /**
