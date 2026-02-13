@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VotingService } from '../services/voting';
 import { LiveVoteResults } from './LiveVoteResults';
 import { SessionSummaryModal } from './SessionSummaryModal';
@@ -18,67 +18,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
     Users, Play,
-    ArrowLeft, Loader2, CircleDot, GripVertical
+    ArrowLeft, Loader2, CircleDot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 /**
- * Tarjeta de presentación arrastrable (drag & drop)
+ * Tarjeta de presentación (estática, sin drag & drop)
  */
-function SortablePresentationCard({ presentation: p, index, onLaunch, disabled, launching }) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: p.id });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 10 : undefined,
-        opacity: isDragging ? 0.8 : 1,
-    };
-
+function PresentationCard({ presentation: p, index, onLaunch, disabled, launching }) {
     return (
-        <Card
-            ref={setNodeRef}
-            style={style}
-            className={cn(
-                "hover:border-primary/30 transition-colors",
-                isDragging && "shadow-lg ring-1 ring-primary/30"
-            )}
-        >
+        <Card className="hover:border-primary/30 transition-colors">
             <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {/* Drag handle */}
-                        <button
-                            {...attributes}
-                            {...listeners}
-                            className="p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing touch-none"
-                        >
-                            <GripVertical className="w-4 h-4 text-muted-foreground" />
-                        </button>
-
                         {/* Info de la presentación */}
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -219,27 +171,6 @@ export function VotingControlPanel({ sessionCode, user, onClose }) {
         }
     };
 
-    // Drag & drop sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
-
-    const pendingIds = useMemo(() => pendingPresentations.map(p => p.id), [pendingPresentations]);
-
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        const oldIndex = pendingPresentations.findIndex(p => p.id === active.id);
-        const newIndex = pendingPresentations.findIndex(p => p.id === over.id);
-
-        if (oldIndex === -1 || newIndex === -1) return;
-
-        const reordered = arrayMove(pendingPresentations, oldIndex, newIndex);
-        VotingService.reorderPresentations(reordered);
-    };
-
     const handleSummaryClose = () => {
         setShowSummary(false);
         onClose();
@@ -340,24 +271,18 @@ export function VotingControlPanel({ sessionCode, user, onClose }) {
                         </CardContent>
                     </Card>
                 ) : (
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <SortableContext items={pendingIds} strategy={verticalListSortingStrategy}>
-                            {pendingPresentations.map((p, index) => (
-                                <SortablePresentationCard
-                                    key={p.id}
-                                    presentation={p}
-                                    index={index}
-                                    onLaunch={handleLaunchVote}
-                                    disabled={!!activeVote || launching}
-                                    launching={launching}
-                                />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
+                    <div className="space-y-2">
+                        {pendingPresentations.map((p, index) => (
+                            <PresentationCard
+                                key={p.id}
+                                presentation={p}
+                                index={index}
+                                onLaunch={handleLaunchVote}
+                                disabled={!!activeVote || launching}
+                                launching={launching}
+                            />
+                        ))}
+                    </div>
                 )}
             </div>
 

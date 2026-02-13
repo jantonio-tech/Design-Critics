@@ -7,9 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     Vote, Loader2, CheckCircle2, Clock, Wifi, WifiOff,
-    Sparkles, CircleDot, Send, LogIn, Users, FileText
+    Sparkles, CircleDot, Send, LogIn, Users, FileText,
+    Play, X, CalendarArrowDown, Ban
 } from 'lucide-react';
+import { FirestoreDataService } from '../services/data';
 import { cn } from '@/lib/utils';
 
 /**
@@ -42,6 +54,12 @@ export function LiveVotingPage({ sessionCode }) {
 
     // Presentaciones del día (agenda)
     const [presentations, setPresentations] = useState([]);
+
+    // Acciones del presentador
+    const [startingVote, setStartingVote] = useState(false);
+    const [confirmCancel, setConfirmCancel] = useState(null); // sessionId para confirmar cancelar presentación
+    const [confirmMove, setConfirmMove] = useState(null); // sessionId para confirmar mover a mañana
+    const [confirmCancelVote, setConfirmCancelVote] = useState(null); // voteId para confirmar cancelar votación (facilitador)
 
     // Heartbeat
     const heartbeatRef = useRef(null);
@@ -228,6 +246,64 @@ export function LiveVotingPage({ sessionCode }) {
         }
     };
 
+    // Presentador: Iniciar votación
+    const handleStartVote = async (presentation) => {
+        setStartingVote(true);
+        try {
+            await VotingService.startVoteForSession(sessionCode, presentation.id, email);
+            toast.success(`Votación iniciada: ${presentation.flow || presentation.flujo}`);
+        } catch (error) {
+            console.error('Error iniciando votación:', error);
+            toast.error(error.message || 'Error al iniciar votación');
+        } finally {
+            setStartingVote(false);
+        }
+    };
+
+    // Presentador: Cancelar presentación
+    const handleCancelPresentation = async () => {
+        if (!confirmCancel) return;
+        try {
+            const dataService = new FirestoreDataService(email);
+            await dataService.cancelPresentation(confirmCancel);
+            toast.success('Presentación cancelada');
+        } catch (error) {
+            console.error('Error cancelando:', error);
+            toast.error(error.message || 'Error al cancelar');
+        } finally {
+            setConfirmCancel(null);
+        }
+    };
+
+    // Presentador: Mover a mañana
+    const handleMoveToNextDay = async () => {
+        if (!confirmMove) return;
+        try {
+            const dataService = new FirestoreDataService(email);
+            const result = await dataService.rescheduleToNextDay(confirmMove);
+            toast.success(`Presentación movida a ${result.newDate}`);
+        } catch (error) {
+            console.error('Error moviendo:', error);
+            toast.error(error.message || 'Error al mover la presentación');
+        } finally {
+            setConfirmMove(null);
+        }
+    };
+
+    // Facilitador: Cancelar votación en curso
+    const handleCancelVote = async () => {
+        if (!confirmCancelVote) return;
+        try {
+            await VotingService.cancelVote(sessionCode, confirmCancelVote);
+            toast.success('Votación cancelada. El presentador puede reiniciar.');
+        } catch (error) {
+            console.error('Error cancelando votación:', error);
+            toast.error(error.message || 'Error al cancelar votación');
+        } finally {
+            setConfirmCancelVote(null);
+        }
+    };
+
     // Renderizar
     if (error && !session) {
         return (
@@ -409,6 +485,8 @@ export function LiveVotingPage({ sessionCode }) {
     const hasVotedInActive = activeVote && votedVoteIds.has(activeVote.voteId);
     const isEligibleForActive = activeVote && activeVote.eligibleVoters?.includes(email);
     const alreadyVotedServer = activeVote && activeVote.votes?.some(v => v.email === email);
+    const isFacilitator = email === session?.facilitator;
+    const hasActiveLock = !!session?.currentVotingCriticId;
 
     return (
         <div className="min-h-screen bg-background p-4">
@@ -589,6 +667,8 @@ export function LiveVotingPage({ sessionCode }) {
                                 {presentations.map(p => {
                                     const vote = completedVotes.find(v => v.sessionId === p.id);
                                     const isVoting = session?.currentVotingCriticId === p.id;
+                                    const isOwner = email === (p.presenterEmail || p.presentador_email);
+                                    const isPending = !vote?.result && !isVoting && p.votingStatus !== 'cancelled';
                                     let statusLabel, statusClass;
 
                                     if (vote?.result) {
@@ -611,7 +691,7 @@ export function LiveVotingPage({ sessionCode }) {
                                         <Card key={p.id} className={cn(
                                             isVoting && "border-blue-500/30 ring-1 ring-blue-500/20"
                                         )}>
-                                            <CardContent className="p-3">
+                                            <CardContent className="p-3 space-y-2">
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-medium truncate">
@@ -628,11 +708,80 @@ export function LiveVotingPage({ sessionCode }) {
                                                         {statusLabel}
                                                     </span>
                                                 </div>
+
+                                                {/* Acciones del presentador (solo su propia sesión, solo si pendiente) */}
+                                                {isOwner && isPending && (
+                                                    <div className="flex items-center gap-1.5 pt-1">
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleStartVote(p)}
+                                                            disabled={hasActiveLock || startingVote}
+                                                            className="h-7 text-xs"
+                                                        >
+                                                            {startingVote ? (
+                                                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                                            ) : (
+                                                                <Play className="w-3 h-3 mr-1" />
+                                                            )}
+                                                            Iniciar Votación
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => setConfirmMove(p.id)}
+                                                            className="h-7 text-xs text-muted-foreground"
+                                                        >
+                                                            <CalendarArrowDown className="w-3 h-3 mr-1" />
+                                                            Mañana
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => setConfirmCancel(p.id)}
+                                                            className="h-7 text-xs text-destructive hover:text-destructive"
+                                                        >
+                                                            <X className="w-3 h-3 mr-1" />
+                                                            Cancelar
+                                                        </Button>
+                                                    </div>
+                                                )}
+
+                                                {/* Lock visual: otro presentador tiene votación activa */}
+                                                {isOwner && isPending && hasActiveLock && (
+                                                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                                                        Hay una votación en curso. Espera a que termine.
+                                                    </p>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     );
                                 })}
                             </div>
+                        )}
+
+                        {/* Facilitador: Cancelar votación en curso */}
+                        {isFacilitator && activeVote && (
+                            <Card className="border-amber-500/20">
+                                <CardContent className="p-3 flex items-center justify-between">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                                            Votación activa (Facilitador)
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                            {activeVote.happyPath}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setConfirmCancelVote(activeVote.voteId)}
+                                        className="h-7 text-xs text-amber-600 border-amber-500/30 hover:bg-amber-500/10 shrink-0"
+                                    >
+                                        <Ban className="w-3 h-3 mr-1" />
+                                        Cancelar votación
+                                    </Button>
+                                </CardContent>
+                            </Card>
                         )}
                     </div>
                 )}
@@ -712,6 +861,66 @@ export function LiveVotingPage({ sessionCode }) {
                     </div>
                 )}
             </div>
+
+            {/* AlertDialog: Confirmar cancelar presentación */}
+            <AlertDialog open={!!confirmCancel} onOpenChange={(open) => !open && setConfirmCancel(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Cancelar presentación?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tu sesión será archivada y no se presentará hoy. Puedes volver a agendarla después.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Volver</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleCancelPresentation}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Cancelar presentación
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* AlertDialog: Confirmar mover a mañana */}
+            <AlertDialog open={!!confirmMove} onOpenChange={(open) => !open && setConfirmMove(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Mover presentación al siguiente día hábil?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tu sesión se reprogramará para el siguiente día hábil (Lunes a Viernes).
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Volver</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMoveToNextDay}>
+                            Mover a mañana
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* AlertDialog: Confirmar cancelar votación (facilitador) */}
+            <AlertDialog open={!!confirmCancelVote} onOpenChange={(open) => !open && setConfirmCancelVote(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Cancelar votación en curso?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Los votos parciales se descartarán. La sesión volverá a estado &quot;Pendiente&quot; y el presentador podrá reiniciar la votación.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Volver</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleCancelVote}
+                            className="bg-amber-600 text-white hover:bg-amber-700"
+                        >
+                            Cancelar votación
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
