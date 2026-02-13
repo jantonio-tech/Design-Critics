@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import {
     Vote, Loader2, CheckCircle2, Clock, Wifi, WifiOff,
-    Sparkles, CircleDot, Send, LogIn
+    Sparkles, CircleDot, Send, LogIn, Users, FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +39,9 @@ export function LiveVotingPage({ sessionCode }) {
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [votedVoteIds, setVotedVoteIds] = useState(new Set());
+
+    // Presentaciones del día (agenda)
+    const [presentations, setPresentations] = useState([]);
 
     // Heartbeat
     const heartbeatRef = useRef(null);
@@ -111,6 +114,15 @@ export function LiveVotingPage({ sessionCode }) {
 
         return () => unsubscribe();
     }, [sessionCode, connected]);
+
+    // Suscribirse a las presentaciones del día (agenda)
+    useEffect(() => {
+        const unsubscribe = VotingService.subscribeTodayPresentations((data) => {
+            setPresentations(data);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     // Iniciar heartbeat
     const startHeartbeat = (code, userEmail) => {
@@ -543,23 +555,86 @@ export function LiveVotingPage({ sessionCode }) {
                         </CardContent>
                     </Card>
                 ) : (
-                    // Esperando votación
-                    <Card>
-                        <CardContent className="p-8 text-center space-y-4">
-                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto">
-                                <Clock className="w-6 h-6 text-muted-foreground" />
+                    // Sala de espera con agenda del día
+                    <div className="space-y-4">
+                        <Card>
+                            <CardContent className="p-6 text-center space-y-3">
+                                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto">
+                                    <Clock className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                                <div>
+                                    <h2 className="font-semibold">Esperando votación...</h2>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        La siguiente votación aparecerá aquí automáticamente
+                                    </p>
+                                </div>
+                                {session?.connectedUsers && (
+                                    <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                                        <Users className="w-3.5 h-3.5" />
+                                        {session.connectedUsers.filter(u => u.online).length} conectados
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Agenda del día */}
+                        {presentations.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 px-1">
+                                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        Agenda del día ({presentations.length})
+                                    </p>
+                                </div>
+                                {presentations.map(p => {
+                                    const vote = completedVotes.find(v => v.sessionId === p.id);
+                                    const isVoting = session?.currentVotingCriticId === p.id;
+                                    let statusLabel, statusClass;
+
+                                    if (vote?.result) {
+                                        statusLabel = vote.result.decision === 'approved' ? 'Aprobado' : 'Requiere nuevo';
+                                        statusClass = vote.result.decision === 'approved'
+                                            ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+                                    } else if (isVoting) {
+                                        statusLabel = 'En votación';
+                                        statusClass = 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
+                                    } else if (p.votingStatus === 'cancelled') {
+                                        statusLabel = 'Cancelada';
+                                        statusClass = 'bg-red-500/10 text-red-700 dark:text-red-400';
+                                    } else {
+                                        statusLabel = 'Pendiente';
+                                        statusClass = 'bg-muted text-muted-foreground';
+                                    }
+
+                                    return (
+                                        <Card key={p.id} className={cn(
+                                            isVoting && "border-blue-500/30 ring-1 ring-blue-500/20"
+                                        )}>
+                                            <CardContent className="p-3">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-medium truncate">
+                                                            {p.flow || p.flujo || 'Sin título'}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {p.presenter || p.presentador} · {p.ticket}
+                                                        </p>
+                                                    </div>
+                                                    <span className={cn(
+                                                        "text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0",
+                                                        statusClass
+                                                    )}>
+                                                        {statusLabel}
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                             </div>
-                            <div>
-                                <h2 className="font-semibold">Esperando votación...</h2>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    La siguiente votación aparecerá aquí automáticamente
-                                </p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                No cierres esta ventana
-                            </p>
-                        </CardContent>
-                    </Card>
+                        )}
+                    </div>
                 )}
 
                 {/* Resultado de la última votación completada (si acaba de terminar) */}

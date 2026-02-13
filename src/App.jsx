@@ -41,7 +41,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Sun, Moon, LogOut, Sparkles, User, Vote } from 'lucide-react';
+import { Sun, Moon, LogOut, Sparkles, User, Vote, Radio } from 'lucide-react';
 
 import './index.css';
 
@@ -441,6 +441,9 @@ function App() {
     const [activeVotingCode, setActiveVotingCode] = useState(null);
     const [showVotingPanel, setShowVotingPanel] = useState(false);
 
+    // Estado de sesión de hoy (sala de espera automática)
+    const todaySession = useTodaySessionStatus();
+
     const handleOpenModal = (data) => {
         setEditingDC(data);
         setModalOpen(true);
@@ -694,6 +697,35 @@ function App() {
                 darkMode={darkMode}
                 toggleDarkMode={() => setDarkMode(!darkMode)}
             />
+
+            {/* Banner de sesión de hoy */}
+            {todaySession.exists && !todaySession.closed && !todaySession.cancelled && (
+                <div className="container">
+                    <a
+                        href={`/live/${todaySession.sessionCode}`}
+                        className="flex items-center justify-between gap-3 px-4 py-3 mb-4 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer no-underline"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                            </span>
+                            <div>
+                                <p className="text-sm font-medium text-foreground">
+                                    {todaySession.voting ? 'Votación en curso' : 'Sala de espera abierta'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Código: {todaySession.sessionCode}
+                                </p>
+                            </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="shrink-0">
+                            <Radio className="w-3.5 h-3.5 mr-1.5" />
+                            Unirse
+                        </Button>
+                    </a>
+                </div>
+            )}
 
             <div className="container">
                 {showVotingPanel && activeVotingCode ? (
