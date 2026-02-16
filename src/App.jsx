@@ -204,8 +204,7 @@ const DashboardPage = ({ activeTickets, onQuickAdd, dcs, user, onDelete, figmaLi
                             onQuickAdd({
                                 ...data,
                                 date: scheduleInfo.date,
-                                simplifiedMode: true,
-                                excludeTypes: ['Iteración DS']
+                                simplifiedMode: true
                             });
                         }}
                     />
@@ -655,7 +654,25 @@ function App() {
                 toast.info('Este flujo ya fue aprobado en la sesión de votaciones');
                 return;
             }
-            // Si requiere nuevo critic, permitir a través del modal
+            // Si requiere nuevo critic, auto-crear directo (one-click)
+            if (votedCritic.voteResult.result === 'needs_critic') {
+                const autoSession = {
+                    ...data,
+                    type: 'Design Critic',
+                    notes: '',
+                    presenter: user.name,
+                    presenter_email: user.email,
+                    createdBy: user.email
+                };
+                try {
+                    await handleAddDC(autoSession);
+                    toast.success('Sesión de critics reagendada');
+                } catch (e) {
+                    console.error("Auto-reschedule failed", e);
+                    toast.error("Error al reagendar");
+                }
+                return;
+            }
         }
 
         // 2. Verificar historial del flujo
@@ -807,7 +824,6 @@ function App() {
                         user={user}
                         activeTickets={activeTickets}
                         readOnlyFields={editingDC?.simplifiedMode ? (editingDC.lockFlow ? ['ticket', 'product', 'flow'] : ['ticket', 'product']) : []}
-                        excludeTypes={editingDC?.excludeTypes || []}
                     />
                 </DialogContent>
             </Dialog>

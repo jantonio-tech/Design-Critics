@@ -17,12 +17,12 @@ import {
 import { Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const SESSION_TYPES = ['Design Critic', 'Iteración DS', 'Nuevo alcance'];
+const SESSION_TYPES = ['Design Critic', 'Nuevo alcance'];
 
 const formSchema = z.object({
     ticket: z.string().min(1, "Selecciona un ticket"),
     flow: z.string().min(1, "Selecciona un Happy Path"),
-    type: z.enum(['Design Critic', 'Iteración DS', 'Nuevo alcance']),
+    type: z.enum(['Design Critic', 'Nuevo alcance']),
     notes: z.string().optional(),
     figmaLink: z.string().optional(),
     product: z.string().optional()
@@ -35,8 +35,7 @@ function CreateCriticsSession({
     user,
     activeTickets = [],
     sessions = [],
-    readOnlyFields = [],
-    excludeTypes = []
+    readOnlyFields = []
 }) {
     const isReadOnly = (field) => readOnlyFields.includes(field);
 
@@ -344,13 +343,13 @@ function CreateCriticsSession({
                 )}
             </div>
 
-            {/* Session Type - Radio Cards */}
-            {watchedFlow && (
+            {/* Session Type - Solo mostrar selector si hay opción de Nuevo alcance */}
+            {watchedFlow && canDoNewScope && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     <Label className="text-sm font-medium">
                         Tipo de sesión <span className="text-destructive">*</span>
                     </Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Controller
                             name="type"
                             control={control}
@@ -373,55 +372,30 @@ function CreateCriticsSession({
                                         />
                                         <div className="flex flex-col">
                                             <span className="text-sm font-medium">Design Critic</span>
-                                            <span className="text-xs text-muted-foreground">Primera revisión</span>
+                                            <span className="text-xs text-muted-foreground">Revisión de diseño</span>
                                         </div>
                                     </label>
 
-                                    {!excludeTypes.includes('Iteración DS') && (
-                                        <label
-                                            className={cn(
-                                                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                                                field.value === 'Iteración DS'
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                                    : "border-input hover:bg-muted"
-                                            )}
-                                        >
-                                            <input
-                                                type="radio"
-                                                {...field}
-                                                value="Iteración DS"
-                                                checked={field.value === 'Iteración DS'}
-                                                className="h-4 w-4 text-primary accent-primary"
-                                            />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">Iteración DS</span>
-                                                <span className="text-xs text-muted-foreground">Revisión de cambios</span>
-                                            </div>
-                                        </label>
-                                    )}
-
-                                    {!excludeTypes.includes('Nuevo alcance') && canDoNewScope && (
-                                        <label
-                                            className={cn(
-                                                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                                                field.value === 'Nuevo alcance'
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                                    : "border-input hover:bg-muted"
-                                            )}
-                                        >
-                                            <input
-                                                type="radio"
-                                                {...field}
-                                                value="Nuevo alcance"
-                                                checked={field.value === 'Nuevo alcance'}
-                                                className="h-4 w-4 text-primary accent-primary"
-                                            />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium">Nuevo alcance</span>
-                                                <span className="text-xs text-muted-foreground">Cambio mayor</span>
-                                            </div>
-                                        </label>
-                                    )}
+                                    <label
+                                        className={cn(
+                                            "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                            field.value === 'Nuevo alcance'
+                                                ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                                : "border-input hover:bg-muted"
+                                        )}
+                                    >
+                                        <input
+                                            type="radio"
+                                            {...field}
+                                            value="Nuevo alcance"
+                                            checked={field.value === 'Nuevo alcance'}
+                                            className="h-4 w-4 text-primary accent-primary"
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium">Nuevo alcance</span>
+                                            <span className="text-xs text-muted-foreground">Cambio mayor (resetea conteo)</span>
+                                        </div>
+                                    </label>
                                 </>
                             )}
                         />
