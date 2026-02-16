@@ -5,7 +5,7 @@ import { getNextAvailableDate } from '../utils/votingHelpers';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, RotateCcw, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     Accordion,
@@ -145,6 +145,27 @@ export function TicketAccordion({
         return ticketSessions[ticketSessions.length - 1].voteResult;
     };
 
+    // Verificar si un HP tiene una sesión agendada pero aún no votada
+    const hasScheduledSession = (hpName) => {
+        return sessions.some(s =>
+            s.ticket === ticket.key &&
+            s.flow === hpName &&
+            s.status === 'activo' &&
+            (s.votingStatus === 'pending' || s.votingStatus === 'voting')
+        );
+    };
+
+    // Obtener la fecha de la sesión agendada
+    const getScheduledDate = (hpName) => {
+        const session = sessions.find(s =>
+            s.ticket === ticket.key &&
+            s.flow === hpName &&
+            s.status === 'activo' &&
+            (s.votingStatus === 'pending' || s.votingStatus === 'voting')
+        );
+        return session?.date || null;
+    };
+
     const getHpStatus = (hpName) => {
         const count = validFlowCounts[hpName] || 0;
 
@@ -152,6 +173,21 @@ export function TicketAccordion({
         if (count === 2) return { status: 'warning', count, label: `${count}/2 Critics (Límite)`, action: scheduleInfo.label };
         return { status: 'good', count, label: `${count}/2 Critics`, action: scheduleInfo.label };
     };
+
+    // Separar HPs en aprobados y pendientes
+    const { pendingHPs, approvedHPs } = React.useMemo(() => {
+        const pending = [];
+        const approved = [];
+        happyPaths.forEach(hp => {
+            const voteResult = getVoteStatus(hp.name);
+            if (voteResult?.result === 'approved') {
+                approved.push(hp);
+            } else {
+                pending.push(hp);
+            }
+        });
+        return { pendingHPs: pending, approvedHPs: approved };
+    }, [happyPaths, sessions, ticket.key]);
 
     return (
         <Card className={cn("transition-all", isOpen && "ring-1 ring-primary/20")}>
@@ -291,65 +327,131 @@ export function TicketAccordion({
                             </div>
                         )}
 
-                        <div className="space-y-0">
-                            {happyPaths.map(hp => {
-                                const status = getHpStatus(hp.name);
-                                const voteResult = getVoteStatus(hp.name);
-                                const isApproved = voteResult?.result === 'approved';
-                                const needsNewCritic = voteResult?.requiresNewCritic === true;
+                        {/* Sección: Happy Paths pendientes */}
+                        {pendingHPs.length > 0 && (
+                            <div className="space-y-0">
+                                {approvedHPs.length > 0 && (
+                                    <h5 className="text-xs uppercase text-muted-foreground font-semibold mb-2 mt-1">Pendientes</h5>
+                                )}
+                                {pendingHPs.map(hp => {
+                                    const status = getHpStatus(hp.name);
+                                    const voteResult = getVoteStatus(hp.name);
+                                    const needsNewCritic = voteResult?.result === 'needs_critic';
+                                    const isScheduled = hasScheduledSession(hp.name);
+                                    const scheduledDate = getScheduledDate(hp.name);
 
-                                return (
-                                    <div
-                                        key={hp.id}
-                                        className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
-                                    >
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm font-medium flex items-center gap-1.5">
-                                                {hp.name}
-                                                {isApproved && (
+                                    return (
+                                        <div
+                                            key={hp.id}
+                                            className={cn(
+                                                "flex items-center justify-between py-3 border-b border-border/50 last:border-0",
+                                                needsNewCritic && "bg-amber-500/5 rounded-lg px-2 -mx-2"
+                                            )}
+                                        >
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm font-medium flex items-center gap-1.5">
+                                                    {hp.name}
+                                                    {needsNewCritic && (
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                                                            <RotateCcw className="h-3 w-3" />
+                                                            Requiere nuevo
+                                                        </span>
+                                                    )}
+                                                    {isScheduled && !needsNewCritic && (
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                                                            <CalendarCheck className="h-3 w-3" />
+                                                            Agendado
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span className={cn(
+                                                    "text-xs font-semibold",
+                                                    status.status === 'good' && "text-green-600 dark:text-green-400",
+                                                    status.status === 'warning' && "text-yellow-600 dark:text-yellow-400",
+                                                    status.status === 'danger' && "text-red-600 dark:text-red-400"
+                                                )}>
+                                                    {status.label}
+                                                    {isScheduled && scheduledDate && !needsNewCritic && (
+                                                        <span className="text-muted-foreground font-normal ml-1.5">
+                                                            ({scheduledDate})
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            {needsNewCritic ? (
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                    onClick={() => onSchedule({
+                                                        ticket: ticket.key,
+                                                        ticketSummary: ticket.fields?.summary || ticket.summary || '',
+                                                        product: product,
+                                                        flow: hp.name,
+                                                        type: 'Design Critic',
+                                                        lockFlow: true,
+                                                        figmaLink: figmaLink,
+                                                        happyPaths: happyPaths
+                                                    })}
+                                                >
+                                                    Reagendar Critics
+                                                </Button>
+                                            ) : isScheduled ? (
+                                                <span className="text-xs text-muted-foreground italic">En espera</span>
+                                            ) : status.action && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => onSchedule({
+                                                        ticket: ticket.key,
+                                                        ticketSummary: ticket.fields?.summary || ticket.summary || '',
+                                                        product: product,
+                                                        flow: hp.name,
+                                                        type: 'Design Critic',
+                                                        lockFlow: true,
+                                                        figmaLink: figmaLink,
+                                                        happyPaths: happyPaths
+                                                    })}
+                                                >
+                                                    {status.action}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Sección: Happy Paths aprobados */}
+                        {approvedHPs.length > 0 && (
+                            <div className="space-y-0 mt-4">
+                                <h5 className="text-xs uppercase text-muted-foreground font-semibold mb-2 flex items-center gap-1.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                                    Aprobados ({approvedHPs.length})
+                                </h5>
+                                {approvedHPs.map(hp => {
+                                    const status = getHpStatus(hp.name);
+                                    return (
+                                        <div
+                                            key={hp.id}
+                                            className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0 opacity-75"
+                                        >
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm font-medium flex items-center gap-1.5">
+                                                    {hp.name}
                                                     <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-400">
                                                         <CheckCircle2 className="h-3 w-3" />
                                                         Aprobado
                                                     </span>
-                                                )}
-                                                {needsNewCritic && (
-                                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                                                        <RotateCcw className="h-3 w-3" />
-                                                        Requiere nuevo
-                                                    </span>
-                                                )}
-                                            </span>
-                                            <span className={cn(
-                                                "text-xs font-semibold",
-                                                status.status === 'good' && "text-green-600 dark:text-green-400",
-                                                status.status === 'warning' && "text-yellow-600 dark:text-yellow-400",
-                                                status.status === 'danger' && "text-red-600 dark:text-red-400"
-                                            )}>
-                                                {status.label}
-                                            </span>
+                                                </span>
+                                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                                    {status.label}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Listo</span>
                                         </div>
-                                        {isApproved ? (
-                                            <span className="text-xs text-muted-foreground italic">Evaluado</span>
-                                        ) : status.action && (
-                                            <Button
-                                                size="sm"
-                                                onClick={() => onSchedule({
-                                                    ticket: ticket.key,
-                                                    product: product,
-                                                    flow: hp.name,
-                                                    type: 'Design Critic',
-                                                    lockFlow: true,
-                                                    figmaLink: figmaLink,
-                                                    happyPaths: happyPaths
-                                                })}
-                                            >
-                                                {status.action}
-                                            </Button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>

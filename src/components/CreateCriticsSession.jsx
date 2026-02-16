@@ -198,7 +198,10 @@ function CreateCriticsSession({
         if (sessionClosed && initialData?.date === todayStr) {
             return; // No debería llegar aquí gracias al warning, pero por seguridad
         }
-        onSubmit(data);
+        // Incluir el summary del ticket para persistirlo en Firestore
+        const selectedTicket = activeTickets.find(t => t.key === data.ticket);
+        const ticketSummary = selectedTicket?.summary || initialData?.ticketSummary || '';
+        onSubmit({ ...data, ticketSummary });
     };
 
     return (

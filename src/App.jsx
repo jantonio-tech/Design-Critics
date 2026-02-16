@@ -8,6 +8,7 @@ import { AgendaCard } from './components/AgendaCard';
 import { LiveVotingPage } from './components/LiveVotingPage';
 import { VotingControlPanel } from './components/VotingControlPanel';
 import { StartVotingSessionModal } from './components/StartVotingSessionModal';
+import { HistoryPage } from './components/HistoryPage';
 import { isFacilitator, getNextAvailableDate } from './utils/votingHelpers';
 import { useTodaySessionStatus } from './hooks/useTodaySessionStatus';
 
@@ -743,6 +744,7 @@ function App() {
                             <TabsList variant="line">
                                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                                 <TabsTrigger value="calendar">Calendario</TabsTrigger>
+                                <TabsTrigger value="history">Historial</TabsTrigger>
                             </TabsList>
 
                             {isFacilitator(user.email) && (
@@ -776,6 +778,13 @@ function App() {
                                 onAddDC={handleAddDC}
                                 onEditDC={handleEditDC}
                                 onDeleteDC={handleDeleteDC}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="history" className="mt-0">
+                            <HistoryPage
+                                sessions={dcs}
+                                user={user}
                             />
                         </TabsContent>
                     </Tabs>
